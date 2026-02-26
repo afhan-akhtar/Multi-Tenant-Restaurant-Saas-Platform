@@ -1,14 +1,624 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
+// Configuration
 generator client {
-  provider = "prisma-client"
+  provider = "prisma-client-js"
   output   = "../app/generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
+}
+
+// ================================
+// Tenant & User Management
+// ================================
+
+model Tenant {
+  id           Int                  @id @default(autoincrement())
+  name         String
+  subdomain    String               @unique
+  status       String
+  createdAt    DateTime             @default(now()) @map("created_at")
+  updatedAt    DateTime             @updatedAt @map("updated_at")
+  
+  branches     Branch[]
+  users        User[]
+  subscriptions TenantSubscription[]
+  invoices     Invoice[]
+  categories   Category[]
+  addonGroups  AddonGroup[]
+  collections  Collection[]
+  customers    Customer[]
+  segments     Segment[]
+  discountCodes DiscountCode[]
+
+  @@map("tenant")
+}
+
+model Branch {
+  id           Int           @id @default(autoincrement())
+  tenantId     Int           @map("tenant_id")
+  name         String
+  address      String?
+  city         String?
+  country      String?
+  phone        String?
+  status       String
+  
+  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  users        User[]
+  tables       TableEntity[]
+  orders       OrderEntity[]
+  kdsScreens   KdsScreen[]
+  deliveryZones DeliveryZone[]
+  errorLogs    ErrorLog[]
+
+  @@map("branch")
+}
+
+model Role {
+  id          Int              @id @default(autoincrement())
+  name        String           @unique
+  description String?
+  users       User[]
+  permissions RolePermission[]
+
+  @@map("role")
+}
+
+model Permission {
+  id          Int              @id @default(autoincrement())
+  name        String           @unique
+  description String?
+  roles       RolePermission[]
+
+  @@map("permission")
+}
+
+model RolePermission {
+  id           Int        @id @default(autoincrement())
+  roleId       Int        @map("role_id")
+  permissionId Int        @map("permission_id")
+  
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@map("role_permission")
+}
+
+model User {
+  id             Int           @id @default(autoincrement())
+  tenantId       Int           @map("tenant_id")
+  branchId       Int?          @map("branch_id")
+  roleId         Int           @map("role_id")
+  name           String
+  email          String        @unique
+  passwordHash   String        @map("password_hash")
+  twoFactorEnabled Boolean     @default(false) @map("2fa_enabled")
+  lastLogin      DateTime?     @map("last_login")
+  status         String
+  
+  tenant         Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  branch         Branch?       @relation(fields: [branchId], references: [id])
+  role           Role          @relation(fields: [roleId], references: [id])
+  sessions       Session[]
+  activityLogs   ActivityLog[]
+  loginHistories LoginHistory[]
+
+  @@map("user")
+}
+
+// ================================
+// Subscription & Billing
+// ================================
+
+model SubscriptionPlan {
+  id           Int                  @id @default(autoincrement())
+  name         String
+  price        Decimal              @db.Decimal(10, 2)
+  durationDays Int                  @map("duration_days")
+  features     Json?
+  tenants      TenantSubscription[]
+
+  @@map("subscription_plan")
+}
+
+model TenantSubscription {
+  id        Int              @id @default(autoincrement())
+  tenantId  Int              @map("tenant_id")
+  planId    Int              @map("plan_id")
+  startDate DateTime         @map("start_date")
+  endDate   DateTime         @map("end_date")
+  status    String
+  
+  tenant    Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  plan      SubscriptionPlan @relation(fields: [planId], references: [id])
+
+  @@map("tenant_subscription")
+}
+
+model Invoice {
+  id        Int              @id @default(autoincrement())
+  tenantId  Int              @map("tenant_id")
+  amount    Decimal          @db.Decimal(10, 2)
+  dueDate   DateTime         @map("due_date")
+  status    String
+  pdfUrl    String?          @map("pdf_url")
+  
+  tenant    Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  payments  PaymentHistory[]
+
+  @@map("invoice")
+}
+
+model PaymentHistory {
+  id            Int      @id @default(autoincrement())
+  invoiceId     Int      @map("invoice_id")
+  paymentMethod String   @map("payment_method")
+  amount        Decimal  @db.Decimal(10, 2)
+  paidAt        DateTime @default(now()) @map("paid_at")
+  
+  invoice       Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@map("payment_history")
+}
+
+// ================================
+// Menu Engineering
+// ================================
+
+model Category {
+  id       Int       @id @default(autoincrement())
+  tenantId Int       @map("tenant_id")
+  name     String
+  parentId Int?      @map("parent_id")
+  
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  parent   Category? @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children Category[] @relation("CategoryHierarchy")
+  products Product[]
+
+  @@map("category")
+}
+
+model Product {
+  id               Int                @id @default(autoincrement())
+  categoryId       Int                @map("category_id")
+  name             String
+  description      String?
+  basePrice        Decimal            @db.Decimal(10, 2) @map("base_price")
+  plu              String?            @map("PLU")
+  barcode          String?
+  timeAvailability Json?              @map("time_availability")
+  dayAvailability  Json?              @map("day_availability")
+  stockQty         Int                @default(0) @map("stock_qty")
+  
+  category         Category           @relation(fields: [categoryId], references: [id])
+  variants         ProductVariant[]
+  orderItems       OrderItem[]
+  collections      ProductCollection[]
+  allergens        ProductAllergen[]
+  dietaryFlags     ProductDietaryFlag[]
+
+  @@map("product")
+}
+
+model ProductVariant {
+  id        Int         @id @default(autoincrement())
+  productId Int         @map("product_id")
+  size      String
+  price     Decimal     @db.Decimal(10, 2)
+  
+  product   Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  orderItems OrderItem[]
+
+  @@map("product_variant")
+}
+
+model AddonGroup {
+  id       Int     @id @default(autoincrement())
+  tenantId Int     @map("tenant_id")
+  name     String
+  
+  tenant   Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  addons   Addon[]
+
+  @@map("addon_group")
+}
+
+model Addon {
+  id           Int        @id @default(autoincrement())
+  addonGroupId Int        @map("addon_group_id")
+  name         String
+  price        Decimal    @db.Decimal(10, 2)
+  
+  addonGroup   AddonGroup @relation(fields: [addonGroupId], references: [id], onDelete: Cascade)
+
+  @@map("addon")
+}
+
+model Collection {
+  id       Int                 @id @default(autoincrement())
+  tenantId Int                 @map("tenant_id")
+  name     String
+  
+  tenant   Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  products ProductCollection[]
+
+  @@map("collection")
+}
+
+model ProductCollection {
+  productId    Int @map("product_id")
+  collectionId Int @map("collection_id")
+  
+  product    Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  collection Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+
+  @@id([productId, collectionId])
+  @@map("product_collection")
+}
+
+model Allergen {
+  id       Int               @id @default(autoincrement())
+  name     String            @unique
+  products ProductAllergen[]
+
+  @@map("allergen")
+}
+
+model ProductAllergen {
+  productId  Int @map("product_id")
+  allergenId Int @map("allergen_id")
+  
+  product  Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  allergen Allergen @relation(fields: [allergenId], references: [id], onDelete: Cascade)
+
+  @@id([productId, allergenId])
+  @@map("product_allergen")
+}
+
+model DietaryFlag {
+  id       Int                  @id @default(autoincrement())
+  name     String               @unique
+  products ProductDietaryFlag[]
+
+  @@map("dietary_flag")
+}
+
+model ProductDietaryFlag {
+  productId     Int @map("product_id")
+  dietaryFlagId Int @map("dietary_flag_id")
+  
+  product     Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  dietaryFlag DietaryFlag @relation(fields: [dietaryFlagId], references: [id], onDelete: Cascade)
+
+  @@id([productId, dietaryFlagId])
+  @@map("product_dietary_flag")
+}
+
+// ================================
+// POS & Orders
+// ================================
+
+model TableEntity {
+  id       Int       @id @default(autoincrement())
+  branchId Int       @map("branch_id")
+  name     String
+  shape    String?
+  seats    Int?
+  qrCode   String?   @map("QR_code")
+  status   String?
+  floor    String?
+  
+  branch   Branch    @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  sessions Session[]
+
+  @@map("table_entity")
+}
+
+model Session {
+  id       Int           @id @default(autoincrement())
+  tableId  Int           @map("table_id")
+  openedAt DateTime      @default(now()) @map("opened_at")
+  closedAt DateTime?     @map("closed_at")
+  waiterId Int?          @map("waiter_id")
+  status   String?
+  
+  table    TableEntity   @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  waiter   User?         @relation(fields: [waiterId], references: [id])
+  orders   OrderEntity[]
+
+  @@map("session")
+}
+
+model Customer {
+  id       Int      @id @default(autoincrement())
+  tenantId Int      @map("tenant_id")
+  name     String?
+  phone    String?
+  email    String?
+  address  String?
+  createdAt DateTime @default(now()) @map("created_at")
+  
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  orders   OrderEntity[]
+  loyalty  LoyaltyPoints?
+  emails   SendgridEmail[]
+  sms      TwilioSms[]
+
+  @@map("customer")
+}
+
+model OrderEntity {
+  id         Int         @id @default(autoincrement())
+  sessionId  Int?        @map("session_id")
+  branchId   Int         @map("branch_id")
+  customerId Int?        @map("customer_id")
+  orderType  String?     @map("order_type")
+  status     String?
+  createdAt  DateTime    @default(now()) @map("created_at")
+  updatedAt  DateTime    @updatedAt @map("updated_at")
+  
+  session    Session?    @relation(fields: [sessionId], references: [id])
+  branch     Branch      @relation(fields: [branchId], references: [id])
+  customer   Customer?   @relation(fields: [customerId], references: [id])
+  items      OrderItem[]
+  payments   Payment[]
+  feedback   Feedback[]
+  fiskaly    FiskalyTransaction[]
+  stripe     StripePayment[]
+  paypal     PaypalPayment[]
+  googleMaps GoogleMapsAddress[]
+
+  @@map("order_entity")
+}
+
+model OrderItem {
+  id        Int      @id @default(autoincrement())
+  orderId   Int      @map("order_id")
+  productId Int      @map("product_id")
+  variantId Int?     @map("variant_id")
+  quantity  Int
+  price     Decimal  @db.Decimal(10, 2)
+  notes     String?
+  status    String?
+  
+  order     OrderEntity     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product   Product         @relation(fields: [productId], references: [id])
+  variant   ProductVariant? @relation(fields: [variantId], references: [id])
+  kdsOrders KdsOrder[]
+
+  @@map("order_item")
+}
+
+model Payment {
+  id              Int      @id @default(autoincrement())
+  orderId         Int      @map("order_id")
+  paymentMethod   String?  @map("payment_method")
+  amount          Decimal  @db.Decimal(10, 2)
+  tip             Decimal? @db.Decimal(10, 2) @default(0)
+  cardType        String?  @map("card_type")
+  cardLast4       String?  @map("card_last4")
+  splitCashAmount Decimal? @db.Decimal(10, 2) @map("split_cash_amount")
+  splitCardAmount Decimal? @db.Decimal(10, 2) @map("split_card_amount")
+  createdAt       DateTime @default(now()) @map("created_at")
+  
+  order           OrderEntity @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("payment")
+}
+
+model DeliveryZone {
+  id             Int      @id @default(autoincrement())
+  branchId       Int      @map("branch_id")
+  polygonCoords  String?  @map("polygon_coords")
+  minOrderValue  Decimal? @db.Decimal(10, 2) @map("min_order_value")
+  pricingTier    Json?    @map("pricing_tier")
+  
+  branch         Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@map("delivery_zone")
+}
+
+// ================================
+// Kitchen Display System (KDS)
+// ================================
+
+model KdsScreen {
+  id       Int        @id @default(autoincrement())
+  branchId Int        @map("branch_id")
+  name     String?
+  type     String?
+  
+  branch   Branch     @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  orders   KdsOrder[]
+
+  @@map("kds_screen")
+}
+
+model KdsOrder {
+  id          Int       @id @default(autoincrement())
+  orderItemId Int       @map("order_item_id")
+  screenId    Int       @map("screen_id")
+  status      String?
+  updatedAt   DateTime  @default(now()) @map("updated_at")
+  
+  orderItem   OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  screen      KdsScreen @relation(fields: [screenId], references: [id])
+
+  @@map("kds_order")
+}
+
+// ================================
+// Marketing & CRM
+// ================================
+
+model LoyaltyPoints {
+  id         Int      @id @default(autoincrement())
+  customerId Int      @unique @map("customer_id")
+  points     Int      @default(0)
+  updatedAt  DateTime @default(now()) @map("updated_at")
+  
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@map("loyalty_points")
+}
+
+model Segment {
+  id       Int    @id @default(autoincrement())
+  tenantId Int    @map("tenant_id")
+  name     String?
+  criteria Json?
+  
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("segment")
+}
+
+model DiscountCode {
+  id        Int       @id @default(autoincrement())
+  tenantId  Int       @map("tenant_id")
+  code      String
+  type      String?
+  value     Decimal?  @db.Decimal(10, 2)
+  validFrom DateTime? @map("valid_from")
+  validTo   DateTime? @map("valid_to")
+  
+  tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("discount_code")
+}
+
+model Feedback {
+  id        Int      @id @default(autoincrement())
+  orderId   Int      @map("order_id")
+  rating    Int?
+  comment   String?
+  createdAt DateTime @default(now()) @map("created_at")
+  
+  order     OrderEntity @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("feedback")
+}
+
+// ================================
+// Audit & Logs
+// ================================
+
+model ActivityLog {
+  id         Int      @id @default(autoincrement())
+  userId     Int?     @map("user_id")
+  action     String
+  entityType String?  @map("entity_type")
+  entityId   Int?     @map("entity_id")
+  timestamp  DateTime @default(now())
+  details    Json?
+  
+  user       User?    @relation(fields: [userId], references: [id])
+
+  @@map("activity_log")
+}
+
+model ErrorLog {
+  id           Int      @id @default(autoincrement())
+  branchId     Int?     @map("branch_id")
+  errorMessage String?  @map("error_message")
+  stackTrace   String?  @map("stack_trace")
+  createdAt    DateTime @default(now()) @map("created_at")
+  
+  branch       Branch?  @relation(fields: [branchId], references: [id])
+
+  @@map("error_log")
+}
+
+model LoginHistory {
+  id        Int      @id @default(autoincrement())
+  userId    Int?     @map("user_id")
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+  success   Boolean
+  timestamp DateTime @default(now())
+  
+  user       User?    @relation(fields: [userId], references: [id])
+
+  @@map("login_history")
+}
+
+// ================================
+// Third-Party Integrations
+// ================================
+
+model FiskalyTransaction {
+  id            Int      @id @default(autoincrement())
+  orderId       Int?     @map("order_id")
+  transactionId String?  @map("transaction_id")
+  status        String?
+  signedAt      DateTime? @map("signed_at")
+  
+  order         OrderEntity? @relation(fields: [orderId], references: [id])
+
+  @@map("fiskaly_transaction")
+}
+
+model StripePayment {
+  id        Int      @id @default(autoincrement())
+  paymentId String?  @map("payment_id")
+  orderId   Int?     @map("order_id")
+  amount    Decimal? @db.Decimal(10, 2)
+  status    String?
+  paidAt    DateTime? @map("paid_at")
+  
+  order     OrderEntity? @relation(fields: [orderId], references: [id])
+
+  @@map("stripe_payment")
+}
+
+model PaypalPayment {
+  id        Int      @id @default(autoincrement())
+  paymentId String?  @map("payment_id")
+  orderId   Int?     @map("order_id")
+  amount    Decimal? @db.Decimal(10, 2)
+  status    String?
+  paidAt    DateTime? @map("paid_at")
+  
+  order     OrderEntity? @relation(fields: [orderId], references: [id])
+
+  @@map("paypal_payment")
+}
+
+model SendgridEmail {
+  id         Int      @id @default(autoincrement())
+  customerId Int?     @map("customer_id")
+  templateId String?  @map("template_id")
+  sentAt     DateTime? @map("sent_at")
+  status     String?
+  
+  customer   Customer? @relation(fields: [customerId], references: [id])
+
+  @@map("sendgrid_email")
+}
+
+model TwilioSms {
+  id         Int      @id @default(autoincrement())
+  customerId Int?     @map("customer_id")
+  message    String?
+  sentAt     DateTime? @map("sent_at")
+  status     String?
+  
+  customer   Customer? @relation(fields: [customerId], references: [id])
+
+  @@map("twilio_sms")
+}
+
+model GoogleMapsAddress {
+  id        Int      @id @default(autoincrement())
+  orderId   Int?     @map("order_id")
+  address   String?
+  latitude  Decimal? @db.Decimal(9, 6)
+  longitude Decimal? @db.Decimal(9, 6)
+  validated Boolean  @default(false)
+  
+  order     OrderEntity? @relation(fields: [orderId], references: [id])
+
+  @@map("google_maps_address")
 }
