@@ -1,4 +1,4 @@
-# My App
+# Multi Tenant Restaurant Saas Platform
 
 A simple Next.js 14 App Router project.
 
