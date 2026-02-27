@@ -1,12 +1,24 @@
+-- CreateEnum
+CREATE TYPE "Status" AS ENUM ('ACTIVE', 'INACTIVE', 'SUSPENDED', 'PENDING');
+
+-- CreateEnum
+CREATE TYPE "OrderStatus" AS ENUM ('OPEN', 'PENDING', 'PREPARING', 'READY', 'SERVED', 'COMPLETED', 'CANCELLED');
+
+-- CreateEnum
+CREATE TYPE "OrderType" AS ENUM ('DINE_IN', 'TAKEAWAY');
+
+-- CreateEnum
+CREATE TYPE "PaymentMethod" AS ENUM ('CASH', 'CARD', 'SPLIT', 'ONLINE');
+
 -- CreateTable
 CREATE TABLE "SuperAdmin" (
     "id" SERIAL NOT NULL,
     "name" TEXT NOT NULL,
     "email" TEXT NOT NULL,
     "passwordHash" TEXT NOT NULL,
-    "twoFaEnabled" BOOLEAN NOT NULL DEFAULT false,
+    "twoFactorEnabled" BOOLEAN NOT NULL DEFAULT false,
     "lastLogin" TIMESTAMP(3),
-    "status" TEXT NOT NULL DEFAULT 'active',
+    "status" "Status" NOT NULL DEFAULT 'ACTIVE',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -19,7 +31,7 @@ CREATE TABLE "Restaurant" (
     "ownerId" INTEGER NOT NULL,
     "name" TEXT NOT NULL,
     "subdomain" TEXT NOT NULL,
-    "status" TEXT NOT NULL DEFAULT 'active',
+    "status" "Status" NOT NULL DEFAULT 'ACTIVE',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -35,7 +47,7 @@ CREATE TABLE "Branch" (
     "city" TEXT NOT NULL,
     "country" TEXT NOT NULL,
     "phone" TEXT NOT NULL,
-    "status" TEXT NOT NULL DEFAULT 'open',
+    "status" "Status" NOT NULL DEFAULT 'ACTIVE',
 
     CONSTRAINT "Branch_pkey" PRIMARY KEY ("id")
 );
@@ -58,9 +70,9 @@ CREATE TABLE "Staff" (
     "name" TEXT NOT NULL,
     "email" TEXT NOT NULL,
     "passwordHash" TEXT NOT NULL,
-    "twoFaEnabled" BOOLEAN NOT NULL DEFAULT false,
+    "twoFactorEnabled" BOOLEAN NOT NULL DEFAULT false,
     "lastLogin" TIMESTAMP(3),
-    "status" TEXT NOT NULL DEFAULT 'active',
+    "status" "Status" NOT NULL DEFAULT 'ACTIVE',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -81,6 +93,7 @@ CREATE TABLE "RolePermission" (
     "id" SERIAL NOT NULL,
     "roleId" INTEGER NOT NULL,
     "permissionId" INTEGER NOT NULL,
+    "branchId" INTEGER,
 
     CONSTRAINT "RolePermission_pkey" PRIMARY KEY ("id")
 );
@@ -101,8 +114,8 @@ CREATE TABLE "Product" (
     "categoryId" INTEGER NOT NULL,
     "name" TEXT NOT NULL,
     "description" TEXT,
-    "basePrice" DECIMAL(12,2) NOT NULL,
-    "plu" TEXT,
+    "basePrice" DECIMAL(10,2) NOT NULL,
+    "PLU" TEXT,
     "barcode" TEXT,
     "availableTimes" JSONB,
     "stockQty" INTEGER NOT NULL DEFAULT 0,
@@ -116,7 +129,7 @@ CREATE TABLE "ProductVariant" (
     "id" SERIAL NOT NULL,
     "productId" INTEGER NOT NULL,
     "name" TEXT NOT NULL,
-    "price" DECIMAL(12,2) NOT NULL,
+    "price" DECIMAL(10,2) NOT NULL,
 
     CONSTRAINT "ProductVariant_pkey" PRIMARY KEY ("id")
 );
@@ -135,7 +148,7 @@ CREATE TABLE "ExtraItem" (
     "id" SERIAL NOT NULL,
     "categoryId" INTEGER NOT NULL,
     "name" TEXT NOT NULL,
-    "price" DECIMAL(12,2) NOT NULL,
+    "price" DECIMAL(10,2) NOT NULL,
 
     CONSTRAINT "ExtraItem_pkey" PRIMARY KEY ("id")
 );
@@ -147,14 +160,6 @@ CREATE TABLE "Collection" (
     "name" TEXT NOT NULL,
 
     CONSTRAINT "Collection_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "ProductCollection" (
-    "productId" INTEGER NOT NULL,
-    "collectionId" INTEGER NOT NULL,
-
-    CONSTRAINT "ProductCollection_pkey" PRIMARY KEY ("productId","collectionId")
 );
 
 -- CreateTable
@@ -183,7 +188,7 @@ CREATE TABLE "Table" (
     "shape" TEXT,
     "seats" INTEGER NOT NULL,
     "qrCode" TEXT,
-    "status" TEXT NOT NULL DEFAULT 'available',
+    "status" TEXT NOT NULL DEFAULT 'AVAILABLE',
     "floor" TEXT,
 
     CONSTRAINT "Table_pkey" PRIMARY KEY ("id")
@@ -193,10 +198,10 @@ CREATE TABLE "Table" (
 CREATE TABLE "Session" (
     "id" SERIAL NOT NULL,
     "tableId" INTEGER NOT NULL,
+    "waiterId" INTEGER NOT NULL,
     "openedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "closedAt" TIMESTAMP(3),
-    "waiterId" INTEGER NOT NULL,
-    "status" TEXT NOT NULL DEFAULT 'active',
+    "status" "Status" NOT NULL DEFAULT 'ACTIVE',
 
     CONSTRAINT "Session_pkey" PRIMARY KEY ("id")
 );
@@ -230,10 +235,10 @@ CREATE TABLE "Order" (
     "sessionId" INTEGER,
     "branchId" INTEGER NOT NULL,
     "customerId" INTEGER,
-    "orderType" TEXT NOT NULL,
-    "status" TEXT NOT NULL DEFAULT 'pending',
-    "totalAmount" DECIMAL(12,2) NOT NULL,
-    "taxAmount" DECIMAL(12,2) NOT NULL,
+    "orderType" "OrderType" NOT NULL DEFAULT 'DINE_IN',
+    "status" "OrderStatus" NOT NULL DEFAULT 'PENDING',
+    "totalAmount" DECIMAL(10,2) NOT NULL,
+    "taxAmount" DECIMAL(10,2) NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -247,10 +252,10 @@ CREATE TABLE "OrderItem" (
     "productId" INTEGER NOT NULL,
     "variantId" INTEGER,
     "quantity" INTEGER NOT NULL,
-    "price" DECIMAL(12,2) NOT NULL,
-    "taxAmount" DECIMAL(12,2) NOT NULL,
+    "price" DECIMAL(10,2) NOT NULL,
+    "taxAmount" DECIMAL(10,2) NOT NULL,
     "notes" TEXT,
-    "status" TEXT NOT NULL DEFAULT 'pending',
+    "status" TEXT NOT NULL DEFAULT 'PENDING',
 
     CONSTRAINT "OrderItem_pkey" PRIMARY KEY ("id")
 );
@@ -259,16 +264,28 @@ CREATE TABLE "OrderItem" (
 CREATE TABLE "Payment" (
     "id" SERIAL NOT NULL,
     "orderId" INTEGER NOT NULL,
-    "paymentMethod" TEXT NOT NULL,
-    "amount" DECIMAL(12,2) NOT NULL,
-    "tip" DECIMAL(12,2) NOT NULL DEFAULT 0,
+    "paymentMethod" "PaymentMethod" NOT NULL,
+    "amount" DECIMAL(10,2) NOT NULL,
+    "tip" DECIMAL(10,2) NOT NULL DEFAULT 0,
     "cardType" TEXT,
     "cardLast4" TEXT,
-    "splitCashAmount" DECIMAL(12,2),
-    "splitCardAmount" DECIMAL(12,2),
+    "splitCashAmount" DECIMAL(10,2),
+    "splitCardAmount" DECIMAL(10,2),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "Payment_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "TSETransaction" (
+    "id" SERIAL NOT NULL,
+    "orderId" INTEGER NOT NULL,
+    "paymentId" INTEGER,
+    "fiscalSignature" TEXT NOT NULL,
+    "cashbookEntry" JSONB NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "TSETransaction_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -286,7 +303,7 @@ CREATE TABLE "KDSOrder" (
     "id" SERIAL NOT NULL,
     "orderItemId" INTEGER NOT NULL,
     "screenId" INTEGER NOT NULL,
-    "status" TEXT NOT NULL DEFAULT 'queued',
+    "status" TEXT NOT NULL,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "KDSOrder_pkey" PRIMARY KEY ("id")
@@ -296,9 +313,9 @@ CREATE TABLE "KDSOrder" (
 CREATE TABLE "SubscriptionPlan" (
     "id" SERIAL NOT NULL,
     "name" TEXT NOT NULL,
-    "price" DECIMAL(12,2) NOT NULL,
+    "price" DECIMAL(10,2) NOT NULL,
     "durationDays" INTEGER NOT NULL,
-    "features" JSONB,
+    "features" JSONB NOT NULL,
 
     CONSTRAINT "SubscriptionPlan_pkey" PRIMARY KEY ("id")
 );
@@ -310,7 +327,7 @@ CREATE TABLE "RestaurantSubscription" (
     "planId" INTEGER NOT NULL,
     "startDate" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "endDate" TIMESTAMP(3) NOT NULL,
-    "status" TEXT NOT NULL DEFAULT 'active',
+    "status" "Status" NOT NULL DEFAULT 'ACTIVE',
 
     CONSTRAINT "RestaurantSubscription_pkey" PRIMARY KEY ("id")
 );
@@ -319,9 +336,9 @@ CREATE TABLE "RestaurantSubscription" (
 CREATE TABLE "Invoice" (
     "id" SERIAL NOT NULL,
     "restaurantId" INTEGER NOT NULL,
-    "amount" DECIMAL(12,2) NOT NULL,
+    "amount" DECIMAL(10,2) NOT NULL,
     "dueDate" TIMESTAMP(3) NOT NULL,
-    "status" TEXT NOT NULL DEFAULT 'unpaid',
+    "status" TEXT NOT NULL,
     "pdfUrl" TEXT,
 
     CONSTRAINT "Invoice_pkey" PRIMARY KEY ("id")
@@ -332,7 +349,7 @@ CREATE TABLE "PaymentHistory" (
     "id" SERIAL NOT NULL,
     "invoiceId" INTEGER NOT NULL,
     "paymentMethod" TEXT NOT NULL,
-    "amount" DECIMAL(12,2) NOT NULL,
+    "amount" DECIMAL(10,2) NOT NULL,
     "paidAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "PaymentHistory_pkey" PRIMARY KEY ("id")
@@ -354,11 +371,24 @@ CREATE TABLE "DiscountCode" (
     "restaurantId" INTEGER NOT NULL,
     "code" TEXT NOT NULL,
     "type" TEXT NOT NULL,
-    "value" DECIMAL(12,2) NOT NULL,
+    "value" DECIMAL(10,2) NOT NULL,
     "validFrom" TIMESTAMP(3) NOT NULL,
     "validTo" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "DiscountCode_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "EmailCampaign" (
+    "id" SERIAL NOT NULL,
+    "restaurantId" INTEGER NOT NULL,
+    "name" TEXT NOT NULL,
+    "subject" TEXT NOT NULL,
+    "content" JSONB NOT NULL,
+    "scheduledAt" TIMESTAMP(3) NOT NULL,
+    "status" TEXT NOT NULL,
+
+    CONSTRAINT "EmailCampaign_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -370,6 +400,20 @@ CREATE TABLE "Feedback" (
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "Feedback_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "AggregatorOrder" (
+    "id" SERIAL NOT NULL,
+    "restaurantId" INTEGER NOT NULL,
+    "externalOrderId" TEXT NOT NULL,
+    "aggregatorName" TEXT NOT NULL,
+    "orderData" JSONB NOT NULL,
+    "status" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "AggregatorOrder_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -408,6 +452,14 @@ CREATE TABLE "LoginHistory" (
     CONSTRAINT "LoginHistory_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "_CollectionToProduct" (
+    "A" INTEGER NOT NULL,
+    "B" INTEGER NOT NULL,
+
+    CONSTRAINT "_CollectionToProduct_AB_pkey" PRIMARY KEY ("A","B")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "SuperAdmin_email_key" ON "SuperAdmin"("email");
 
@@ -428,6 +480,9 @@ CREATE UNIQUE INDEX "LoyaltyPoint_customerId_key" ON "LoyaltyPoint"("customerId"
 
 -- CreateIndex
 CREATE UNIQUE INDEX "DiscountCode_code_key" ON "DiscountCode"("code");
+
+-- CreateIndex
+CREATE INDEX "_CollectionToProduct_B_index" ON "_CollectionToProduct"("B");
 
 -- AddForeignKey
 ALTER TABLE "Restaurant" ADD CONSTRAINT "Restaurant_ownerId_fkey" FOREIGN KEY ("ownerId") REFERENCES "SuperAdmin"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -451,6 +506,9 @@ ALTER TABLE "RolePermission" ADD CONSTRAINT "RolePermission_roleId_fkey" FOREIGN
 ALTER TABLE "RolePermission" ADD CONSTRAINT "RolePermission_permissionId_fkey" FOREIGN KEY ("permissionId") REFERENCES "Permission"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "RolePermission" ADD CONSTRAINT "RolePermission_branchId_fkey" FOREIGN KEY ("branchId") REFERENCES "Branch"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "Category" ADD CONSTRAINT "Category_restaurantId_fkey" FOREIGN KEY ("restaurantId") REFERENCES "Restaurant"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -470,12 +528,6 @@ ALTER TABLE "ExtraItem" ADD CONSTRAINT "ExtraItem_categoryId_fkey" FOREIGN KEY (
 
 -- AddForeignKey
 ALTER TABLE "Collection" ADD CONSTRAINT "Collection_restaurantId_fkey" FOREIGN KEY ("restaurantId") REFERENCES "Restaurant"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "ProductCollection" ADD CONSTRAINT "ProductCollection_productId_fkey" FOREIGN KEY ("productId") REFERENCES "Product"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "ProductCollection" ADD CONSTRAINT "ProductCollection_collectionId_fkey" FOREIGN KEY ("collectionId") REFERENCES "Collection"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "ProductNote" ADD CONSTRAINT "ProductNote_productId_fkey" FOREIGN KEY ("productId") REFERENCES "Product"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -520,6 +572,12 @@ ALTER TABLE "OrderItem" ADD CONSTRAINT "OrderItem_variantId_fkey" FOREIGN KEY ("
 ALTER TABLE "Payment" ADD CONSTRAINT "Payment_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "Order"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "TSETransaction" ADD CONSTRAINT "TSETransaction_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "Order"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "TSETransaction" ADD CONSTRAINT "TSETransaction_paymentId_fkey" FOREIGN KEY ("paymentId") REFERENCES "Payment"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "KDSScreen" ADD CONSTRAINT "KDSScreen_branchId_fkey" FOREIGN KEY ("branchId") REFERENCES "Branch"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -547,7 +605,13 @@ ALTER TABLE "Segment" ADD CONSTRAINT "Segment_restaurantId_fkey" FOREIGN KEY ("r
 ALTER TABLE "DiscountCode" ADD CONSTRAINT "DiscountCode_restaurantId_fkey" FOREIGN KEY ("restaurantId") REFERENCES "Restaurant"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "EmailCampaign" ADD CONSTRAINT "EmailCampaign_restaurantId_fkey" FOREIGN KEY ("restaurantId") REFERENCES "Restaurant"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "Feedback" ADD CONSTRAINT "Feedback_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "Order"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "AggregatorOrder" ADD CONSTRAINT "AggregatorOrder_restaurantId_fkey" FOREIGN KEY ("restaurantId") REFERENCES "Restaurant"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "ActivityLog" ADD CONSTRAINT "ActivityLog_staffId_fkey" FOREIGN KEY ("staffId") REFERENCES "Staff"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -557,3 +621,9 @@ ALTER TABLE "ErrorLog" ADD CONSTRAINT "ErrorLog_branchId_fkey" FOREIGN KEY ("bra
 
 -- AddForeignKey
 ALTER TABLE "LoginHistory" ADD CONSTRAINT "LoginHistory_staffId_fkey" FOREIGN KEY ("staffId") REFERENCES "Staff"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "_CollectionToProduct" ADD CONSTRAINT "_CollectionToProduct_A_fkey" FOREIGN KEY ("A") REFERENCES "Collection"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "_CollectionToProduct" ADD CONSTRAINT "_CollectionToProduct_B_fkey" FOREIGN KEY ("B") REFERENCES "Product"("id") ON DELETE CASCADE ON UPDATE CASCADE;
