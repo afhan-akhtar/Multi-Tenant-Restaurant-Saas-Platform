@@ -9,6 +9,8 @@ datasource db {
   provider = "postgresql"
 }
 
+
+
 // ================================
 // Enums
 // ================================
@@ -32,7 +34,7 @@ enum OrderStatus {
 
 enum OrderType {
   DINE_IN
-  TAKEAWAY
+  TAKEAWAY // Customer picks up at the counter
 }
 
 enum PaymentMethod {
@@ -47,16 +49,16 @@ enum PaymentMethod {
 // ================================
 
 model SuperAdmin {
-  id            Int           @id @default(autoincrement())
-  name          String
-  email         String        @unique
-  passwordHash  String
-  twoFactorEnabled Boolean    @default(false)
-  lastLogin     DateTime?
-  status        Status        @default(ACTIVE)
-  restaurants   Restaurant[]
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  id               Int           @id @default(autoincrement())
+  name             String
+  email            String        @unique
+  passwordHash     String
+  twoFactorEnabled Boolean       @default(false)
+  lastLogin        DateTime?
+  status           Status        @default(ACTIVE)
+  restaurants      Restaurant[]
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
 }
 
 // ================================
@@ -81,26 +83,25 @@ model Restaurant {
   segments          Segment[]
   discountCodes     DiscountCode[]
   emailCampaigns    EmailCampaign[]
-  aggregatorOrders  AggregatorOrder[]
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
 }
 
 model Branch {
-  id           Int        @id @default(autoincrement())
-  restaurantId Int
-  restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
-  name         String
-  address      String
-  city         String
-  country      String
-  phone        String
-  status       Status     @default(ACTIVE)
-  staff        Staff[]
-  tables       Table[]
-  orders       Order[]
-  kdsScreens   KDSScreen[]
-  errorLogs    ErrorLog[]
+  id              Int        @id @default(autoincrement())
+  restaurantId    Int
+  restaurant      Restaurant @relation(fields: [restaurantId], references: [id])
+  name            String
+  address         String
+  city            String
+  country         String
+  phone           String
+  status          Status     @default(ACTIVE)
+  staff           Staff[]
+  tables          Table[]
+  orders          Order[]
+  kdsScreens      KDSScreen[]
+  errorLogs       ErrorLog[]
   rolePermissions RolePermission[]
 }
 
@@ -117,24 +118,24 @@ model Role {
 }
 
 model Staff {
-  id              Int           @id @default(autoincrement())
-  restaurantId    Int
-  restaurant      Restaurant    @relation(fields: [restaurantId], references: [id])
-  branchId        Int?
-  branch          Branch?       @relation(fields: [branchId], references: [id])
-  roleId          Int
-  role            Role          @relation(fields: [roleId], references: [id])
-  name            String
-  email           String        @unique
-  passwordHash    String
-  twoFactorEnabled Boolean      @default(false)
-  lastLogin       DateTime?
-  status          Status        @default(ACTIVE)
-  sessions        Session[]
-  activityLogs    ActivityLog[]
-  loginHistory    LoginHistory[]
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  id               Int           @id @default(autoincrement())
+  restaurantId     Int
+  restaurant       Restaurant    @relation(fields: [restaurantId], references: [id])
+  branchId         Int?
+  branch           Branch?       @relation(fields: [branchId], references: [id])
+  roleId           Int
+  role             Role          @relation(fields: [roleId], references: [id])
+  name             String
+  email            String        @unique
+  passwordHash     String
+  twoFactorEnabled Boolean       @default(false)
+  lastLogin        DateTime?
+  status           Status        @default(ACTIVE)
+  sessions         Session[]
+  activityLogs     ActivityLog[]
+  loginHistory     LoginHistory[]
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
 }
 
 model Permission {
@@ -151,7 +152,7 @@ model RolePermission {
   permissionId  Int
   permission    Permission @relation(fields: [permissionId], references: [id])
   branchId      Int?
-  branch        Branch?      @relation(fields: [branchId], references: [id])
+  branch        Branch?    @relation(fields: [branchId], references: [id])
 }
 
 // ================================
@@ -184,7 +185,7 @@ model Product {
   variants       ProductVariant[]
   notes          ProductNote[]
   labels         ProductLabel[]
-  collections    Collection[]      // Implicit many-to-many
+  collections    Collection[]      
   orderItems     OrderItem[]
 }
 
@@ -218,7 +219,7 @@ model Collection {
   restaurantId  Int
   restaurant    Restaurant   @relation(fields: [restaurantId], references: [id])
   name          String
-  products      Product[]    // Implicit many-to-many
+  products      Product[]    
 }
 
 model ProductNote {
@@ -294,23 +295,23 @@ model LoyaltyPoint {
 // ================================
 
 model Order {
-  id            Int          @id @default(autoincrement())
-  sessionId     Int?
-  session       Session?     @relation(fields: [sessionId], references: [id])
-  branchId      Int
-  branch        Branch       @relation(fields: [branchId], references: [id])
-  customerId    Int?
-  customer      Customer?    @relation(fields: [customerId], references: [id])
-  orderType     OrderType    @default(DINE_IN)
-  status        OrderStatus  @default(PENDING)
-  totalAmount   Decimal      @db.Decimal(10, 2)
-  taxAmount     Decimal      @db.Decimal(10, 2)
-  items         OrderItem[]
-  payments      Payment[]
+  id              Int          @id @default(autoincrement())
+  sessionId       Int?
+  session         Session?     @relation(fields: [sessionId], references: [id])
+  branchId        Int
+  branch          Branch       @relation(fields: [branchId], references: [id])
+  customerId      Int?
+  customer        Customer?    @relation(fields: [customerId], references: [id])
+  orderType       OrderType    @default(DINE_IN)
+  status          OrderStatus  @default(PENDING)
+  totalAmount     Decimal      @db.Decimal(10, 2)
+  taxAmount       Decimal      @db.Decimal(10, 2)
+  items           OrderItem[]
+  payments        Payment[]
   tseTransactions TSETransaction[]
-  feedback      Feedback[]
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+  feedback        Feedback[]
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
 }
 
 model OrderItem {
@@ -355,7 +356,7 @@ model TSETransaction {
   paymentId       Int?
   payment         Payment?  @relation(fields: [paymentId], references: [id])
   fiscalSignature String
-  cashbookEntry   Json      // Immutable record
+  cashbookEntry   Json      
   createdAt       DateTime  @default(now())
 }
 
@@ -467,22 +468,6 @@ model Feedback {
   rating    Int
   comment   String?
   createdAt DateTime @default(now())
-}
-
-// ================================
-// Aggregators Integration
-// ================================
-
-model AggregatorOrder {
-  id              Int        @id @default(autoincrement())
-  restaurantId    Int
-  restaurant      Restaurant @relation(fields: [restaurantId], references: [id])
-  externalOrderId String
-  aggregatorName  String
-  orderData       Json
-  status          String
-  createdAt       DateTime   @default(now())
-  updatedAt       DateTime   @updatedAt
 }
 
 // ================================

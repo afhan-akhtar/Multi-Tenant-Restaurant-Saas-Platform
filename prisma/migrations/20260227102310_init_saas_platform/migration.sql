@@ -403,20 +403,6 @@ CREATE TABLE "Feedback" (
 );
 
 -- CreateTable
-CREATE TABLE "AggregatorOrder" (
-    "id" SERIAL NOT NULL,
-    "restaurantId" INTEGER NOT NULL,
-    "externalOrderId" TEXT NOT NULL,
-    "aggregatorName" TEXT NOT NULL,
-    "orderData" JSONB NOT NULL,
-    "status" TEXT NOT NULL,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
-
-    CONSTRAINT "AggregatorOrder_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
 CREATE TABLE "ActivityLog" (
     "id" SERIAL NOT NULL,
     "staffId" INTEGER NOT NULL,
@@ -609,9 +595,6 @@ ALTER TABLE "EmailCampaign" ADD CONSTRAINT "EmailCampaign_restaurantId_fkey" FOR
 
 -- AddForeignKey
 ALTER TABLE "Feedback" ADD CONSTRAINT "Feedback_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "Order"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "AggregatorOrder" ADD CONSTRAINT "AggregatorOrder_restaurantId_fkey" FOREIGN KEY ("restaurantId") REFERENCES "Restaurant"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "ActivityLog" ADD CONSTRAINT "ActivityLog_staffId_fkey" FOREIGN KEY ("staffId") REFERENCES "Staff"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
