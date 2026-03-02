@@ -275,18 +275,20 @@ export default function DashboardLayout({ children, user }) {
   return (
     <div className={styles.wrapper}>
       <aside className={`${styles.sidebar} ${sidebarOpen ? styles.sidebarOpen : styles.sidebarClosed}`}>
-        <button
-          className={styles.sidebarToggle}
-          onClick={() => setSidebarOpen(!sidebarOpen)}
-          aria-label="Toggle sidebar"
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M3 12h18M3 6h18M3 18h18" />
-          </svg>
-        </button>
-        <div className={styles.sidebarLogo}>
-          <div className={styles.logoIcon}>R</div>
-          <span className={styles.logoText}>Restaurant</span>
+        <div className={styles.sidebarHeader}>
+          <button
+            className={styles.sidebarToggle}
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            aria-label="Toggle sidebar"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M3 12h18M3 6h18M3 18h18" />
+            </svg>
+          </button>
+          <div className={styles.sidebarLogo}>
+            <div className={styles.logoIcon}>R</div>
+            <span className={styles.logoText}>Restaurant</span>
+          </div>
         </div>
         <nav className={styles.nav}>
           {sidebarItems.map((item, i) => {
