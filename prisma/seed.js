@@ -13,9 +13,9 @@ async function main() {
 
   const admin = await prisma.superAdmin.upsert({
     where: { email: "admin@platform.com" },
-    update: {},
+    update: { name: "Super Admin" },
     create: {
-      name: "Platform Admin",
+      name: "Super Admin",
       email: "admin@platform.com",
       passwordHash: hashedPassword,
     },
@@ -64,11 +64,16 @@ async function main() {
         tenantId: tenant.id,
         branchId: branch.id,
         roleId: role.id,
-        name: "Demo Staff",
+        name: "Restaurant Admin",
         email: "staff@demo.com",
         passwordHash: staffPassword,
         status: "ACTIVE",
       },
+    });
+  } else {
+    await prisma.staff.update({
+      where: { id: staff.id },
+      data: { name: "Restaurant Admin" },
     });
   }
 

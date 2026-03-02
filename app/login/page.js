@@ -57,7 +57,7 @@ function LoginForm() {
             className={`${styles.tab} ${mode === "super_admin" ? styles.active : ""}`}
             onClick={() => setMode("super_admin")}
           >
-            Platform Admin
+            Super Admin
           </button>
           <button
             type="button"

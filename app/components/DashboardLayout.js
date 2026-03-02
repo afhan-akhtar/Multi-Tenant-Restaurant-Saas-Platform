@@ -268,6 +268,10 @@ export default function DashboardLayout({ children, user }) {
 
   const pageTitle = PAGE_TITLES[pathname] || pathname?.replace(/^\//, "").replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) || "Dashboard";
 
+  const displayName = isSuperAdmin
+    ? "Super Admin"
+    : (user?.name === "Demo Staff" ? "Restaurant Admin" : (user?.name || "User"));
+
   return (
     <div className={styles.wrapper}>
       <aside className={`${styles.sidebar} ${sidebarOpen ? styles.sidebarOpen : styles.sidebarClosed}`}>
@@ -282,7 +286,7 @@ export default function DashboardLayout({ children, user }) {
         </button>
         <div className={styles.sidebarLogo}>
           <div className={styles.logoIcon}>R</div>
-          <span className={styles.logoText}>{isSuperAdmin ? "Platform" : "Restaurant"}</span>
+          <span className={styles.logoText}>Restaurant</span>
         </div>
         <nav className={styles.nav}>
           {sidebarItems.map((item, i) => {
@@ -346,9 +350,9 @@ export default function DashboardLayout({ children, user }) {
                 aria-expanded={userMenuOpen}
               >
                 <div className={styles.userAvatar}>
-                  {(user?.name?.[0] || "U").toUpperCase()}
+                  {(displayName?.[0] || "U").toUpperCase()}
                 </div>
-                <span className={styles.userName}>{user?.name || "User"}</span>
+                <span className={styles.userName}>{displayName}</span>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M6 9l6 6 6-6" />
                 </svg>
