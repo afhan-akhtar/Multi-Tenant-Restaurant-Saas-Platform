@@ -1,0 +1,489 @@
+.pos {
+  display: flex;
+  height: calc(100vh - 120px);
+  min-height: 500px;
+  background: #fff;
+}
+
+/* Header with categories */
+.posHeader {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: #2d3748;
+  padding: 0.75rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.posBrand {
+  color: #e2e8f0;
+  font-weight: 600;
+  margin-right: 1rem;
+}
+
+.posCategories {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.posCategoryTab {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+}
+
+.posCategoryTab:hover {
+  opacity: 0.9;
+}
+
+.posCategoryTabActive {
+  background: #1a202c;
+  color: #fff;
+}
+
+.posCategoryTabInactive {
+  background: #4a5568;
+  color: #fff;
+}
+
+/* Products panel */
+.productsPanel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.productsGrid {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+  align-content: start;
+}
+
+.productCard {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.productCard:hover {
+  border-color: #e94560;
+  box-shadow: 0 4px 12px rgba(233, 69, 96, 0.15);
+}
+
+.productImage {
+  width: 100%;
+  aspect-ratio: 1;
+  background: #f1f5f9;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  font-size: 2rem;
+}
+
+.productName {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #1a1d29;
+}
+
+.productDesc {
+  font-size: 0.8rem;
+  color: #718096;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.productPrice {
+  font-weight: 700;
+  font-size: 1rem;
+  color: #e94560;
+  margin-top: auto;
+}
+
+/* Cart panel */
+.cartPanel {
+  width: 360px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid #e2e8f0;
+  background: #fff;
+}
+
+.cartHeader {
+  background: #3182ce;
+  color: #fff;
+  padding: 0.75rem 1rem;
+  font-weight: 600;
+}
+
+.cartOrderType {
+  font-size: 0.8rem;
+  opacity: 0.9;
+}
+
+.cartOrderNumber {
+  font-size: 1.1rem;
+}
+
+.cartItems {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.75rem;
+}
+
+.cartItem {
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.cartItemMain {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  font-size: 0.9rem;
+}
+
+.cartItemName {
+  font-weight: 500;
+  color: #1a1d29;
+}
+
+.cartItemPrice {
+  font-weight: 600;
+  color: #e94560;
+}
+
+.cartItemModifiers {
+  margin-top: 0.25rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.cartModifier {
+  font-size: 0.75rem;
+  padding: 0.15rem 0.4rem;
+  background: #fef3c7;
+  color: #92400e;
+  border-radius: 4px;
+}
+
+.cartItemQty {
+  font-size: 0.8rem;
+  color: #718096;
+  margin-top: 0.15rem;
+}
+
+.cartSummary {
+  padding: 1rem;
+  background: #2d3748;
+  color: #fff;
+  font-size: 0.9rem;
+}
+
+.cartSummaryRow {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.3rem 0;
+}
+
+.cartSummaryTotal {
+  font-weight: 700;
+  font-size: 1.1rem;
+  padding-top: 0.5rem;
+  margin-top: 0.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.cartActions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  padding: 1rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.cartActionBtn {
+  padding: 0.6rem;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1.25rem;
+  color: #64748b;
+  transition: all 0.2s;
+}
+
+.cartActionBtn:hover {
+  background: #f8f9fa;
+  color: #3182ce;
+}
+
+.cartPrimaryBtns {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0.75rem;
+  padding: 0 1rem 1rem;
+}
+
+.cartPrimaryBtn {
+  padding: 1rem 1.25rem;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  border: 2px solid transparent;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+  letter-spacing: 0.02em;
+}
+
+.cartPrimaryBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.cartPrimaryBtn:active {
+  transform: translateY(0);
+}
+
+.cartPrimaryBtnCancel {
+  background: linear-gradient(180deg, #fff 0%, #f8fafc 100%);
+  border-color: #3182ce;
+  color: #3182ce;
+}
+
+.cartPrimaryBtnCancel:hover {
+  background: linear-gradient(180deg, #ebf8ff 0%, #e6fffa 100%);
+  border-color: #2b6cb0;
+}
+
+.cartPrimaryBtnPay {
+  background: linear-gradient(135deg, #3182ce 0%, #2c5282 100%);
+  border-color: #2b6cb0;
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(49, 130, 206, 0.4);
+}
+
+.cartPrimaryBtnPay:hover {
+  background: linear-gradient(135deg, #2b6cb0 0%, #2a4365 100%);
+  box-shadow: 0 6px 20px rgba(49, 130, 206, 0.5);
+}
+
+.cartPrimaryBtnPay:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.cartPrimaryBtnExit {
+  background: linear-gradient(180deg, #fff 0%, #f8fafc 100%);
+  border-color: #94a3b8;
+  color: #64748b;
+}
+
+.cartPrimaryBtnExit:hover {
+  background: linear-gradient(180deg, #f1f5f9 0%, #e2e8f0 100%);
+  border-color: #64748b;
+  color: #475569;
+}
+
+/* Toolbar */
+.toolbar {
+  width: 56px;
+  flex-shrink: 0;
+  background: #f8f9fa;
+  border-left: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.5rem 0;
+  gap: 0.25rem;
+}
+
+.toolbarBtn {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.toolbarBtn:hover {
+  background: #e2e8f0;
+  color: #3182ce;
+}
+
+.toolbarBtn svg {
+  width: 22px;
+  height: 22px;
+}
+
+/* Addon modal */
+.addonOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.addonModal {
+  background: #fff;
+  border-radius: 12px;
+  max-width: 480px;
+  width: 100%;
+  max-height: 90vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.addonModalHeader {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #e2e8f0;
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.addonModalBody {
+  padding: 1rem 1.5rem;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.addonGroup {
+  margin-bottom: 1rem;
+}
+
+.addonGroupTitle {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: #2d3748;
+}
+
+.addonItems {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.addonChip {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.2s;
+}
+
+.addonChip:hover {
+  border-color: #3182ce;
+  color: #3182ce;
+}
+
+.addonChipSelected {
+  background: #3182ce;
+  border-color: #3182ce;
+  color: #fff;
+}
+
+.addonModalFooter {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+}
+
+.addonModalBtn {
+  padding: 0.6rem 1.25rem;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s;
+}
+
+.addonModalBtnAdd {
+  background: #3182ce;
+  color: #fff;
+}
+
+.addonModalBtnCancel {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.emptyCart {
+  padding: 2rem;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 0.95rem;
+}
+
+@media (max-width: 1024px) {
+  .cartPanel {
+    width: 320px;
+  }
+
+  .productsGrid {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .pos {
+    flex-direction: column;
+  }
+
+  .cartPanel {
+    width: 100%;
+  }
+
+  .toolbar {
+    position: fixed;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    height: auto;
+    z-index: 50;
+  }
+}

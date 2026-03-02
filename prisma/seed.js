@@ -78,6 +78,8 @@ async function main() {
   }
 
   const productCount = await prisma.product.count({ where: { tenantId: tenant.id } });
+  const addonCount = await prisma.addonGroup.count({ where: { tenantId: tenant.id } });
+
   if (productCount === 0) {
     // Categories
     const catAppetizers = await prisma.category.create({
@@ -276,6 +278,25 @@ async function main() {
         },
       });
     }
+  }
+
+  if (addonCount === 0) {
+    const addonCustom = await prisma.addonGroup.create({
+      data: {
+        tenantId: tenant.id,
+        name: "Customizations",
+        minSelect: 0,
+        maxSelect: 5,
+      },
+    });
+    await prisma.addonItem.createMany({
+      data: [
+        { groupId: addonCustom.id, name: "No Mushrooms", price: 0 },
+        { groupId: addonCustom.id, name: "No Onion", price: 0 },
+        { groupId: addonCustom.id, name: "Add Bacon", price: 1.5 },
+        { groupId: addonCustom.id, name: "Extra Cheese", price: 2.0 },
+      ],
+    });
   }
 
   console.log("Seed completed:");
