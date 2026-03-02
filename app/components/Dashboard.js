@@ -17,47 +17,18 @@ import {
 } from "recharts";
 import styles from "./Dashboard.module.css";
 
-const METRIC_CARDS = [
-  { label: "Revenue", value: "Rs 0.00", icon: "revenue", color: "#3b82f6" },
-  { label: "Sales Return", value: "Rs 0.00", icon: "return", color: "#f97316" },
-  { label: "Purchases Return", value: "Rs 0.00", icon: "purchaseReturn", color: "#22c55e" },
-  { label: "Profit", value: "Rs 0.00", icon: "profit", color: "#3b82f6" },
-  { label: "Today Sales", value: "Rs 0.00", icon: "sales", color: "#64748b" },
-  { label: "Low Stock Items", value: "0", icon: "lowStock", color: "#ef4444" },
-  { label: "Total Customers", value: "0", icon: "customers", color: "#0ea5e9" },
-  { label: "Pending Orders", value: "0", icon: "pending", color: "#f97316" },
-  { label: "Avg Order Value", value: "Rs 0.00", icon: "avgOrder", color: "#1e40af" },
-  { label: "Total Products", value: "0", icon: "products", color: "#0ea5e9" },
-  { label: "Profit Margin", value: "0%", icon: "margin", color: "#22c55e" },
-];
-
-const PAYMENT_DATA = [
-  { name: "Cash", value: 45, color: "#22c55e" },
-  { name: "Card", value: 30, color: "#3b82f6" },
-  { name: "Stripe", value: 15, color: "#8b5cf6" },
-  { name: "PayPal", value: 10, color: "#f97316" },
-];
-
-const SALES_BY_CATEGORY = [
-  { name: "Appetizers", sales: 0.3 },
-  { name: "Main Course", sales: 0.7 },
-  { name: "Desserts", sales: 0.4 },
-  { name: "Beverages", sales: 0.9 },
-  { name: "Sides", sales: 0.2 },
-];
-
-const CASH_FLOW_DATA = [
-  { month: "04 2025", sent: 100000, received: 80000 },
-  { month: "07 2025", sent: 250000, received: 120000 },
-  { month: "10 2025", sent: 150000, received: 180000 },
-  { month: "01 2026", sent: 80000, received: 420000 },
-  { month: "04 2026", sent: 120000, received: 200000 },
-  { month: "07 2026", sent: 90000, received: 150000 },
-];
-
-const LOW_STOCK_ITEMS = [
-  { product: "Wash Basic", stock: 0 },
-  { product: "Tile Vanity", stock: 0 },
+const METRIC_CONFIG = [
+  { key: "revenue", label: "Revenue", icon: "revenue", color: "#3b82f6" },
+  { key: "salesReturn", label: "Sales Return", icon: "return", color: "#f97316" },
+  { key: "purchasesReturn", label: "Purchases Return", icon: "purchaseReturn", color: "#22c55e" },
+  { key: "profit", label: "Profit", icon: "profit", color: "#3b82f6" },
+  { key: "todaySales", label: "Today Sales", icon: "sales", color: "#64748b" },
+  { key: "lowStockItems", label: "Low Stock Items", icon: "lowStock", color: "#ef4444" },
+  { key: "totalCustomers", label: "Total Customers", icon: "customers", color: "#0ea5e9" },
+  { key: "pendingOrders", label: "Pending Orders", icon: "pending", color: "#f97316" },
+  { key: "avgOrderValue", label: "Avg Order Value", icon: "avgOrder", color: "#1e40af" },
+  { key: "totalProducts", label: "Total Products", icon: "products", color: "#0ea5e9" },
+  { key: "profitMargin", label: "Profit Margin", icon: "margin", color: "#22c55e" },
 ];
 
 const ICON_SVG = {
@@ -149,17 +120,48 @@ function MetricCard({ label, value, icon, color }) {
   );
 }
 
-export default function Dashboard() {
+const defaultData = {
+  metrics: {
+    revenue: "Rs 0.00",
+    salesReturn: "Rs 0.00",
+    purchasesReturn: "Rs 0.00",
+    profit: "Rs 0.00",
+    todaySales: "Rs 0.00",
+    lowStockItems: 0,
+    totalCustomers: 0,
+    pendingOrders: 0,
+    avgOrderValue: "Rs 0.00",
+    totalProducts: 0,
+    profitMargin: "0%",
+  },
+  paymentData: [],
+  salesByCategoryData: [{ name: "No data", sales: 0 }],
+  topProducts: [],
+  lowStockItems: [],
+  topCustomers: [],
+  cashFlowData: [{ month: "No data", sent: 0, received: 0 }],
+};
+
+export default function Dashboard({ data = defaultData }) {
+  const { metrics, paymentData, salesByCategoryData, topProducts, lowStockItems, topCustomers, cashFlowData } = data;
+
+  const metricCards = METRIC_CONFIG.map((cfg) => ({
+    ...cfg,
+    value: metrics[cfg.key] ?? "0",
+  }));
+
+  const paymentChartData = paymentData?.length ? paymentData : [{ name: "No data", value: 100, color: "#94a3b8" }];
+  const salesChartData = salesByCategoryData?.length ? salesByCategoryData : [{ name: "No data", sales: 0 }];
+  const maxSales = Math.max(...salesChartData.map((d) => d.sales), 1);
+
   return (
     <div className={styles.dashboard}>
-      {/* Metric cards grid */}
       <div className={styles.metricsGrid}>
-        {METRIC_CARDS.map((card) => (
-          <MetricCard key={card.label} {...card} />
+        {metricCards.map((card) => (
+          <MetricCard key={card.key} label={card.label} value={card.value} icon={card.icon} color={card.color} />
         ))}
       </div>
 
-      {/* Charts row 1 */}
       <div className={styles.chartsRow}>
         <div className={styles.chartCard}>
           <h3 className={styles.chartTitle}>Payment Method Breakdown (This Month)</h3>
@@ -167,7 +169,7 @@ export default function Dashboard() {
             <ResponsiveContainer width="100%" height={260}>
               <PieChart>
                 <Pie
-                  data={PAYMENT_DATA}
+                  data={paymentChartData}
                   cx="50%"
                   cy="50%"
                   innerRadius={60}
@@ -175,8 +177,8 @@ export default function Dashboard() {
                   paddingAngle={2}
                   dataKey="value"
                 >
-                  {PAYMENT_DATA.map((entry, index) => (
-                    <Cell key={index} fill={entry.color} />
+                  {paymentChartData.map((entry, index) => (
+                    <Cell key={index} fill={entry.color || "#94a3b8"} />
                   ))}
                 </Pie>
                 <Tooltip formatter={(value) => [`${value}%`, "Share"]} />
@@ -189,11 +191,11 @@ export default function Dashboard() {
           <h3 className={styles.chartTitle}>Sales by Category (This Month)</h3>
           <div className={styles.chartContainer}>
             <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={SALES_BY_CATEGORY} layout="vertical" margin={{ left: 80 }}>
+              <BarChart data={salesChartData} layout="vertical" margin={{ left: 80 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis type="number" domain={[0, 1]} tickFormatter={(v) => v.toFixed(1)} />
-                <YAxis type="category" dataKey="name" width={70} />
-                <Tooltip />
+                <XAxis type="number" tickFormatter={(v) => (v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v)} />
+                <YAxis type="category" dataKey="name" width={90} />
+                <Tooltip formatter={(v) => [`Rs ${Number(v).toLocaleString()}`, "Sales"]} />
                 <Bar dataKey="sales" fill="#e94560" radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -201,61 +203,66 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Panels row */}
       <div className={styles.panelsRow}>
         <div className={styles.panel}>
           <h3 className={styles.panelTitle}>Top Selling Products (This Month)</h3>
-          <div className={styles.panelEmpty}>No sales this month</div>
+          {topProducts?.length > 0 ? (
+            <div className={styles.topList}>
+              {topProducts.map((p, i) => (
+                <div key={i} className={styles.topRow}>
+                  <span>{p.name}</span>
+                  <span>Rs {Number(p.total).toLocaleString()}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className={styles.panelEmpty}>No sales this month</div>
+          )}
         </div>
         <div className={styles.panel}>
           <h3 className={styles.panelTitle}>Low Stock Alert</h3>
-          <div className={styles.lowStockTable}>
-            {LOW_STOCK_ITEMS.map((item) => (
-              <div key={item.product} className={styles.lowStockRow}>
-                <span className={styles.lowStockProduct}>{item.product}</span>
-                <span className={`${styles.lowStockQty} ${item.stock === 0 ? styles.lowStockZero : ""}`}>
-                  {item.stock}
-                </span>
-              </div>
-            ))}
-            {LOW_STOCK_ITEMS.length === 0 && (
-              <div className={styles.panelEmpty}>All items in stock</div>
-            )}
-          </div>
+          {lowStockItems?.length > 0 ? (
+            <div className={styles.lowStockTable}>
+              {lowStockItems.map((item, i) => (
+                <div key={i} className={styles.lowStockRow}>
+                  <span className={styles.lowStockProduct}>{item.product}</span>
+                  <span className={`${styles.lowStockQty} ${item.stock === 0 ? styles.lowStockZero : ""}`}>{item.stock}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className={styles.panelEmpty}>All items in stock</div>
+          )}
         </div>
         <div className={styles.panel}>
           <h3 className={styles.panelTitle}>Top Customers (This Month)</h3>
-          <div className={styles.panelEmpty}>No customers this month</div>
+          {topCustomers?.length > 0 ? (
+            <div className={styles.topList}>
+              {topCustomers.map((c, i) => (
+                <div key={i} className={styles.topRow}>
+                  <span>{c.name}</span>
+                  <span>Rs {Number(c.total).toLocaleString()}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className={styles.panelEmpty}>No customers this month</div>
+          )}
         </div>
       </div>
 
-      {/* Cash flow chart */}
       <div className={styles.cashFlowCard}>
         <h3 className={styles.chartTitle}>Monthly Cash Flow (Payment Sent & Received)</h3>
         <div className={styles.chartContainerLarge}>
           <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={CASH_FLOW_DATA}>
+            <LineChart data={cashFlowData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
               <XAxis dataKey="month" />
               <YAxis tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
-              <Tooltip formatter={(value) => [`Rs ${value?.toLocaleString()}`, ""]} />
+              <Tooltip formatter={(value) => [`Rs ${Number(value || 0).toLocaleString()}`, ""]} />
               <Legend />
-              <Line
-                type="monotone"
-                dataKey="sent"
-                name="Payment Sent"
-                stroke="#f97316"
-                strokeWidth={2}
-                dot={{ r: 4 }}
-              />
-              <Line
-                type="monotone"
-                dataKey="received"
-                name="Payment Received"
-                stroke="#3b82f6"
-                strokeWidth={2}
-                dot={{ r: 4 }}
-              />
+              <Line type="monotone" dataKey="sent" name="Payment Sent" stroke="#f97316" strokeWidth={2} dot={{ r: 4 }} />
+              <Line type="monotone" dataKey="received" name="Payment Received" stroke="#3b82f6" strokeWidth={2} dot={{ r: 4 }} />
             </LineChart>
           </ResponsiveContainer>
         </div>

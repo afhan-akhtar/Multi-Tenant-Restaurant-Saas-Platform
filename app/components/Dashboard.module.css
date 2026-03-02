@@ -120,6 +120,25 @@
   text-align: center;
 }
 
+.topList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.topRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+  font-size: 0.9rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.topRow:last-child {
+  border-bottom: none;
+}
+
 .lowStockTable {
   display: flex;
   flex-direction: column;
