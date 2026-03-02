@@ -3,14 +3,23 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "prisma generate && next dev",
+    "build": "prisma generate && next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "db:seed": "node prisma/seed.js"
+  },
+  "prisma": {
+    "seed": "node prisma/seed.js"
   },
   "dependencies": {
+    "@prisma/adapter-pg": "^7.4.2",
     "@prisma/client": "^7.4.1",
+    "bcrypt": "^6.0.0",
+    "dotenv": "^17.3.1",
     "next": "^14.2.35",
+    "next-auth": "^4.24.13",
+    "pg": "^8.19.0",
     "prisma": "^7.4.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
