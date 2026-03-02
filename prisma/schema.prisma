@@ -11,495 +11,421 @@ datasource db {
 
 
 
-// ================================
-// Enums
-// ================================
+//////////////////// ENUMS ////////////////////
 
-enum Status {
+enum TenantStatus {
   ACTIVE
   INACTIVE
-  SUSPENDED
-  PENDING
+  BLOCKED
 }
 
-enum OrderStatus {
-  OPEN
-  PENDING
-  PREPARING
-  READY
-  SERVED
-  COMPLETED
-  CANCELLED
+enum StaffStatus {
+  ACTIVE
+  INACTIVE
 }
 
 enum OrderType {
   DINE_IN
-  TAKEAWAY // Customer picks up at the counter
+  TAKEAWAY
+}
+
+enum OrderStatus {
+  OPEN
+  CONFIRMED
+  PREPARING
+  READY
+  COMPLETED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
 }
 
 enum PaymentMethod {
   CASH
+  STRIPE
+  PAYPAL
   CARD
-  SPLIT
-  ONLINE
 }
 
-// ================================
-// Super Admin & Platform
-// ================================
+enum TableStatus {
+  AVAILABLE
+  OCCUPIED
+  RESERVED
+}
+
+enum KDSStatus {
+  CREATED
+  COOKING
+  READY
+  DISPATCHED
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  EXPIRED
+  CANCELLED
+}
+
+//////////////////// TABLES ////////////////////
 
 model SuperAdmin {
-  id               Int           @id @default(autoincrement())
-  name             String
-  email            String        @unique
-  passwordHash     String
-  twoFactorEnabled Boolean       @default(false)
-  lastLogin        DateTime?
-  status           Status        @default(ACTIVE)
-  restaurants      Restaurant[]
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
+  id          Int      @id @default(autoincrement())
+  name        String
+  email       String   @unique
+  passwordHash String
+  createdAt   DateTime @default(now())
 }
 
-// ================================
-// Restaurants (Tenants)
-// ================================
+model Tenant {
+  id          Int                  @id @default(autoincrement())
+  name        String
+  subdomain   String               @unique
+  status      TenantStatus         @default(ACTIVE)
+  createdAt   DateTime             @default(now())
 
-model Restaurant {
-  id                Int             @id @default(autoincrement())
-  ownerId           Int
-  owner             SuperAdmin      @relation(fields: [ownerId], references: [id])
+  branches      Branch[]
+  roles         Role[]
+  staff         Staff[]
+  subscription  TenantSubscription[]
+  categories    Category[]
+  products      Product[]
+  addonGroups   AddonGroup[]
+  diningTables  DiningTable[]
+  sessions      Session[]
+  customers     Customer[]
+  segments      Segment[]
+  emailCampaigns EmailCampaign[]
+  orders        Order[]
+  cashbookEntries CashbookEntry[]
+  auditLogs     AuditLog[]
+}
+
+model SubscriptionPlan {
+  id                Int                  @id @default(autoincrement())
   name              String
-  subdomain         String          @unique
-  status            Status          @default(ACTIVE)
-  branches          Branch[]
-  staff             Staff[]
-  categories        Category[]
-  extraCategories   ExtraCategory[]
-  collections       Collection[]
-  customers         Customer[]
-  subscriptions     RestaurantSubscription[]
-  invoices          Invoice[]
-  segments          Segment[]
-  discountCodes     DiscountCode[]
-  emailCampaigns    EmailCampaign[]
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
+  monthlyPrice      Decimal
+  commissionPercent Decimal
+  features          Json
+  tenantSubscriptions TenantSubscription[]
+}
+
+model TenantSubscription {
+  id        Int                @id @default(autoincrement())
+  tenantId  Int
+  planId    Int
+  status    SubscriptionStatus
+  startDate DateTime
+  endDate   DateTime
+
+  tenant    Tenant             @relation(fields: [tenantId], references: [id])
+  plan      SubscriptionPlan   @relation(fields: [planId], references: [id])
+
+  @@index([tenantId])
 }
 
 model Branch {
-  id              Int        @id @default(autoincrement())
-  restaurantId    Int
-  restaurant      Restaurant @relation(fields: [restaurantId], references: [id])
-  name            String
-  address         String
-  city            String
-  country         String
-  phone           String
-  status          Status     @default(ACTIVE)
-  staff           Staff[]
-  tables          Table[]
-  orders          Order[]
-  kdsScreens      KDSScreen[]
-  errorLogs       ErrorLog[]
-  rolePermissions RolePermission[]
-}
+  id       Int     @id @default(autoincrement())
+  tenantId Int
+  name     String
+  address  String
+  city     String
+  country  String
 
-// ================================
-// Staff & RBAC
-// ================================
+  tenant       Tenant       @relation(fields: [tenantId], references: [id])
+  staff        Staff[]
+  diningTables DiningTable[]
+  sessions     Session[]
+  orders       Order[]
+  kdsScreens   KDSScreen[]
+
+  @@index([tenantId])
+}
 
 model Role {
-  id              Int              @id @default(autoincrement())
-  name            String           @unique
-  description     String?
-  staff           Staff[]
-  rolePermissions RolePermission[]
-}
+  id       Int     @id @default(autoincrement())
+  tenantId Int
+  name     String
 
-model Staff {
-  id               Int           @id @default(autoincrement())
-  restaurantId     Int
-  restaurant       Restaurant    @relation(fields: [restaurantId], references: [id])
-  branchId         Int?
-  branch           Branch?       @relation(fields: [branchId], references: [id])
-  roleId           Int
-  role             Role          @relation(fields: [roleId], references: [id])
-  name             String
-  email            String        @unique
-  passwordHash     String
-  twoFactorEnabled Boolean       @default(false)
-  lastLogin        DateTime?
-  status           Status        @default(ACTIVE)
-  sessions         Session[]
-  activityLogs     ActivityLog[]
-  loginHistory     LoginHistory[]
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
+  tenant   Tenant  @relation(fields: [tenantId], references: [id])
+  staff    Staff[]
+  rolePermissions RolePermission[]
+
+  @@index([tenantId])
 }
 
 model Permission {
-  id              Int              @id @default(autoincrement())
-  name            String           @unique
-  description     String?
+  id   Int    @id @default(autoincrement())
+  code String @unique
   rolePermissions RolePermission[]
 }
 
 model RolePermission {
-  id            Int        @id @default(autoincrement())
-  roleId        Int
-  role          Role       @relation(fields: [roleId], references: [id])
-  permissionId  Int
-  permission    Permission @relation(fields: [permissionId], references: [id])
-  branchId      Int?
-  branch        Branch?    @relation(fields: [branchId], references: [id])
+  id           Int        @id @default(autoincrement())
+  roleId       Int
+  permissionId Int
+
+  role        Role       @relation(fields: [roleId], references: [id])
+  permission  Permission @relation(fields: [permissionId], references: [id])
+
+  @@unique([roleId, permissionId])
 }
 
-// ================================
-// Menu & Products
-// ================================
+model Staff {
+  id         Int         @id @default(autoincrement())
+  tenantId   Int
+  branchId   Int
+  roleId     Int
+  name       String
+  email      String
+  passwordHash String
+  status     StaffStatus @default(ACTIVE)
+  createdAt  DateTime    @default(now())
+
+  tenant     Tenant      @relation(fields: [tenantId], references: [id])
+  branch     Branch      @relation(fields: [branchId], references: [id])
+  role       Role        @relation(fields: [roleId], references: [id])
+  sessions   Session[]   @relation("WaiterSessions")
+  auditLogs  AuditLog[]
+
+  @@index([tenantId])
+}
 
 model Category {
-  id            Int          @id @default(autoincrement())
-  restaurantId  Int
-  restaurant    Restaurant   @relation(fields: [restaurantId], references: [id])
-  name          String
-  parentId      Int?
-  parent        Category?    @relation("SubCategories", fields: [parentId], references: [id])
-  subCategories Category[]   @relation("SubCategories")
-  products      Product[]
+  id       Int      @id @default(autoincrement())
+  tenantId Int
+  name     String
+  parentId Int?
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id])
+  parent   Category? @relation("CategoryToCategory", fields: [parentId], references: [id])
+  children Category[] @relation("CategoryToCategory")
+
+  products Product[]
+
+  @@index([tenantId])
 }
 
 model Product {
-  id             Int               @id @default(autoincrement())
-  categoryId     Int
-  category       Category          @relation(fields: [categoryId], references: [id])
-  name           String
-  description    String?
-  basePrice      Decimal           @db.Decimal(10, 2)
-  PLU            String?
-  barcode        String?
-  availableTimes Json?
-  stockQty       Int               @default(0)
-  taxRate        Decimal           @db.Decimal(5, 2)
-  variants       ProductVariant[]
-  notes          ProductNote[]
-  labels         ProductLabel[]
-  collections    Collection[]      
-  orderItems     OrderItem[]
+  id          Int           @id @default(autoincrement())
+  tenantId    Int
+  categoryId  Int
+  name        String
+  description String
+  plu         String
+  basePrice   Decimal
+  taxRate     Decimal
+  allergens   Json?
+  dietaryFlags Json?
+  isActive    Boolean      @default(true)
+
+  tenant     Tenant        @relation(fields: [tenantId], references: [id])
+  category   Category      @relation(fields: [categoryId], references: [id])
+  variants   ProductVariant[]
+  orderItems OrderItem[]
+
+  @@index([tenantId])
 }
 
 model ProductVariant {
-  id          Int         @id @default(autoincrement())
-  productId   Int
-  product     Product     @relation(fields: [productId], references: [id])
-  name        String
-  price       Decimal     @db.Decimal(10, 2)
-  orderItems  OrderItem[]
-}
-
-model ExtraCategory {
-  id            Int          @id @default(autoincrement())
-  restaurantId  Int
-  restaurant    Restaurant   @relation(fields: [restaurantId], references: [id])
-  name          String
-  items         ExtraItem[]
-}
-
-model ExtraItem {
-  id          Int            @id @default(autoincrement())
-  categoryId  Int
-  category    ExtraCategory  @relation(fields: [categoryId], references: [id])
-  name        String
-  price       Decimal        @db.Decimal(10, 2)
-}
-
-model Collection {
-  id            Int          @id @default(autoincrement())
-  restaurantId  Int
-  restaurant    Restaurant   @relation(fields: [restaurantId], references: [id])
-  name          String
-  products      Product[]    
-}
-
-model ProductNote {
-  id        Int      @id @default(autoincrement())
+  id        Int     @id @default(autoincrement())
   productId Int
-  product   Product  @relation(fields: [productId], references: [id])
   name      String
+  price     Decimal
+
+  product   Product @relation(fields: [productId], references: [id])
 }
 
-model ProductLabel {
-  id        Int      @id @default(autoincrement())
-  productId Int
-  product   Product  @relation(fields: [productId], references: [id])
+model AddonGroup {
+  id        Int     @id @default(autoincrement())
+  tenantId  Int
   name      String
+  minSelect Int
+  maxSelect Int
+
+  tenant    Tenant      @relation(fields: [tenantId], references: [id])
+  addonItems AddonItem[]
 }
 
-// ================================
-// POS: Tables & Sessions
-// ================================
+model AddonItem {
+  id      Int        @id @default(autoincrement())
+  groupId Int
+  name    String
+  price   Decimal
 
-model Table {
-  id        Int       @id @default(autoincrement())
+  group   AddonGroup @relation(fields: [groupId], references: [id])
+}
+
+model DiningTable {
+  id        Int         @id @default(autoincrement())
+  tenantId  Int
   branchId  Int
-  branch    Branch    @relation(fields: [branchId], references: [id])
   name      String
-  shape     String?
   seats     Int
-  qrCode    String?
-  status    String    @default("AVAILABLE")
-  floor     String?
-  sessions  Session[]
-}
+  status    TableStatus
 
-model Session {
-  id        Int       @id @default(autoincrement())
-  tableId   Int
-  table     Table     @relation(fields: [tableId], references: [id])
-  waiterId  Int
-  waiter    Staff     @relation(fields: [waiterId], references: [id])
-  openedAt  DateTime  @default(now())
-  closedAt  DateTime?
-  status    Status    @default(ACTIVE)
+  tenant    Tenant      @relation(fields: [tenantId], references: [id])
+  branch    Branch      @relation(fields: [branchId], references: [id])
+  sessions  Session[]
   orders    Order[]
 }
 
-// ================================
-// Customers & Loyalty
-// ================================
+model Session {
+  id        Int        @id @default(autoincrement())
+  tenantId  Int
+  branchId  Int
+  tableId   Int
+  waiterId  Int
+  openedAt  DateTime
+  closedAt  DateTime?
+
+  tenant    Tenant     @relation(fields: [tenantId], references: [id])
+  branch    Branch     @relation(fields: [branchId], references: [id])
+  table     DiningTable @relation(fields: [tableId], references: [id])
+  waiter    Staff       @relation("WaiterSessions", fields: [waiterId], references: [id])
+  orders    Order[]
+}
 
 model Customer {
-  id            Int             @id @default(autoincrement())
-  restaurantId  Int
-  restaurant    Restaurant      @relation(fields: [restaurantId], references: [id])
-  name          String?         @default("Guest")
-  phone         String?
-  email         String?
-  address       String?
-  loyaltyPoints LoyaltyPoint?
-  orders        Order[]
-  createdAt     DateTime        @default(now())
-}
-
-model LoyaltyPoint {
   id          Int       @id @default(autoincrement())
-  customerId  Int       @unique
-  customer    Customer  @relation(fields: [customerId], references: [id])
-  points      Int       @default(0)
-  updatedAt   DateTime  @updatedAt
+  tenantId    Int
+  name        String
+  phone       String
+  email       String
+  loyaltyPoints Int     @default(0)
+
+  tenant      Tenant    @relation(fields: [tenantId], references: [id])
+  orders      Order[]
 }
-
-// ================================
-// Orders & Payments
-// ================================
-
-model Order {
-  id              Int          @id @default(autoincrement())
-  sessionId       Int?
-  session         Session?     @relation(fields: [sessionId], references: [id])
-  branchId        Int
-  branch          Branch       @relation(fields: [branchId], references: [id])
-  customerId      Int?
-  customer        Customer?    @relation(fields: [customerId], references: [id])
-  orderType       OrderType    @default(DINE_IN)
-  status          OrderStatus  @default(PENDING)
-  totalAmount     Decimal      @db.Decimal(10, 2)
-  taxAmount       Decimal      @db.Decimal(10, 2)
-  items           OrderItem[]
-  payments        Payment[]
-  tseTransactions TSETransaction[]
-  feedback        Feedback[]
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
-}
-
-model OrderItem {
-  id          Int          @id @default(autoincrement())
-  orderId     Int
-  order       Order        @relation(fields: [orderId], references: [id])
-  productId   Int
-  product     Product      @relation(fields: [productId], references: [id])
-  variantId   Int?
-  variant     ProductVariant? @relation(fields: [variantId], references: [id])
-  quantity    Int
-  price       Decimal      @db.Decimal(10, 2)
-  taxAmount   Decimal      @db.Decimal(10, 2)
-  notes       String?
-  status      String       @default("PENDING")
-  kdsOrders   KDSOrder[]
-}
-
-model Payment {
-  id              Int            @id @default(autoincrement())
-  orderId         Int
-  order           Order          @relation(fields: [orderId], references: [id])
-  paymentMethod   PaymentMethod
-  amount          Decimal        @db.Decimal(10, 2)
-  tip             Decimal        @default(0) @db.Decimal(10, 2)
-  cardType        String?
-  cardLast4       String?
-  splitCashAmount Decimal?       @db.Decimal(10, 2)
-  splitCardAmount Decimal?       @db.Decimal(10, 2)
-  tseTransactions TSETransaction[]
-  createdAt       DateTime       @default(now())
-}
-
-// ================================
-// TSE (German Fiscal Compliance)
-// ================================
-
-model TSETransaction {
-  id              Int       @id @default(autoincrement())
-  orderId         Int
-  order           Order     @relation(fields: [orderId], references: [id])
-  paymentId       Int?
-  payment         Payment?  @relation(fields: [paymentId], references: [id])
-  fiscalSignature String
-  cashbookEntry   Json      
-  createdAt       DateTime  @default(now())
-}
-
-// ================================
-// Kitchen Display System (KDS)
-// ================================
-
-model KDSScreen {
-  id        Int        @id @default(autoincrement())
-  branchId  Int
-  branch    Branch     @relation(fields: [branchId], references: [id])
-  name      String
-  type      String
-  kdsOrders KDSOrder[]
-}
-
-model KDSOrder {
-  id          Int        @id @default(autoincrement())
-  orderItemId Int
-  orderItem   OrderItem  @relation(fields: [orderItemId], references: [id])
-  screenId    Int
-  screen      KDSScreen  @relation(fields: [screenId], references: [id])
-  status      String
-  updatedAt   DateTime   @updatedAt
-}
-
-// ================================
-// Subscriptions & Billing
-// ================================
-
-model SubscriptionPlan {
-  id            Int                      @id @default(autoincrement())
-  name          String
-  price         Decimal                  @db.Decimal(10, 2)
-  durationDays  Int
-  features      Json
-  subscriptions RestaurantSubscription[]
-}
-
-model RestaurantSubscription {
-  id            Int               @id @default(autoincrement())
-  restaurantId  Int
-  restaurant    Restaurant        @relation(fields: [restaurantId], references: [id])
-  planId        Int
-  plan          SubscriptionPlan  @relation(fields: [planId], references: [id])
-  startDate     DateTime          @default(now())
-  endDate       DateTime
-  status        Status            @default(ACTIVE)
-}
-
-model Invoice {
-  id            Int              @id @default(autoincrement())
-  restaurantId  Int
-  restaurant    Restaurant       @relation(fields: [restaurantId], references: [id])
-  amount        Decimal          @db.Decimal(10, 2)
-  dueDate       DateTime
-  status        String
-  pdfUrl        String?
-  payments      PaymentHistory[]
-}
-
-model PaymentHistory {
-  id            Int      @id @default(autoincrement())
-  invoiceId     Int
-  invoice       Invoice  @relation(fields: [invoiceId], references: [id])
-  paymentMethod String
-  amount        Decimal  @db.Decimal(10, 2)
-  paidAt        DateTime @default(now())
-}
-
-// ================================
-// Marketing & CRM
-// ================================
 
 model Segment {
-  id            Int        @id @default(autoincrement())
-  restaurantId  Int
-  restaurant    Restaurant @relation(fields: [restaurantId], references: [id])
-  name          String
-  criteria      Json
-}
+  id        Int      @id @default(autoincrement())
+  tenantId  Int
+  name      String
+  rules     Json
 
-model DiscountCode {
-  id            Int        @id @default(autoincrement())
-  restaurantId  Int
-  restaurant    Restaurant @relation(fields: [restaurantId], references: [id])
-  code          String     @unique
-  type          String
-  value         Decimal    @db.Decimal(10, 2)
-  validFrom     DateTime
-  validTo       DateTime
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
 }
 
 model EmailCampaign {
-  id            Int        @id @default(autoincrement())
-  restaurantId  Int
-  restaurant    Restaurant @relation(fields: [restaurantId], references: [id])
-  name          String
-  subject       String
-  content       Json
-  scheduledAt   DateTime
-  status        String
+  id         Int      @id @default(autoincrement())
+  tenantId   Int
+  subject    String
+  content    Json
+  scheduledAt DateTime
+
+  tenant     Tenant   @relation(fields: [tenantId], references: [id])
 }
 
-model Feedback {
-  id        Int      @id @default(autoincrement())
-  orderId   Int
-  order     Order    @relation(fields: [orderId], references: [id])
-  rating    Int
-  comment   String?
-  createdAt DateTime @default(now())
+model Order {
+  id           Int       @id @default(autoincrement())
+  tenantId     Int
+  branchId     Int
+  sessionId    Int
+  tableId      Int
+  customerId   Int
+  orderNumber  String
+  orderType    OrderType
+  status       OrderStatus
+  subtotal     Decimal
+  taxAmount    Decimal
+  discountAmount Decimal
+  tipAmount    Decimal
+  grandTotal   Decimal
+  createdAt    DateTime @default(now())
+
+  tenant       Tenant    @relation(fields: [tenantId], references: [id])
+  branch       Branch    @relation(fields: [branchId], references: [id])
+  session      Session   @relation(fields: [sessionId], references: [id])
+  table        DiningTable @relation(fields: [tableId], references: [id])
+  customer     Customer  @relation(fields: [customerId], references: [id])
+  orderItems   OrderItem[]
+  payments     Payment[]
+  tseTransactions TSETransaction[]
 }
 
-// ================================
-// Audit & Logs
-// ================================
+model OrderItem {
+  id          Int       @id @default(autoincrement())
+  orderId     Int
+  productId   Int
+  productName String
+  unitPrice   Decimal
+  taxRate     Decimal
+  quantity    Int
+  totalAmount Decimal
+  status      OrderStatus
 
-model ActivityLog {
+  order       Order     @relation(fields: [orderId], references: [id])
+  product     Product   @relation(fields: [productId], references: [id])
+  kdsItems    KDSItem[]
+}
+
+model Payment {
+  id          Int       @id @default(autoincrement())
+  orderId     Int
+  method      PaymentMethod
+  status      PaymentStatus
+  amount      Decimal
+  providerRef String?
+  createdAt   DateTime @default(now())
+
+  order       Order     @relation(fields: [orderId], references: [id])
+}
+
+model TSETransaction {
+  id         Int      @id @default(autoincrement())
+  orderId    Int
+  signature  String
+  fiskalyTxId String
+  signedAt   DateTime
+
+  order      Order    @relation(fields: [orderId], references: [id])
+}
+
+model CashbookEntry {
   id          Int      @id @default(autoincrement())
-  staffId     Int
-  staff       Staff    @relation(fields: [staffId], references: [id])
-  action      String
-  entityType  String
-  entityId    Int
-  timestamp   DateTime @default(now())
-  details     Json?
+  tenantId    Int
+  type        String
+  amount      Decimal
+  referenceId Int?
+  createdAt   DateTime @default(now())
+
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
 }
 
-model ErrorLog {
-  id            Int      @id @default(autoincrement())
-  branchId      Int?
-  branch        Branch?  @relation(fields: [branchId], references: [id])
-  errorMessage  String
-  stackTrace    String?
-  createdAt     DateTime @default(now())
+model KDSScreen {
+  id       Int      @id @default(autoincrement())
+  branchId Int
+  name     String
+
+  branch   Branch   @relation(fields: [branchId], references: [id])
+  kdsItems KDSItem[]
 }
 
-model LoginHistory {
+model KDSItem {
+  id          Int      @id @default(autoincrement())
+  orderItemId Int
+  screenId    Int
+  status      KDSStatus
+
+  orderItem   OrderItem @relation(fields: [orderItemId], references: [id])
+  screen      KDSScreen @relation(fields: [screenId], references: [id])
+}
+
+model AuditLog {
   id        Int      @id @default(autoincrement())
-  staffId   Int
-  staff     Staff    @relation(fields: [staffId], references: [id])
-  ipAddress String?
-  userAgent String?
-  success   Boolean
-  timestamp DateTime @default(now())
+  tenantId  Int
+  actorId   Int
+  action    String
+  entityType String
+  entityId  Int
+  createdAt DateTime @default(now())
+
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  staff     Staff    @relation(fields: [actorId], references: [id])
 }
