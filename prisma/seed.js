@@ -64,7 +64,7 @@ async function main() {
   }
 
   console.log("Seed completed:");
-  console.log("  SuperAdmin: admin@platform.com / admin123");
+  console.log("  SuperAdmin:", admin.email, "/ admin123");
   console.log("  Staff: staff@demo.com / staff123 (subdomain: demo)");
 }
 
