@@ -33,9 +33,8 @@ const RESTAURANT_ITEMS = [
     { href: "/users", label: "Staff Management", icon: "users" },
     { href: "/roles", label: "Roles & Permissions", icon: "roles" },
   ]},
-  { section: "FLOOR & DELIVERY", items: [
+  { section: "FLOOR", items: [
     { href: "/tables", label: "Floor & Tables", icon: "table" },
-    { href: "/delivery-zones", label: "Delivery Zones", icon: "delivery" },
   ]},
   { section: "REPORTING & ANALYTICS", items: [
     { href: "/reports", label: "Reports", icon: "reports" },
