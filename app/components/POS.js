@@ -5,17 +5,6 @@ import styles from "./POS.module.css";
 
 const CATEGORY_COLORS = ["#1a202c", "#3182ce", "#4299e1", "#48bb78", "#ed64a6"];
 
-const TOOLBAR_ICONS = [
-  { id: "edit", label: "Edit" },
-  { id: "customer", label: "Customer" },
-  { id: "discount", label: "Discount" },
-  { id: "terminal", label: "Terminal" },
-  { id: "staff", label: "Staff" },
-  { id: "history", label: "History" },
-  { id: "table", label: "Tables" },
-  { id: "menu", label: "Menu" },
-];
-
 export default function POS({ data }) {
   const { categories = [], products = [], addonGroups = [], tables = [], customers = [] } = data || {};
 
@@ -178,11 +167,17 @@ export default function POS({ data }) {
               className={styles.productCard}
               onClick={() => openAddonModal(product)}
             >
-              <div className={styles.productImage}>🍽</div>
+              <div className={styles.productImage}>
+                {product.imageUrl ? (
+                  <img src={product.imageUrl} alt={product.name} />
+                ) : (
+                  <span>🍽</span>
+                )}
+              </div>
               <div className={styles.productName}>{product.name}</div>
               <div className={styles.productDesc}>{product.description}</div>
               <div className={styles.productPrice}>
-                Rs {Number(product.basePrice).toLocaleString()}
+                €{Number(product.basePrice).toLocaleString()}
               </div>
             </div>
           ))}
@@ -209,7 +204,7 @@ export default function POS({ data }) {
                     {item.quantity}× {item.productName}
                   </span>
                   <span className={styles.cartItemPrice}>
-                    Rs {(item.unitPrice * item.quantity).toLocaleString()}
+                    €{(item.unitPrice * item.quantity).toLocaleString()}
                   </span>
                 </div>
                 {item.modifierNames && (
@@ -244,19 +239,19 @@ export default function POS({ data }) {
         <div className={styles.cartSummary}>
           <div className={styles.cartSummaryRow}>
             <span>Total Order</span>
-            <span>Rs {subtotal.toLocaleString()}</span>
+            <span>€{subtotal.toLocaleString()}</span>
           </div>
           <div className={styles.cartSummaryRow}>
             <span>Tax (10%)</span>
-            <span>Rs {taxAmount.toLocaleString()}</span>
+            <span>€{taxAmount.toLocaleString()}</span>
           </div>
           <div className={styles.cartSummaryRow}>
             <span>Discount</span>
-            <span>Rs 0</span>
+            <span>€0</span>
           </div>
           <div className={`${styles.cartSummaryRow} ${styles.cartSummaryTotal}`}>
             <span>Total Payable</span>
-            <span>Rs {grandTotal.toLocaleString()}</span>
+            <span>€{grandTotal.toLocaleString()}</span>
           </div>
         </div>
 
@@ -294,64 +289,6 @@ export default function POS({ data }) {
         </div>
       </div>
 
-      <div className={styles.toolbar}>
-        {TOOLBAR_ICONS.map(({ id, label }) => (
-          <button key={id} className={styles.toolbarBtn} title={label}>
-            {id === "edit" && (
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-              </svg>
-            )}
-            {id === "customer" && (
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                <circle cx="12" cy="7" r="4" />
-              </svg>
-            )}
-            {id === "discount" && (
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
-                <path d="M7 7h.01" />
-              </svg>
-            )}
-            {id === "terminal" && (
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <rect x="2" y="3" width="20" height="14" rx="2" />
-                <path d="M8 21h8" />
-                <path d="M12 17v4" />
-              </svg>
-            )}
-            {id === "staff" && (
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                <circle cx="9" cy="7" r="4" />
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-              </svg>
-            )}
-            {id === "history" && (
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="10" />
-                <path d="M12 6v6l4 2" />
-              </svg>
-            )}
-            {id === "table" && (
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M8 21h8" />
-                <path d="M12 17v4" />
-                <rect x="2" y="3" width="20" height="14" rx="2" />
-              </svg>
-            )}
-            {id === "menu" && (
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M3 12h18M3 6h18M3 18h18" />
-              </svg>
-            )}
-          </button>
-        ))}
-      </div>
-
       {addonProduct && (
         <div className={styles.addonOverlay} onClick={() => setAddonProduct(null)}>
           <div className={styles.addonModal} onClick={(e) => e.stopPropagation()}>
@@ -376,7 +313,7 @@ export default function POS({ data }) {
                             className={`${styles.addonChip} ${selected ? styles.addonChipSelected : ""}`}
                             onClick={() => toggleAddon(group.id, item)}
                           >
-                            {item.name} (+Rs {Number(item.price).toLocaleString()})
+                            {item.name} (+€{Number(item.price).toLocaleString()})
                           </button>
                         );
                       })}

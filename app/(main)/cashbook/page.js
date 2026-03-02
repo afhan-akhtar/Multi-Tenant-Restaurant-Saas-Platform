@@ -46,7 +46,7 @@ export default async function CashbookPage() {
                   }}
                 >
                   {(e.type || "").toLowerCase().includes("sent") || (e.type || "").toLowerCase().includes("expense") ? "-" : "+"}
-                  Rs {Number(e.amount).toLocaleString()}
+                  €{Number(e.amount).toLocaleString()}
                 </td>
               </tr>
             ))}

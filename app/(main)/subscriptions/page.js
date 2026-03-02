@@ -35,7 +35,7 @@ export default async function SubscriptionsPage() {
                 <tr key={p.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
                   <td style={{ padding: "0.75rem 1rem" }}>{p.name}</td>
                   <td style={{ padding: "0.75rem 1rem", textAlign: "right" }}>
-                    Rs {Number(p.monthlyPrice).toLocaleString()}
+                    €{Number(p.monthlyPrice).toLocaleString()}
                   </td>
                   <td style={{ padding: "0.75rem 1rem", textAlign: "right" }}>{Number(p.commissionPercent)}%</td>
                 </tr>

@@ -220,6 +220,7 @@ model Product {
   plu         String
   basePrice   Decimal
   taxRate     Decimal
+  imageUrl    String?
   allergens   Json?
   dietaryFlags Json?
   isActive    Boolean      @default(true)

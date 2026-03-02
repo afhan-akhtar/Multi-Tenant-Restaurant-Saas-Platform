@@ -116,16 +116,16 @@ function MetricCard({ label, value, icon, color }) {
 
 const defaultData = {
   metrics: {
-    revenue: "Rs 0.00",
-    taxCollected: "Rs 0.00",
-    taxThisMonth: "Rs 0.00",
-    todaySales: "Rs 0.00",
-    todayTax: "Rs 0.00",
-    salesReturn: "Rs 0.00",
-    profit: "Rs 0.00",
+    revenue: "€0.00",
+    taxCollected: "€0.00",
+    taxThisMonth: "€0.00",
+    todaySales: "€0.00",
+    todayTax: "€0.00",
+    salesReturn: "€0.00",
+    profit: "€0.00",
     totalCustomers: 0,
     pendingOrders: 0,
-    avgOrderValue: "Rs 0.00",
+    avgOrderValue: "€0.00",
     totalProducts: 0,
     profitMargin: "0%",
   },
@@ -190,7 +190,7 @@ export default function Dashboard({ data = defaultData }) {
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                 <XAxis type="number" tickFormatter={(v) => (v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v)} />
                 <YAxis type="category" dataKey="name" width={90} />
-                <Tooltip formatter={(v) => [`Rs ${Number(v).toLocaleString()}`, "Sales"]} />
+                <Tooltip formatter={(v) => [`€${Number(v).toLocaleString()}`, "Sales"]} />
                 <Bar dataKey="sales" fill="#e94560" radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -206,7 +206,7 @@ export default function Dashboard({ data = defaultData }) {
               {topProducts.map((p, i) => (
                 <div key={i} className={styles.topRow}>
                   <span>{p.name}</span>
-                  <span>Rs {Number(p.total).toLocaleString()}</span>
+                  <span>€{Number(p.total).toLocaleString()}</span>
                 </div>
               ))}
             </div>
@@ -221,7 +221,7 @@ export default function Dashboard({ data = defaultData }) {
               {waiterPerformance.map((w, i) => (
                 <div key={i} className={styles.topRow}>
                   <span>{w.name}</span>
-                  <span>Rs {Number(w.total).toLocaleString()} ({w.orders} orders)</span>
+                  <span>€{Number(w.total).toLocaleString()} ({w.orders} orders)</span>
                 </div>
               ))}
             </div>
@@ -236,7 +236,7 @@ export default function Dashboard({ data = defaultData }) {
               {topCustomers.map((c, i) => (
                 <div key={i} className={styles.topRow}>
                   <span>{c.name}</span>
-                  <span>Rs {Number(c.total).toLocaleString()}</span>
+                  <span>€{Number(c.total).toLocaleString()}</span>
                 </div>
               ))}
             </div>
@@ -254,7 +254,7 @@ export default function Dashboard({ data = defaultData }) {
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
               <XAxis dataKey="month" />
               <YAxis tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
-              <Tooltip formatter={(value) => [`Rs ${Number(value || 0).toLocaleString()}`, ""]} />
+              <Tooltip formatter={(value) => [`€${Number(value || 0).toLocaleString()}`, ""]} />
               <Legend />
               <Line type="monotone" dataKey="sent" name="Payment Sent" stroke="#f97316" strokeWidth={2} dot={{ r: 4 }} />
               <Line type="monotone" dataKey="received" name="Payment Received" stroke="#3b82f6" strokeWidth={2} dot={{ r: 4 }} />
