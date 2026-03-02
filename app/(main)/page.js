@@ -1,11 +1,15 @@
 import { auth } from "@/lib/auth";
-import { getDashboardData } from "@/lib/dashboard";
+import { getDashboardData, getSuperAdminDashboardData } from "@/lib/dashboard";
 import Dashboard from "@/app/components/Dashboard";
+import SuperAdminDashboard from "@/app/components/SuperAdminDashboard";
 
 export default async function HomePage() {
   const session = await auth();
-  const tenantId = session?.user?.tenantId ?? null;
-  const data = await getDashboardData(tenantId);
+  const isSuperAdmin = session?.user?.type === "super_admin";
 
-  return <Dashboard data={data} />;
+  const data = isSuperAdmin
+    ? await getSuperAdminDashboardData()
+    : await getDashboardData(session?.user?.tenantId ?? null);
+
+  return isSuperAdmin ? <SuperAdminDashboard data={data} /> : <Dashboard data={data} />;
 }

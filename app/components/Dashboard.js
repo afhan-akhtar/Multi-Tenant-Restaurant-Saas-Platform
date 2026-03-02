@@ -17,13 +17,14 @@ import {
 } from "recharts";
 import styles from "./Dashboard.module.css";
 
+// Per Module B: Real-time revenue, tax, and waiter performance analytics
 const METRIC_CONFIG = [
   { key: "revenue", label: "Revenue", icon: "revenue", color: "#3b82f6" },
-  { key: "salesReturn", label: "Sales Return", icon: "return", color: "#f97316" },
-  { key: "purchasesReturn", label: "Purchases Return", icon: "purchaseReturn", color: "#22c55e" },
-  { key: "profit", label: "Profit", icon: "profit", color: "#3b82f6" },
+  { key: "taxCollected", label: "Tax Collected", icon: "tax", color: "#6366f1" },
   { key: "todaySales", label: "Today Sales", icon: "sales", color: "#64748b" },
-  { key: "lowStockItems", label: "Low Stock Items", icon: "lowStock", color: "#ef4444" },
+  { key: "todayTax", label: "Today Tax", icon: "tax", color: "#8b5cf6" },
+  { key: "salesReturn", label: "Sales Return", icon: "return", color: "#f97316" },
+  { key: "profit", label: "Profit", icon: "profit", color: "#22c55e" },
   { key: "totalCustomers", label: "Total Customers", icon: "customers", color: "#0ea5e9" },
   { key: "pendingOrders", label: "Pending Orders", icon: "pending", color: "#f97316" },
   { key: "avgOrderValue", label: "Avg Order Value", icon: "avgOrder", color: "#1e40af" },
@@ -39,12 +40,12 @@ const ICON_SVG = {
       <path d="M6 20v-6" />
     </svg>
   ),
-  return: (
+  tax: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M3 10h10a8 8 0 0 1 8 8v2M3 10l6 6m-6-6l6-6" />
+      <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
     </svg>
   ),
-  purchaseReturn: (
+  return: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <path d="M3 10h10a8 8 0 0 1 8 8v2M3 10l6 6m-6-6l6-6" />
     </svg>
@@ -60,13 +61,6 @@ const ICON_SVG = {
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <rect x="2" y="7" width="20" height="14" rx="2" />
       <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
-    </svg>
-  ),
-  lowStock: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-      <path d="M12 9v4" />
-      <path d="M12 17h.01" />
     </svg>
   ),
   customers: (
@@ -123,11 +117,12 @@ function MetricCard({ label, value, icon, color }) {
 const defaultData = {
   metrics: {
     revenue: "Rs 0.00",
-    salesReturn: "Rs 0.00",
-    purchasesReturn: "Rs 0.00",
-    profit: "Rs 0.00",
+    taxCollected: "Rs 0.00",
+    taxThisMonth: "Rs 0.00",
     todaySales: "Rs 0.00",
-    lowStockItems: 0,
+    todayTax: "Rs 0.00",
+    salesReturn: "Rs 0.00",
+    profit: "Rs 0.00",
     totalCustomers: 0,
     pendingOrders: 0,
     avgOrderValue: "Rs 0.00",
@@ -139,11 +134,12 @@ const defaultData = {
   topProducts: [],
   lowStockItems: [],
   topCustomers: [],
+  waiterPerformance: [],
   cashFlowData: [{ month: "No data", sent: 0, received: 0 }],
 };
 
 export default function Dashboard({ data = defaultData }) {
-  const { metrics, paymentData, salesByCategoryData, topProducts, lowStockItems, topCustomers, cashFlowData } = data;
+  const { metrics, paymentData, salesByCategoryData, topProducts, lowStockItems, topCustomers, waiterPerformance, cashFlowData } = data;
 
   const metricCards = METRIC_CONFIG.map((cfg) => ({
     ...cfg,
@@ -152,7 +148,6 @@ export default function Dashboard({ data = defaultData }) {
 
   const paymentChartData = paymentData?.length ? paymentData : [{ name: "No data", value: 100, color: "#94a3b8" }];
   const salesChartData = salesByCategoryData?.length ? salesByCategoryData : [{ name: "No data", sales: 0 }];
-  const maxSales = Math.max(...salesChartData.map((d) => d.sales), 1);
 
   return (
     <div className={styles.dashboard}>
@@ -220,18 +215,18 @@ export default function Dashboard({ data = defaultData }) {
           )}
         </div>
         <div className={styles.panel}>
-          <h3 className={styles.panelTitle}>Low Stock Alert</h3>
-          {lowStockItems?.length > 0 ? (
-            <div className={styles.lowStockTable}>
-              {lowStockItems.map((item, i) => (
-                <div key={i} className={styles.lowStockRow}>
-                  <span className={styles.lowStockProduct}>{item.product}</span>
-                  <span className={`${styles.lowStockQty} ${item.stock === 0 ? styles.lowStockZero : ""}`}>{item.stock}</span>
+          <h3 className={styles.panelTitle}>Waiter Performance (This Month)</h3>
+          {waiterPerformance?.length > 0 ? (
+            <div className={styles.topList}>
+              {waiterPerformance.map((w, i) => (
+                <div key={i} className={styles.topRow}>
+                  <span>{w.name}</span>
+                  <span>Rs {Number(w.total).toLocaleString()} ({w.orders} orders)</span>
                 </div>
               ))}
             </div>
           ) : (
-            <div className={styles.panelEmpty}>All items in stock</div>
+            <div className={styles.panelEmpty}>No waiter data this month</div>
           )}
         </div>
         <div className={styles.panel}>
