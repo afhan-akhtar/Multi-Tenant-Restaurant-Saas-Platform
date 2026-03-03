@@ -2,7 +2,7 @@ import { getToken } from "next-auth/jwt";
 import { prisma } from "@/lib/db";
 import { NextResponse } from "next/server";
 
-const ALLOWED_STATUSES = ["CONFIRMED", "PREPARING", "READY", "COMPLETED"];
+const ALLOWED_STATUSES = ["CONFIRMED", "PREPARING", "READY", "PACK", "COMPLETED"];
 
 export async function PATCH(request) {
   try {

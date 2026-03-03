@@ -29,7 +29,7 @@ const COLUMNS = [
   {
     id: "PACK",
     label: "Pack",
-    statuses: [],
+    statuses: ["PACK"],
     color: "#64748b",
     subLabel: "Service complete",
   },
@@ -117,10 +117,19 @@ function OrderCard({ order, columnColor, onStatusChange }) {
           {columnColor === "#3182ce" && (
             <button
               type="button"
+              onClick={() => onStatusChange?.(order.id, "PACK")}
+              className="px-2.5 py-1 rounded text-xs font-medium bg-[#64748b] text-white hover:bg-[#475569] cursor-pointer"
+            >
+              Pack
+            </button>
+          )}
+          {columnColor === "#64748b" && (
+            <button
+              type="button"
               onClick={() => onStatusChange?.(order.id, "COMPLETED")}
               className="px-2.5 py-1 rounded text-xs font-medium bg-[#22c55e] text-white hover:bg-[#16a34a] cursor-pointer"
             >
-              Complete
+              Service Complete
             </button>
           )}
         </div>
@@ -138,9 +147,9 @@ export default function KDS({ data }) {
   const newCount = orders.filter((o) => ["OPEN", "CONFIRMED"].includes(o.status)).length;
   const preparingCount = orders.filter((o) => o.status === "PREPARING").length;
   const readyCount = orders.filter((o) => o.status === "READY").length;
+  const packCount = orders.filter((o) => o.status === "PACK").length;
 
   const getOrdersForColumn = (col) => {
-    if (col.id === "PACK") return []; // Pack column = completed, not in kitchen
     return orders.filter((o) => col.statuses.includes(o.status));
   };
 
@@ -199,11 +208,11 @@ export default function KDS({ data }) {
             onClick={() => setActiveFilter("PACK")}
             className={`px-4 py-2 rounded text-sm font-medium cursor-pointer transition-colors ${
               activeFilter === "PACK"
-                ? "bg-[#22c55e] text-white"
+                ? "bg-[#64748b] text-white"
                 : "bg-white border border-color-border text-color-text-muted hover:text-color-text hover:border-color-text"
             }`}
           >
-            Pack
+            Pack ({packCount})
           </button>
           <button
             type="button"
