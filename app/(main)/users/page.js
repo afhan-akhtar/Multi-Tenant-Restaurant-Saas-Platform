@@ -1,8 +1,6 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { redirect } from "next/navigation";
-import pageStyles from "@/app/styles/Page.module.css";
-import tableStyles from "@/app/styles/Table.module.css";
 
 export default async function UsersPage() {
   const session = await auth();
@@ -27,32 +25,32 @@ export default async function UsersPage() {
   }
 
   return (
-    <div className={pageStyles.page}>
-      <div className={pageStyles.pageHeader}>
-        <h2 className={pageStyles.pageTitle}>User Management</h2>
+    <div className="py-4 w-full min-w-0">
+      <div className="flex justify-between items-center flex-wrap gap-4 mb-6">
+        <h2 className="m-0 text-xl font-semibold text-color-text">User Management</h2>
       </div>
-      <div className={pageStyles.card}>
-        <div className={tableStyles.tableWrapper}>
-          <table className={tableStyles.table}>
+      <div className="bg-color-card rounded-lg border border-color-border overflow-hidden shadow-sm">
+        <div className="w-full overflow-x-auto overflow-y-hidden">
+          <table className="w-full border-collapse text-sm min-w-[600px] [&_th[data-align=right]]:text-right [&_td[data-align=right]]:text-right [&_th[data-align=center]]:text-center [&_td[data-align=center]]:text-center">
             <thead>
-              <tr>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Role</th>
-                {isSuperAdmin && <th>Tenant</th>}
-                <th data-align="center">Status</th>
+              <tr className="bg-color-bg border-b border-color-border">
+                <th className="py-3 px-4 text-left font-semibold text-color-text whitespace-nowrap">Name</th>
+                <th className="py-3 px-4 text-left font-semibold text-color-text whitespace-nowrap">Email</th>
+                <th className="py-3 px-4 text-left font-semibold text-color-text whitespace-nowrap">Role</th>
+                {isSuperAdmin && <th className="py-3 px-4 text-left font-semibold text-color-text whitespace-nowrap">Tenant</th>}
+                <th className="py-3 px-4 text-left font-semibold text-color-text whitespace-nowrap" data-align="center">Status</th>
               </tr>
             </thead>
             <tbody>
               {staff.map((s) => (
-                <tr key={s.id}>
-                  <td>{s.name}</td>
-                  <td>{s.email}</td>
-                  <td>{s.role?.name}</td>
-                  {isSuperAdmin && <td>{s.tenant?.name}</td>}
-                  <td data-align="center">
+                <tr key={s.id} className="border-b border-slate-100 last:border-0">
+                  <td className="py-3 px-4">{s.name}</td>
+                  <td className="py-3 px-4">{s.email}</td>
+                  <td className="py-3 px-4">{s.role?.name}</td>
+                  {isSuperAdmin && <td className="py-3 px-4">{s.tenant?.name}</td>}
+                  <td className="py-3 px-4" data-align="center">
                     <span
-                      className={tableStyles.badge}
+                      className="inline-block py-0.5 px-2 rounded-md text-xs font-medium"
                       style={{
                         background: s.status === "ACTIVE" ? "#dcfce7" : "#fee2e2",
                         color: s.status === "ACTIVE" ? "#166534" : "#991b1b",
@@ -66,7 +64,9 @@ export default async function UsersPage() {
             </tbody>
           </table>
         </div>
-        {staff.length === 0 && <div className={pageStyles.emptyState}>No users found</div>}
+        {staff.length === 0 && (
+          <div className="py-8 px-6 text-center text-color-text-muted text-[0.95rem]">No users found</div>
+        )}
       </div>
     </div>
   );

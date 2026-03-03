@@ -1,8 +1,6 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { redirect } from "next/navigation";
-import pageStyles from "@/app/styles/Page.module.css";
-import tableStyles from "@/app/styles/Table.module.css";
 
 export default async function LogsPage() {
   const session = await auth();
@@ -15,30 +13,30 @@ export default async function LogsPage() {
   });
 
   return (
-    <div className={pageStyles.page}>
-      <h2 className={pageStyles.pageTitle}>Global Logs</h2>
-      <div className={pageStyles.card}>
-        <div className={tableStyles.tableWrapper}>
-          <table className={tableStyles.table}>
+    <div className="py-4 w-full min-w-0">
+      <h2 className="m-0 text-xl font-semibold text-color-text mb-6">Global Logs</h2>
+      <div className="bg-color-card rounded-lg border border-color-border overflow-hidden shadow-sm">
+        <div className="w-full overflow-x-auto overflow-y-hidden">
+          <table className="w-full border-collapse text-sm min-w-[600px]">
             <thead>
-              <tr>
-                <th>Date</th>
-                <th>Actor</th>
-                <th>Action</th>
-                <th>Tenant</th>
-                <th>Entity</th>
+              <tr className="bg-color-bg border-b border-color-border">
+                <th className="py-3 px-4 text-left font-semibold text-color-text whitespace-nowrap">Date</th>
+                <th className="py-3 px-4 text-left font-semibold text-color-text whitespace-nowrap">Actor</th>
+                <th className="py-3 px-4 text-left font-semibold text-color-text whitespace-nowrap">Action</th>
+                <th className="py-3 px-4 text-left font-semibold text-color-text whitespace-nowrap">Tenant</th>
+                <th className="py-3 px-4 text-left font-semibold text-color-text whitespace-nowrap">Entity</th>
               </tr>
             </thead>
             <tbody>
               {logs.map((l) => (
-                <tr key={l.id}>
-                  <td style={{ color: "var(--color-text-muted)" }}>
+                <tr key={l.id} className="border-b border-slate-100 last:border-0">
+                  <td className="py-3 px-4 text-color-text-muted">
                     {new Date(l.createdAt).toLocaleString()}
                   </td>
-                  <td>{l.staff?.name || l.actorId}</td>
-                  <td>{l.action}</td>
-                  <td>{l.tenant?.name || "—"}</td>
-                  <td>
+                  <td className="py-3 px-4">{l.staff?.name || l.actorId}</td>
+                  <td className="py-3 px-4">{l.action}</td>
+                  <td className="py-3 px-4">{l.tenant?.name || "—"}</td>
+                  <td className="py-3 px-4">
                     {l.entityType}#{l.entityId}
                   </td>
                 </tr>
@@ -46,7 +44,9 @@ export default async function LogsPage() {
             </tbody>
           </table>
         </div>
-        {logs.length === 0 && <div className={pageStyles.emptyState}>No audit logs</div>}
+        {logs.length === 0 && (
+          <div className="py-8 px-6 text-center text-color-text-muted text-[0.95rem]">No audit logs</div>
+        )}
       </div>
     </div>
   );

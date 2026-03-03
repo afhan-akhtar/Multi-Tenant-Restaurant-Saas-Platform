@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import styles from "./POS.module.css";
 
 const CATEGORY_COLORS = ["#1a202c", "#3182ce", "#4299e1", "#48bb78", "#ed64a6"];
 
@@ -146,16 +145,16 @@ export default function POS({ data }) {
   };
 
   return (
-    <div className={styles.pos}>
-      <div className={styles.productsPanel}>
-        <div className={styles.posHeader}>
-          <span className={styles.posBrand}>Restaurant POS</span>
-          <div className={styles.posCategories}>
+    <div className="flex h-[calc(100vh-120px)] min-h-[500px] bg-white lg:flex-row flex-col">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <div className="sticky top-0 z-10 bg-[#2d3748] py-3 px-4 flex items-center gap-2 shrink-0">
+          <span className="text-slate-300 font-semibold mr-4">Restaurant POS</span>
+          <div className="flex gap-2 flex-wrap">
             {categories.map((cat, i) => (
               <button
                 key={cat.id}
-                className={`${styles.posCategoryTab} ${
-                  selectedCategoryId === cat.id ? styles.posCategoryTabActive : styles.posCategoryTabInactive
+                className={`py-2 px-4 border-none rounded-md cursor-pointer font-medium text-sm transition-all ${
+                  selectedCategoryId === cat.id ? "bg-[#1a202c] text-white" : "bg-[#4a5568] text-white"
                 }`}
                 style={
                   selectedCategoryId === cat.id
@@ -168,154 +167,127 @@ export default function POS({ data }) {
               </button>
             ))}
             {categories.length === 0 && (
-              <span style={{ color: "#94a3b8", fontSize: "0.9rem" }}>No categories</span>
+              <span className="text-slate-400 text-sm">No categories</span>
             )}
           </div>
         </div>
 
-        <div className={styles.productsGrid}>
+        <div className="flex-1 overflow-y-auto p-5 grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-5 content-start md:grid-cols-[repeat(auto-fill,minmax(160px,1fr))] lg:grid-cols-[repeat(auto-fill,minmax(220px,1fr))] sm:grid-cols-[repeat(auto-fill,minmax(140px,1fr))] sm:p-4 sm:gap-4 xs:grid-cols-2 xs:gap-3 xs:p-3">
           {filteredProducts.map((product) => (
             <div
               key={product.id}
-              className={styles.productCard}
+              className="bg-white border border-color-border rounded-xl p-4 cursor-pointer transition-all flex flex-col gap-2.5 shadow-sm hover:border-primary hover:shadow-[0_4px_16px_rgba(233,69,96,0.2)]"
               onClick={() => openAddonModal(product)}
             >
-              <div className={styles.productImage}>
+              <div className="w-full aspect-square bg-slate-100 rounded-xl flex items-center justify-center text-slate-400 text-3xl overflow-hidden">
                 {product.imageUrl ? (
-                  <img src={product.imageUrl} alt={product.name} />
+                  <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
                 ) : (
                   <span>🍽</span>
                 )}
               </div>
-              <div className={styles.productName}>{product.name}</div>
-              <div className={styles.productDesc}>{product.description}</div>
-              <div className={styles.productPrice}>
+              <div className="font-bold text-[1.05rem] text-[#1a1d29] text-center leading-tight">{product.name}</div>
+              <div className="text-xs text-slate-500 leading-snug line-clamp-2 text-center min-h-[2.4em]">{product.description}</div>
+              <div className="font-bold text-lg text-primary mt-auto text-center">
                 €{Number(product.basePrice).toLocaleString()}
               </div>
             </div>
           ))}
           {filteredProducts.length === 0 && (
-            <div className={styles.emptyCart}>No products in this category</div>
+            <div className="py-8 text-center text-slate-400 text-sm col-span-full">No products in this category</div>
           )}
         </div>
       </div>
 
-      <div className={styles.cartPanel}>
-        <div className={styles.cartHeader}>
-          <div className={styles.cartOrderType}>{orderType === "TAKEAWAY" ? "Takeaway" : "Dine-In"}</div>
-          <div className={styles.cartOrderNumber}>Order {orderNumber}</div>
+      <div className="w-full lg:w-[360px] xl:w-[360px] shrink-0 flex flex-col border-l border-color-border bg-white lg:border-t-0 md:border-t md:border-l-0">
+        <div className="bg-[#3182ce] text-white py-3 px-4 font-semibold">
+          <div className="text-xs opacity-90">{orderType === "TAKEAWAY" ? "Takeaway" : "Dine-In"}</div>
+          <div className="text-[1.1rem]">Order {orderNumber}</div>
         </div>
 
-        <div className={styles.cartItems}>
+        <div className="flex-1 overflow-y-auto py-3 px-4">
           {cart.length === 0 ? (
-            <div className={styles.emptyCart}>Add items from the menu</div>
+            <div className="py-8 text-center text-slate-400 text-sm">Add items from the menu</div>
           ) : (
             cart.map((item, index) => (
-              <div key={index} className={styles.cartItem}>
-                <div className={styles.cartItemMain}>
-                  <span className={styles.cartItemName}>
+              <div key={index} className="py-3 border-b border-slate-100">
+                <div className="flex justify-between items-start text-sm">
+                  <span className="font-medium text-[#1a1d29]">
                     {item.quantity}× {item.productName}
                   </span>
-                  <span className={styles.cartItemPrice}>
+                  <span className="font-semibold text-primary">
                     €{(item.unitPrice * item.quantity).toLocaleString()}
                   </span>
                 </div>
                 {item.modifierNames && (
-                  <div className={styles.cartItemModifiers}>
+                  <div className="mt-1 flex flex-wrap gap-1">
                     {item.modifierNames.split(", ").map((m, i) => (
-                      <span key={i} className={styles.cartModifier}>
+                      <span key={i} className="text-xs py-0.5 px-1.5 bg-amber-100 text-amber-800 rounded">
                         {m}
                       </span>
                     ))}
                   </div>
                 )}
-                <div className={styles.cartItemQty}>
-                  <button
-                    onClick={() => updateCartItemQty(index, -1)}
-                    style={{ marginRight: 8 }}
-                  >
-                    −
-                  </button>
+                <div className="text-xs text-slate-500 mt-1">
+                  <button onClick={() => updateCartItemQty(index, -1)} className="mr-2">−</button>
                   {item.quantity}
-                  <button
-                    onClick={() => updateCartItemQty(index, 1)}
-                    style={{ marginLeft: 8 }}
-                  >
-                    +
-                  </button>
+                  <button onClick={() => updateCartItemQty(index, 1)} className="ml-2">+</button>
                 </div>
               </div>
             ))
           )}
         </div>
 
-        <div className={styles.cartSummary}>
-          <div className={styles.cartSummaryRow}>
-            <span>Total Order</span>
-            <span>€{subtotal.toLocaleString()}</span>
-          </div>
-          <div className={styles.cartSummaryRow}>
-            <span>Tax (10%)</span>
-            <span>€{taxAmount.toLocaleString()}</span>
-          </div>
-          <div className={styles.cartSummaryRow}>
-            <span>Discount</span>
-            <span>€0</span>
-          </div>
-          <div className={`${styles.cartSummaryRow} ${styles.cartSummaryTotal}`}>
+        <div className="py-4 px-4 bg-[#2d3748] text-white text-sm">
+          <div className="flex justify-between py-1.5"> <span>Total Order</span> <span>€{subtotal.toLocaleString()}</span> </div>
+          <div className="flex justify-between py-1.5"> <span>Tax (10%)</span> <span>€{taxAmount.toLocaleString()}</span> </div>
+          <div className="flex justify-between py-1.5"> <span>Discount</span> <span>€0</span> </div>
+          <div className="flex justify-between pt-2 mt-2 border-t border-white/30 font-bold text-[1.1rem]">
             <span>Total Payable</span>
             <span>€{grandTotal.toLocaleString()}</span>
           </div>
         </div>
 
-        <div className={styles.cartActions}>
-          <button className={styles.cartActionBtn} onClick={() => cart[0] && updateCartItemQty(0, -1)}>
-            −
-          </button>
-          <button className={styles.cartActionBtn} onClick={() => cart[0] && updateCartItemQty(0, 1)}>
-            +
-          </button>
-          <button className={styles.cartActionBtn} title="Print">
-            🖨
-          </button>
+        <div className="grid grid-cols-3 gap-2 p-4 border-t border-color-border">
+          <button className="py-2.5 px-4 border border-color-border bg-white rounded-lg text-xl text-slate-500 transition-all hover:bg-color-bg hover:text-[#3182ce]" onClick={() => cart[0] && updateCartItemQty(0, -1)}>−</button>
+          <button className="py-2.5 px-4 border border-color-border bg-white rounded-lg text-xl text-slate-500 transition-all hover:bg-color-bg hover:text-[#3182ce]" onClick={() => cart[0] && updateCartItemQty(0, 1)}>+</button>
+          <button className="py-2.5 px-4 border border-color-border bg-white rounded-lg text-xl text-slate-500 transition-all hover:bg-color-bg hover:text-[#3182ce]" title="Print">🖨</button>
         </div>
 
-        <div className={styles.cartPrimaryBtns}>
+        <div className="grid grid-cols-3 gap-3 px-4 pb-4 lg:grid-cols-3 sm:grid-cols-1">
           <button
-            className={`${styles.cartPrimaryBtn} ${styles.cartPrimaryBtnCancel}`}
+            className="py-4 px-5 rounded-xl font-semibold text-base cursor-pointer transition-all border-2 border-[#3182ce] text-[#3182ce] hover:border-[#2b6cb0] bg-gradient-to-b from-white to-slate-50 hover:from-cyan-50 hover:to-emerald-50 shadow-sm hover:-translate-y-0.5 hover:shadow-md"
             onClick={openClearConfirm}
           >
             Clear
           </button>
           <button
-            className={`${styles.cartPrimaryBtn} ${styles.cartPrimaryBtnPay}`}
+            className="py-4 px-5 rounded-xl font-semibold text-base cursor-pointer transition-all border-2 border-[#2b6cb0] text-white bg-gradient-to-br from-[#3182ce] to-[#2c5282] shadow-[0_4px_14px_rgba(49,130,206,0.4)] hover:shadow-[0_6px_20px_rgba(49,130,206,0.5)] hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed disabled:translate-y-0"
             onClick={placeOrder}
             disabled={cart.length === 0 || placing}
           >
             {placing ? "..." : "Pay"}
           </button>
-          <button
-            className={`${styles.cartPrimaryBtn} ${styles.cartPrimaryBtnExit}`}
-          >
+          <button className="py-4 px-5 rounded-xl font-semibold text-base cursor-pointer transition-all border-2 border-slate-400 text-slate-500 bg-gradient-to-b from-white to-slate-50 hover:border-slate-500 hover:from-slate-100 hover:to-slate-200 shadow-sm hover:-translate-y-0.5 hover:shadow-md">
             Exit
           </button>
         </div>
       </div>
 
       {confirmClearOpen && (
-        <div className={styles.confirmOverlay} onClick={() => setConfirmClearOpen(false)}>
-          <div className={styles.confirmModal} onClick={(e) => e.stopPropagation()}>
-            <h3 className={styles.confirmModalTitle}>Clear cart</h3>
-            <p className={styles.confirmModalMessage}>Clear all items from this order?</p>
-            <div className={styles.confirmModalActions}>
+        <div className="fixed inset-0 bg-black/50 z-[110] flex items-center justify-center p-4" onClick={() => setConfirmClearOpen(false)}>
+          <div className="bg-white rounded-xl max-w-[400px] w-full p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-semibold text-[1.1rem] text-[#1a1d29] m-0 mb-3">Clear cart</h3>
+            <p className="text-[0.95rem] text-slate-500 m-0 mb-6">Clear all items from this order?</p>
+            <div className="flex gap-3 justify-end">
               <button
-                className={`${styles.confirmModalBtn} ${styles.confirmModalBtnCancel}`}
+                className="py-2.5 px-5 rounded-lg font-medium text-sm cursor-pointer border-none bg-slate-100 text-slate-500 hover:bg-slate-200"
                 onClick={() => setConfirmClearOpen(false)}
               >
                 Cancel
               </button>
               <button
-                className={`${styles.confirmModalBtn} ${styles.confirmModalBtnConfirm}`}
+                className="py-2.5 px-5 rounded-lg font-medium text-sm cursor-pointer border-none bg-primary text-white hover:bg-primary-hover"
                 onClick={confirmClearCart}
               >
                 Clear all
@@ -326,19 +298,19 @@ export default function POS({ data }) {
       )}
 
       {addonProduct && (
-        <div className={styles.addonOverlay} onClick={() => setAddonProduct(null)}>
-          <div className={styles.addonModal} onClick={(e) => e.stopPropagation()}>
-            <div className={styles.addonModalHeader}>
+        <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4" onClick={() => setAddonProduct(null)}>
+          <div className="bg-white rounded-xl max-w-[480px] w-full max-h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="py-4 px-6 border-b border-color-border font-semibold text-[1.1rem]">
               Add modifiers: {addonProduct.name}
             </div>
-            <div className={styles.addonModalBody}>
+            <div className="py-4 px-6 overflow-y-auto flex-1">
               {addonGroups.length > 0 ? (
                 addonGroups.map((group) => (
-                  <div key={group.id} className={styles.addonGroup}>
-                    <div className={styles.addonGroupTitle}>
+                  <div key={group.id} className="mb-4">
+                    <div className="text-sm font-semibold mb-2 text-color-text">
                       {group.name} (min: {group.minSelect}, max: {group.maxSelect})
                     </div>
-                    <div className={styles.addonItems}>
+                    <div className="flex flex-wrap gap-2">
                       {group.addonItems.map((item) => {
                         const selected = (selectedAddons[group.id] || []).some(
                           (i) => i.id === item.id
@@ -346,7 +318,11 @@ export default function POS({ data }) {
                         return (
                           <button
                             key={item.id}
-                            className={`${styles.addonChip} ${selected ? styles.addonChipSelected : ""}`}
+                            className={`py-2 px-3 border rounded-lg text-sm cursor-pointer transition-all ${
+                              selected
+                                ? "bg-[#3182ce] border-[#3182ce] text-white"
+                                : "border-color-border bg-white hover:border-[#3182ce] hover:text-[#3182ce]"
+                            }`}
                             onClick={() => toggleAddon(group.id, item)}
                           >
                             {item.name} (+€{Number(item.price).toLocaleString()})
@@ -357,18 +333,18 @@ export default function POS({ data }) {
                   </div>
                 ))
               ) : (
-                <p style={{ color: "#718096" }}>No add-ons available</p>
+                <p className="text-color-text-muted">No add-ons available</p>
               )}
             </div>
-            <div className={styles.addonModalFooter}>
+            <div className="py-4 px-6 border-t border-color-border flex gap-3 justify-end">
               <button
-                className={`${styles.addonModalBtn} ${styles.addonModalBtnCancel}`}
+                className="py-2.5 px-5 rounded-lg font-medium cursor-pointer border-none bg-slate-100 text-slate-500"
                 onClick={() => setAddonProduct(null)}
               >
                 Cancel
               </button>
               <button
-                className={`${styles.addonModalBtn} ${styles.addonModalBtnAdd}`}
+                className="py-2.5 px-5 rounded-lg font-medium cursor-pointer border-none bg-[#3182ce] text-white"
                 onClick={confirmAddWithAddons}
               >
                 Add to Order
@@ -379,7 +355,9 @@ export default function POS({ data }) {
       )}
 
       {toast && (
-        <div className={`${styles.toast} ${toast.type === "success" ? styles.toastSuccess : styles.toastError}`}>
+        <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-[120] py-3 px-6 rounded-[10px] text-[0.95rem] font-medium shadow-lg animate-toast-in ${
+          toast.type === "success" ? "bg-green-500 text-white" : "bg-red-500 text-white"
+        }`}>
           {toast.message}
         </div>
       )}

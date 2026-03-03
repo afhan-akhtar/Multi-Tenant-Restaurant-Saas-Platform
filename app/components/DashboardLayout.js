@@ -4,7 +4,6 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
-import styles from "./DashboardLayout.module.css";
 
 // Super Admin: Platform Governance (Module A)
 const SUPER_ADMIN_ITEMS = [
@@ -214,14 +213,18 @@ const ICONS = {
   ),
 };
 
-function NavItem({ href, label, icon, isActive }) {
+function NavItem({ href, label, icon, isActive, collapsed }) {
   return (
     <Link
       href={href || "#"}
-      className={`${styles.navItem} ${isActive ? styles.navItemActive : ""}`}
+      className={`flex items-center gap-3 py-2.5 px-4 text-slate-400 no-underline transition-all duration-200 border-l-[3px] border-transparent ml-0 hover:bg-sidebar-hover hover:text-white ${
+        isActive ? "bg-primary/15 text-white border-l-primary" : ""
+      }`}
     >
-      <span className={styles.navIcon}>{ICONS[icon] || ICONS.dashboard}</span>
-      <span className={styles.navLabel}>{label}</span>
+      <span className="w-5 h-5 min-w-5 shrink-0 [&>svg]:w-full [&>svg]:h-full">{ICONS[icon] || ICONS.dashboard}</span>
+      <span className={`whitespace-nowrap text-sm overflow-hidden transition-opacity duration-200 ${collapsed ? "opacity-0 invisible w-0" : ""}`}>
+        {label}
+      </span>
     </Link>
   );
 }
@@ -273,29 +276,35 @@ export default function DashboardLayout({ children, user }) {
     : (user?.name === "Demo Staff" ? "Restaurant Admin" : (user?.name || "User"));
 
   return (
-    <div className={styles.wrapper}>
-      <aside className={`${styles.sidebar} ${sidebarOpen ? styles.sidebarOpen : styles.sidebarClosed}`}>
-        <div className={styles.sidebarHeader}>
+    <div className="min-h-screen flex bg-color-bg">
+      <aside
+        className={`fixed top-0 left-0 z-[100] h-screen flex flex-col overflow-hidden shadow-lg text-slate-300 transition-[width,transform] duration-300 ease-out bg-sidebar
+          ${sidebarOpen ? "w-[260px] translate-x-0" : "w-[72px] -translate-x-full lg:translate-x-0"}
+        `}
+      >
+        <div className={`flex items-center justify-between gap-3 p-4 min-h-[56px] shrink-0 ${!sidebarOpen ? "flex-col justify-start py-4 px-2" : ""}`}>
           <button
-            className={styles.sidebarToggle}
+            className={`shrink-0 p-2 rounded-sm flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-colors bg-transparent border-0 cursor-pointer
+              ${!sidebarOpen ? "order-1" : "order-2"}
+            `}
             onClick={() => setSidebarOpen(!sidebarOpen)}
             aria-label="Toggle sidebar"
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M3 12h18M3 6h18M3 18h18" />
             </svg>
           </button>
-          <div className={styles.sidebarLogo}>
-            <div className={styles.logoIcon}>R</div>
-            <span className={styles.logoText}>Restaurant</span>
+          <div className={`flex items-center gap-3 min-w-0 ${!sidebarOpen ? "order-2 flex-col" : "order-1"}`}>
+            <div className="w-10 h-10 min-w-10 bg-primary text-white rounded-md flex items-center justify-center font-bold text-xl">R</div>
+            <span className={`font-semibold text-[1.1rem] whitespace-nowrap ${!sidebarOpen ? "opacity-0 invisible w-0 overflow-hidden" : ""}`}>Restaurant</span>
           </div>
         </div>
-        <nav className={styles.nav}>
+        <nav className="flex-1 overflow-y-auto py-3">
           {sidebarItems.map((item, i) => {
             if (item.section) {
               return (
-                <div key={i} className={styles.navSection}>
-                  <div className={styles.navSectionTitle}>{item.section}</div>
+                <div key={i} className="mt-4">
+                  <div className={`py-2 px-4 text-[0.7rem] font-semibold uppercase tracking-widest text-slate-500 ${!sidebarOpen ? "opacity-0 invisible w-0 overflow-hidden" : ""}`}>{item.section}</div>
                   {item.items.map((sub) => (
                     <NavItem
                       key={sub.href}
@@ -303,6 +312,7 @@ export default function DashboardLayout({ children, user }) {
                       label={sub.label}
                       icon={sub.icon}
                       isActive={isActive(sub.href)}
+                      collapsed={!sidebarOpen}
                     />
                   ))}
                 </div>
@@ -315,17 +325,18 @@ export default function DashboardLayout({ children, user }) {
                 label={item.label}
                 icon={item.icon}
                 isActive={isActive(item.href)}
+                collapsed={!sidebarOpen}
               />
             );
           })}
         </nav>
       </aside>
 
-      <div className={styles.main}>
-        <header className={styles.header}>
-          <div className={styles.headerLeft}>
+      <div className={`flex-1 min-h-screen flex flex-col transition-[margin] duration-300 ${sidebarOpen ? "lg:ml-[260px]" : "lg:ml-[72px]"} ml-0`}>
+        <header className="h-16 bg-color-card border-b border-color-border flex items-center justify-between px-6 sticky top-0 z-50 shadow-sm">
+          <div className="flex-1 flex items-center gap-3">
             <button
-              className={styles.mobileMenuBtn}
+              className="flex lg:hidden w-10 h-10 border-0 bg-transparent text-color-text cursor-pointer rounded-md items-center justify-center hover:bg-color-bg [&>svg]:w-6 [&>svg]:h-6"
               onClick={() => setSidebarOpen(true)}
               aria-label="Open menu"
             >
@@ -333,56 +344,58 @@ export default function DashboardLayout({ children, user }) {
                 <path d="M3 12h18M3 6h18M3 18h18" />
               </svg>
             </button>
-            <h1 className={styles.headerTitle}>{pageTitle}</h1>
+            <h1 className="text-xl font-semibold text-color-text m-0 whitespace-nowrap overflow-hidden text-ellipsis max-w-full">{pageTitle}</h1>
           </div>
-          <div className={styles.headerRight}>
+          <div className="flex items-center gap-4">
             {!isSuperAdmin && (
-              <Link href="/pos" className={styles.posButton}>POS System</Link>
+              <Link href="/pos" className="py-2 px-4 bg-primary text-white no-underline rounded-md font-medium text-sm transition-colors hover:bg-primary-hover">
+                POS System
+              </Link>
             )}
-            <button className={styles.iconButton} aria-label="Notifications">
+            <button className="w-10 h-10 border-0 bg-transparent text-color-text-muted cursor-pointer rounded-md flex items-center justify-center hover:bg-color-bg hover:text-color-text transition-colors [&>svg]:w-[22px] [&>svg]:h-[22px]" aria-label="Notifications">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
                 <path d="M13.73 21a2 2 0 0 1-3.46 0" />
               </svg>
             </button>
-            <div className={styles.userMenu}>
+            <div className="relative">
               <button
-                className={styles.userButton}
+                className="flex items-center gap-2 py-1 px-2 bg-transparent border-0 cursor-pointer rounded-md text-color-text hover:bg-color-bg"
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
                 aria-expanded={userMenuOpen}
               >
-                <div className={styles.userAvatar}>
+                <div className="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center font-semibold text-[0.95rem]">
                   {(displayName?.[0] || "U").toUpperCase()}
                 </div>
-                <span className={styles.userName}>{displayName}</span>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <span className="text-sm font-medium hidden sm:inline">{displayName}</span>
+                <svg className={`w-4 h-4 transition-transform ${userMenuOpen ? "rotate-180" : ""}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M6 9l6 6 6-6" />
                 </svg>
               </button>
               {userMenuOpen && (
-                <div className={styles.userDropdown}>
+                <div className="absolute top-full right-0 mt-2 bg-color-card rounded-md shadow-lg min-w-[180px] py-2 z-[60] border border-color-border">
                   {isSuperAdmin && (
-                    <Link href="/impersonation" onClick={() => setUserMenuOpen(false)}>Impersonate</Link>
+                    <Link href="/impersonation" onClick={() => setUserMenuOpen(false)} className="block w-full py-2.5 px-4 text-left bg-transparent border-0 text-color-text no-underline cursor-pointer text-sm hover:bg-color-bg transition-colors">Impersonate</Link>
                   )}
-                  <Link href="/profile" onClick={() => setUserMenuOpen(false)}>Profile</Link>
-                  <Link href="/settings" onClick={() => setUserMenuOpen(false)}>Settings</Link>
-                  <button onClick={() => signOut({ callbackUrl: "/login" })}>Sign out</button>
+                  <Link href="/profile" onClick={() => setUserMenuOpen(false)} className="block w-full py-2.5 px-4 text-left bg-transparent border-0 text-color-text no-underline cursor-pointer text-sm hover:bg-color-bg transition-colors">Profile</Link>
+                  <Link href="/settings" onClick={() => setUserMenuOpen(false)} className="block w-full py-2.5 px-4 text-left bg-transparent border-0 text-color-text no-underline cursor-pointer text-sm hover:bg-color-bg transition-colors">Settings</Link>
+                  <button onClick={() => signOut({ callbackUrl: "/login" })} className="block w-full py-2.5 px-4 text-left bg-transparent border-0 text-color-text no-underline cursor-pointer text-sm hover:bg-color-bg transition-colors">Sign out</button>
                 </div>
               )}
             </div>
           </div>
         </header>
 
-        <main className={styles.content}>{children}</main>
+        <main className="flex-1 p-6">{children}</main>
 
-        <footer className={styles.footer}>
+        <footer className="py-4 px-6 text-xs text-color-text-muted border-t border-color-border bg-color-card shrink-0">
           Copyright © {new Date().getFullYear()} Multi-Tenant Restaurant SaaS. All Rights Reserved.
         </footer>
       </div>
 
       {sidebarOpen && (
         <div
-          className={styles.overlay}
+          className="lg:hidden fixed inset-0 bg-black/50 z-[90]"
           onClick={() => setSidebarOpen(false)}
           aria-hidden="true"
         />

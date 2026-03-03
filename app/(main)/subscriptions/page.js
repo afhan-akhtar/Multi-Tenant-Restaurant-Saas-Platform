@@ -1,8 +1,6 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { redirect } from "next/navigation";
-import pageStyles from "@/app/styles/Page.module.css";
-import tableStyles from "@/app/styles/Table.module.css";
 
 export default async function SubscriptionsPage() {
   const session = await auth();
@@ -18,57 +16,59 @@ export default async function SubscriptionsPage() {
   ]);
 
   return (
-    <div className={pageStyles.page}>
-      <h2 className={pageStyles.pageTitle}>Subscriptions & Plans</h2>
+    <div className="py-4 w-full min-w-0">
+      <h2 className="m-0 text-xl font-semibold text-color-text mb-6">Subscriptions & Plans</h2>
 
-      <div className={pageStyles.pageSection}>
-        <h3 className={pageStyles.pageSectionTitle}>Plans</h3>
-        <div className={pageStyles.card}>
-          <div className={tableStyles.tableWrapper}>
-            <table className={tableStyles.table}>
+      <div className="mb-8 last:mb-0">
+        <h3 className="text-base font-semibold mb-4 text-color-text">Plans</h3>
+        <div className="bg-color-card rounded-lg border border-color-border overflow-hidden shadow-sm">
+          <div className="w-full overflow-x-auto overflow-y-hidden">
+            <table className="w-full border-collapse text-sm min-w-[600px] [&_th[data-align=right]]:text-right [&_td[data-align=right]]:text-right">
               <thead>
-                <tr>
-                  <th>Name</th>
-                  <th data-align="right">Monthly Price</th>
-                  <th data-align="right">Commission %</th>
+                <tr className="bg-color-bg border-b border-color-border">
+                  <th className="py-3 px-4 text-left font-semibold text-color-text whitespace-nowrap">Name</th>
+                  <th className="py-3 px-4 text-left font-semibold text-color-text whitespace-nowrap" data-align="right">Monthly Price</th>
+                  <th className="py-3 px-4 text-left font-semibold text-color-text whitespace-nowrap" data-align="right">Commission %</th>
                 </tr>
               </thead>
               <tbody>
                 {plans.map((p) => (
-                  <tr key={p.id}>
-                    <td>{p.name}</td>
-                    <td data-align="right">€{Number(p.monthlyPrice).toLocaleString()}</td>
-                    <td data-align="right">{Number(p.commissionPercent)}%</td>
+                  <tr key={p.id} className="border-b border-slate-100 last:border-0">
+                    <td className="py-3 px-4">{p.name}</td>
+                    <td className="py-3 px-4" data-align="right">€{Number(p.monthlyPrice).toLocaleString()}</td>
+                    <td className="py-3 px-4" data-align="right">{Number(p.commissionPercent)}%</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-          {plans.length === 0 && <div className={pageStyles.emptyState}>No plans defined</div>}
+          {plans.length === 0 && (
+            <div className="py-8 px-6 text-center text-color-text-muted text-[0.95rem]">No plans defined</div>
+          )}
         </div>
       </div>
 
-      <div className={pageStyles.pageSection}>
-        <h3 className={pageStyles.pageSectionTitle}>Active Subscriptions</h3>
-        <div className={pageStyles.card}>
-          <div className={tableStyles.tableWrapper}>
-            <table className={tableStyles.table}>
+      <div className="mb-8 last:mb-0">
+        <h3 className="text-base font-semibold mb-4 text-color-text">Active Subscriptions</h3>
+        <div className="bg-color-card rounded-lg border border-color-border overflow-hidden shadow-sm">
+          <div className="w-full overflow-x-auto overflow-y-hidden">
+            <table className="w-full border-collapse text-sm min-w-[600px]">
               <thead>
-                <tr>
-                  <th>Restaurant</th>
-                  <th>Plan</th>
-                  <th>Status</th>
-                  <th>Period</th>
+                <tr className="bg-color-bg border-b border-color-border">
+                  <th className="py-3 px-4 text-left font-semibold text-color-text whitespace-nowrap">Restaurant</th>
+                  <th className="py-3 px-4 text-left font-semibold text-color-text whitespace-nowrap">Plan</th>
+                  <th className="py-3 px-4 text-left font-semibold text-color-text whitespace-nowrap">Status</th>
+                  <th className="py-3 px-4 text-left font-semibold text-color-text whitespace-nowrap">Period</th>
                 </tr>
               </thead>
               <tbody>
                 {subscriptions.map((s) => (
-                  <tr key={s.id}>
-                    <td>{s.tenant?.name}</td>
-                    <td>{s.plan?.name}</td>
-                    <td>
+                  <tr key={s.id} className="border-b border-slate-100 last:border-0">
+                    <td className="py-3 px-4">{s.tenant?.name}</td>
+                    <td className="py-3 px-4">{s.plan?.name}</td>
+                    <td className="py-3 px-4">
                       <span
-                        className={tableStyles.badge}
+                        className="inline-block py-0.5 px-2 rounded-md text-xs font-medium"
                         style={{
                           background: s.status === "ACTIVE" ? "#dcfce7" : "#fee2e2",
                           color: s.status === "ACTIVE" ? "#166534" : "#991b1b",
@@ -77,7 +77,7 @@ export default async function SubscriptionsPage() {
                         {s.status}
                       </span>
                     </td>
-                    <td style={{ color: "var(--color-text-muted)" }}>
+                    <td className="py-3 px-4 text-color-text-muted">
                       {new Date(s.startDate).toLocaleDateString()} – {new Date(s.endDate).toLocaleDateString()}
                     </td>
                   </tr>
@@ -85,7 +85,9 @@ export default async function SubscriptionsPage() {
               </tbody>
             </table>
           </div>
-          {subscriptions.length === 0 && <div className={pageStyles.emptyState}>No subscriptions</div>}
+          {subscriptions.length === 0 && (
+            <div className="py-8 px-6 text-center text-color-text-muted text-[0.95rem]">No subscriptions</div>
+          )}
         </div>
       </div>
     </div>

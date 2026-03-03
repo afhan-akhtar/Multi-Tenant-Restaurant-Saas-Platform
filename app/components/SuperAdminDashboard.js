@@ -1,7 +1,5 @@
 "use client";
 
-import styles from "./Dashboard.module.css";
-
 const METRIC_CONFIG = [
   { key: "totalTenants", label: "Total Restaurants", icon: "restaurant", color: "#3b82f6" },
   { key: "activeTenants", label: "Active Restaurants", icon: "check", color: "#22c55e" },
@@ -58,13 +56,16 @@ const ICON_SVG = {
 
 function MetricCard({ label, value, icon, color }) {
   return (
-    <div className={styles.metricCard}>
-      <div className={styles.metricIcon} style={{ background: `${color}22`, color }}>
+    <div className="bg-white rounded-xl p-5 flex items-start gap-4 shadow-sm border border-color-border transition-all duration-200 hover:shadow-md hover:-translate-y-px">
+      <div
+        className="w-12 h-12 min-w-12 rounded-[10px] flex items-center justify-center [&>svg]:w-6 [&>svg]:h-6"
+        style={{ background: `${color}22`, color }}
+      >
         {ICON_SVG[icon] || ICON_SVG.restaurant}
       </div>
-      <div className={styles.metricContent}>
-        <div className={styles.metricValue}>{value}</div>
-        <div className={styles.metricLabel}>{label}</div>
+      <div className="flex-1 min-w-0">
+        <div className="text-xl font-bold text-[#1a1d29] leading-tight">{value}</div>
+        <div className="text-[0.85rem] text-color-text-muted mt-1">{label}</div>
       </div>
     </div>
   );
@@ -79,30 +80,27 @@ export default function SuperAdminDashboard({ data }) {
   }));
 
   return (
-    <div className={styles.dashboard}>
-      <div className={styles.metricsGrid}>
+    <div className="flex flex-col gap-6">
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-4">
         {metricCards.map((card) => (
           <MetricCard key={card.key} label={card.label} value={card.value} icon={card.icon} color={card.color} />
         ))}
       </div>
 
-      <div className={styles.panelsRow}>
-        <div className={styles.panel} style={{ gridColumn: "span 3" }}>
-          <h3 className={styles.panelTitle}>Recently Onboarded Restaurants</h3>
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        <div className="bg-white rounded-xl p-6 shadow-sm border border-color-border xl:col-span-3">
+          <h3 className="text-base font-semibold text-color-text m-0 mb-4">Recently Onboarded Restaurants</h3>
           {recentTenants?.length > 0 ? (
-            <div className={styles.topList}>
+            <div className="flex flex-col gap-2">
               {recentTenants.map((t, i) => (
-                <div key={i} className={styles.topRow}>
+                <div key={i} className="flex justify-between items-center py-2 text-sm border-b border-slate-100 last:border-0">
                   <span>{t.name} ({t.subdomain})</span>
-                  <span>
+                  <span className="flex items-center gap-2">
                     <span
+                      className="py-0.5 px-2 rounded-md text-xs font-medium"
                       style={{
-                        padding: "0.2rem 0.5rem",
-                        borderRadius: 6,
                         background: t.status === "ACTIVE" ? "#dcfce7" : "#fee2e2",
                         color: t.status === "ACTIVE" ? "#166534" : "#991b1b",
-                        fontSize: "0.8rem",
-                        marginRight: "0.5rem",
                       }}
                     >
                       {t.status}
@@ -113,7 +111,7 @@ export default function SuperAdminDashboard({ data }) {
               ))}
             </div>
           ) : (
-            <div className={styles.panelEmpty}>No restaurants yet</div>
+            <div className="text-color-text-muted text-sm py-4 text-center">No restaurants yet</div>
           )}
         </div>
       </div>

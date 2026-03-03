@@ -15,7 +15,6 @@ import {
   LineChart,
   Line,
 } from "recharts";
-import styles from "./Dashboard.module.css";
 
 // Per Module B: Real-time revenue, tax, and waiter performance analytics
 const METRIC_CONFIG = [
@@ -102,13 +101,16 @@ const ICON_SVG = {
 
 function MetricCard({ label, value, icon, color }) {
   return (
-    <div className={styles.metricCard}>
-      <div className={styles.metricIcon} style={{ background: `${color}22`, color }}>
+    <div className="bg-white rounded-xl p-5 flex items-start gap-4 shadow-sm border border-color-border transition-all duration-200 hover:shadow-md hover:-translate-y-px">
+      <div
+        className="w-12 h-12 min-w-12 rounded-[10px] flex items-center justify-center [&>svg]:w-6 [&>svg]:h-6"
+        style={{ background: `${color}22`, color }}
+      >
         {ICON_SVG[icon] || ICON_SVG.revenue}
       </div>
-      <div className={styles.metricContent}>
-        <div className={styles.metricValue}>{value}</div>
-        <div className={styles.metricLabel}>{label}</div>
+      <div className="flex-1 min-w-0">
+        <div className="text-xl font-bold text-[#1a1d29] leading-tight">{value}</div>
+        <div className="text-[0.85rem] text-color-text-muted mt-1">{label}</div>
       </div>
     </div>
   );
@@ -139,7 +141,7 @@ const defaultData = {
 };
 
 export default function Dashboard({ data = defaultData }) {
-  const { metrics, paymentData, salesByCategoryData, topProducts, lowStockItems, topCustomers, waiterPerformance, cashFlowData } = data;
+  const { metrics, paymentData, salesByCategoryData, topProducts, topCustomers, waiterPerformance, cashFlowData } = data;
 
   const metricCards = METRIC_CONFIG.map((cfg) => ({
     ...cfg,
@@ -150,17 +152,17 @@ export default function Dashboard({ data = defaultData }) {
   const salesChartData = salesByCategoryData?.length ? salesByCategoryData : [{ name: "No data", sales: 0 }];
 
   return (
-    <div className={styles.dashboard}>
-      <div className={styles.metricsGrid}>
+    <div className="flex flex-col gap-6">
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-4">
         {metricCards.map((card) => (
           <MetricCard key={card.key} label={card.label} value={card.value} icon={card.icon} color={card.color} />
         ))}
       </div>
 
-      <div className={styles.chartsRow}>
-        <div className={styles.chartCard}>
-          <h3 className={styles.chartTitle}>Payment Method Breakdown (This Month)</h3>
-          <div className={styles.chartContainer}>
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <div className="bg-white rounded-xl p-6 shadow-sm border border-color-border">
+          <h3 className="text-base font-semibold text-color-text m-0 mb-4">Payment Method Breakdown (This Month)</h3>
+          <div className="h-[260px] min-h-[200px]">
             <ResponsiveContainer width="100%" height={260}>
               <PieChart>
                 <Pie
@@ -182,9 +184,9 @@ export default function Dashboard({ data = defaultData }) {
             </ResponsiveContainer>
           </div>
         </div>
-        <div className={styles.chartCard}>
-          <h3 className={styles.chartTitle}>Sales by Category (This Month)</h3>
-          <div className={styles.chartContainer}>
+        <div className="bg-white rounded-xl p-6 shadow-sm border border-color-border">
+          <h3 className="text-base font-semibold text-color-text m-0 mb-4">Sales by Category (This Month)</h3>
+          <div className="h-[260px] min-h-[200px]">
             <ResponsiveContainer width="100%" height={260}>
               <BarChart data={salesChartData} layout="vertical" margin={{ left: 80 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
@@ -198,57 +200,57 @@ export default function Dashboard({ data = defaultData }) {
         </div>
       </div>
 
-      <div className={styles.panelsRow}>
-        <div className={styles.panel}>
-          <h3 className={styles.panelTitle}>Top Selling Products (This Month)</h3>
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        <div className="bg-white rounded-xl p-6 shadow-sm border border-color-border">
+          <h3 className="text-base font-semibold text-color-text m-0 mb-4">Top Selling Products (This Month)</h3>
           {topProducts?.length > 0 ? (
-            <div className={styles.topList}>
+            <div className="flex flex-col gap-2">
               {topProducts.map((p, i) => (
-                <div key={i} className={styles.topRow}>
+                <div key={i} className="flex justify-between items-center py-2 text-sm border-b border-slate-100 last:border-0">
                   <span>{p.name}</span>
                   <span>€{Number(p.total).toLocaleString()}</span>
                 </div>
               ))}
             </div>
           ) : (
-            <div className={styles.panelEmpty}>No sales this month</div>
+            <div className="text-color-text-muted text-sm py-4 text-center">No sales this month</div>
           )}
         </div>
-        <div className={styles.panel}>
-          <h3 className={styles.panelTitle}>Waiter Performance (This Month)</h3>
+        <div className="bg-white rounded-xl p-6 shadow-sm border border-color-border">
+          <h3 className="text-base font-semibold text-color-text m-0 mb-4">Waiter Performance (This Month)</h3>
           {waiterPerformance?.length > 0 ? (
-            <div className={styles.topList}>
+            <div className="flex flex-col gap-2">
               {waiterPerformance.map((w, i) => (
-                <div key={i} className={styles.topRow}>
+                <div key={i} className="flex justify-between items-center py-2 text-sm border-b border-slate-100 last:border-0">
                   <span>{w.name}</span>
                   <span>€{Number(w.total).toLocaleString()} ({w.orders} orders)</span>
                 </div>
               ))}
             </div>
           ) : (
-            <div className={styles.panelEmpty}>No waiter data this month</div>
+            <div className="text-color-text-muted text-sm py-4 text-center">No waiter data this month</div>
           )}
         </div>
-        <div className={styles.panel}>
-          <h3 className={styles.panelTitle}>Top Customers (This Month)</h3>
+        <div className="bg-white rounded-xl p-6 shadow-sm border border-color-border">
+          <h3 className="text-base font-semibold text-color-text m-0 mb-4">Top Customers (This Month)</h3>
           {topCustomers?.length > 0 ? (
-            <div className={styles.topList}>
+            <div className="flex flex-col gap-2">
               {topCustomers.map((c, i) => (
-                <div key={i} className={styles.topRow}>
+                <div key={i} className="flex justify-between items-center py-2 text-sm border-b border-slate-100 last:border-0">
                   <span>{c.name}</span>
                   <span>€{Number(c.total).toLocaleString()}</span>
                 </div>
               ))}
             </div>
           ) : (
-            <div className={styles.panelEmpty}>No customers this month</div>
+            <div className="text-color-text-muted text-sm py-4 text-center">No customers this month</div>
           )}
         </div>
       </div>
 
-      <div className={styles.cashFlowCard}>
-        <h3 className={styles.chartTitle}>Monthly Cash Flow (Payment Sent & Received)</h3>
-        <div className={styles.chartContainerLarge}>
+      <div className="bg-white rounded-xl p-6 shadow-sm border border-color-border">
+        <h3 className="text-base font-semibold text-color-text m-0 mb-4">Monthly Cash Flow (Payment Sent & Received)</h3>
+        <div className="h-[300px] min-h-[220px]">
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={cashFlowData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
