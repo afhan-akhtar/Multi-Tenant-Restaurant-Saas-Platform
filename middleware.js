@@ -10,6 +10,8 @@ export async function middleware(request) {
   // Public routes
   const isPublic =
     pathname === "/login" ||
+    pathname === "/register" ||
+    pathname === "/api/register" ||
     pathname.startsWith("/api/auth") ||
     pathname.startsWith("/_next") ||
     pathname.match(/\.(ico|png|svg|jpg|jpeg|gif|webp)$/);
