@@ -56,16 +56,16 @@ const ICON_SVG = {
 
 function MetricCard({ label, value, icon, color }) {
   return (
-    <div className="bg-white rounded-xl p-5 flex items-start gap-4 shadow-sm border border-color-border transition-all duration-200 hover:shadow-md hover:-translate-y-px">
+    <div className="bg-white rounded-xl p-4 sm:p-5 flex items-start gap-3 sm:gap-4 shadow-sm border border-color-border transition-all duration-200 hover:shadow-md hover:-translate-y-px">
       <div
-        className="w-12 h-12 min-w-12 rounded-[10px] flex items-center justify-center [&>svg]:w-6 [&>svg]:h-6"
+        className="w-10 h-10 sm:w-12 sm:h-12 min-w-10 sm:min-w-12 rounded-[10px] flex items-center justify-center [&>svg]:w-5 [&>svg]:h-5 sm:[&>svg]:w-6 sm:[&>svg]:h-6"
         style={{ background: `${color}22`, color }}
       >
         {ICON_SVG[icon] || ICON_SVG.restaurant}
       </div>
       <div className="flex-1 min-w-0">
-        <div className="text-xl font-bold text-[#1a1d29] leading-tight">{value}</div>
-        <div className="text-[0.85rem] text-color-text-muted mt-1">{label}</div>
+        <div className="text-lg sm:text-xl font-bold text-[#1a1d29] leading-tight truncate">{value}</div>
+        <div className="text-xs sm:text-[0.85rem] text-color-text-muted mt-0.5 sm:mt-1">{label}</div>
       </div>
     </div>
   );
@@ -80,22 +80,22 @@ export default function SuperAdminDashboard({ data }) {
   }));
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-4">
+    <div className="flex flex-col gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
         {metricCards.map((card) => (
           <MetricCard key={card.key} label={card.label} value={card.value} icon={card.icon} color={card.color} />
         ))}
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-color-border xl:col-span-3">
-          <h3 className="text-base font-semibold text-color-text m-0 mb-4">Recently Onboarded Restaurants</h3>
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6">
+        <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-color-border xl:col-span-3 overflow-hidden">
+          <h3 className="text-sm sm:text-base font-semibold text-color-text m-0 mb-3 sm:mb-4">Recently Onboarded Restaurants</h3>
           {recentTenants?.length > 0 ? (
             <div className="flex flex-col gap-2">
               {recentTenants.map((t, i) => (
-                <div key={i} className="flex justify-between items-center py-2 text-sm border-b border-slate-100 last:border-0">
-                  <span>{t.name} ({t.subdomain})</span>
-                  <span className="flex items-center gap-2">
+                <div key={i} className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-2 py-2 text-sm border-b border-slate-100 last:border-0">
+                  <span className="truncate min-w-0">{t.name} ({t.subdomain})</span>
+                  <span className="flex items-center gap-2 shrink-0">
                     <span
                       className="py-0.5 px-2 rounded-md text-xs font-medium"
                       style={{

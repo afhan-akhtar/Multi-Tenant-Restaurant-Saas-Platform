@@ -101,16 +101,16 @@ const ICON_SVG = {
 
 function MetricCard({ label, value, icon, color }) {
   return (
-    <div className="bg-white rounded-xl p-5 flex items-start gap-4 shadow-sm border border-color-border transition-all duration-200 hover:shadow-md hover:-translate-y-px">
+    <div className="bg-white rounded-xl p-4 sm:p-5 flex items-start gap-3 sm:gap-4 shadow-sm border border-color-border transition-all duration-200 hover:shadow-md hover:-translate-y-px">
       <div
-        className="w-12 h-12 min-w-12 rounded-[10px] flex items-center justify-center [&>svg]:w-6 [&>svg]:h-6"
+        className="w-10 h-10 sm:w-12 sm:h-12 min-w-10 sm:min-w-12 rounded-[10px] flex items-center justify-center [&>svg]:w-5 [&>svg]:h-5 sm:[&>svg]:w-6 sm:[&>svg]:h-6"
         style={{ background: `${color}22`, color }}
       >
         {ICON_SVG[icon] || ICON_SVG.revenue}
       </div>
       <div className="flex-1 min-w-0">
-        <div className="text-xl font-bold text-[#1a1d29] leading-tight">{value}</div>
-        <div className="text-[0.85rem] text-color-text-muted mt-1">{label}</div>
+        <div className="text-lg sm:text-xl font-bold text-[#1a1d29] leading-tight truncate">{value}</div>
+        <div className="text-xs sm:text-[0.85rem] text-color-text-muted mt-0.5 sm:mt-1">{label}</div>
       </div>
     </div>
   );
@@ -152,18 +152,18 @@ export default function Dashboard({ data = defaultData }) {
   const salesChartData = salesByCategoryData?.length ? salesByCategoryData : [{ name: "No data", sales: 0 }];
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-4">
+    <div className="flex flex-col gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
         {metricCards.map((card) => (
           <MetricCard key={card.key} label={card.label} value={card.value} icon={card.icon} color={card.color} />
         ))}
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-color-border">
-          <h3 className="text-base font-semibold text-color-text m-0 mb-4">Payment Method Breakdown (This Month)</h3>
-          <div className="h-[260px] min-h-[200px]">
-            <ResponsiveContainer width="100%" height={260}>
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
+        <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-color-border overflow-hidden">
+          <h3 className="text-sm sm:text-base font-semibold text-color-text m-0 mb-3 sm:mb-4">Payment Method Breakdown (This Month)</h3>
+          <div className="h-[220px] sm:h-[260px] min-h-[180px]">
+            <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
                   data={paymentChartData}
@@ -184,10 +184,10 @@ export default function Dashboard({ data = defaultData }) {
             </ResponsiveContainer>
           </div>
         </div>
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-color-border">
-          <h3 className="text-base font-semibold text-color-text m-0 mb-4">Sales by Category (This Month)</h3>
-          <div className="h-[260px] min-h-[200px]">
-            <ResponsiveContainer width="100%" height={260}>
+        <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-color-border overflow-hidden">
+          <h3 className="text-sm sm:text-base font-semibold text-color-text m-0 mb-3 sm:mb-4">Sales by Category (This Month)</h3>
+          <div className="h-[220px] sm:h-[260px] min-h-[180px]">
+            <ResponsiveContainer width="100%" height="100%">
               <BarChart data={salesChartData} layout="vertical" margin={{ left: 80 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                 <XAxis type="number" tickFormatter={(v) => (v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v)} />
@@ -200,15 +200,15 @@ export default function Dashboard({ data = defaultData }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-color-border">
-          <h3 className="text-base font-semibold text-color-text m-0 mb-4">Top Selling Products (This Month)</h3>
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
+        <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-color-border overflow-hidden">
+          <h3 className="text-sm sm:text-base font-semibold text-color-text m-0 mb-3 sm:mb-4">Top Selling Products (This Month)</h3>
           {topProducts?.length > 0 ? (
             <div className="flex flex-col gap-2">
               {topProducts.map((p, i) => (
-                <div key={i} className="flex justify-between items-center py-2 text-sm border-b border-slate-100 last:border-0">
-                  <span>{p.name}</span>
-                  <span>€{Number(p.total).toLocaleString()}</span>
+                <div key={i} className="flex justify-between items-center gap-2 py-2 text-sm border-b border-slate-100 last:border-0">
+                  <span className="truncate min-w-0">{p.name}</span>
+                  <span className="shrink-0">€{Number(p.total).toLocaleString()}</span>
                 </div>
               ))}
             </div>
@@ -216,14 +216,14 @@ export default function Dashboard({ data = defaultData }) {
             <div className="text-color-text-muted text-sm py-4 text-center">No sales this month</div>
           )}
         </div>
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-color-border">
-          <h3 className="text-base font-semibold text-color-text m-0 mb-4">Waiter Performance (This Month)</h3>
+        <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-color-border overflow-hidden">
+          <h3 className="text-sm sm:text-base font-semibold text-color-text m-0 mb-3 sm:mb-4">Waiter Performance (This Month)</h3>
           {waiterPerformance?.length > 0 ? (
             <div className="flex flex-col gap-2">
               {waiterPerformance.map((w, i) => (
-                <div key={i} className="flex justify-between items-center py-2 text-sm border-b border-slate-100 last:border-0">
-                  <span>{w.name}</span>
-                  <span>€{Number(w.total).toLocaleString()} ({w.orders} orders)</span>
+                <div key={i} className="flex justify-between items-center gap-2 py-2 text-sm border-b border-slate-100 last:border-0">
+                  <span className="truncate min-w-0">{w.name}</span>
+                  <span className="shrink-0 text-right">€{Number(w.total).toLocaleString()} ({w.orders})</span>
                 </div>
               ))}
             </div>
@@ -231,14 +231,14 @@ export default function Dashboard({ data = defaultData }) {
             <div className="text-color-text-muted text-sm py-4 text-center">No waiter data this month</div>
           )}
         </div>
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-color-border">
-          <h3 className="text-base font-semibold text-color-text m-0 mb-4">Top Customers (This Month)</h3>
+        <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-color-border overflow-hidden">
+          <h3 className="text-sm sm:text-base font-semibold text-color-text m-0 mb-3 sm:mb-4">Top Customers (This Month)</h3>
           {topCustomers?.length > 0 ? (
             <div className="flex flex-col gap-2">
               {topCustomers.map((c, i) => (
-                <div key={i} className="flex justify-between items-center py-2 text-sm border-b border-slate-100 last:border-0">
-                  <span>{c.name}</span>
-                  <span>€{Number(c.total).toLocaleString()}</span>
+                <div key={i} className="flex justify-between items-center gap-2 py-2 text-sm border-b border-slate-100 last:border-0">
+                  <span className="truncate min-w-0">{c.name}</span>
+                  <span className="shrink-0">€{Number(c.total).toLocaleString()}</span>
                 </div>
               ))}
             </div>
@@ -248,10 +248,10 @@ export default function Dashboard({ data = defaultData }) {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl p-6 shadow-sm border border-color-border">
-        <h3 className="text-base font-semibold text-color-text m-0 mb-4">Monthly Cash Flow (Payment Sent & Received)</h3>
-        <div className="h-[300px] min-h-[220px]">
-          <ResponsiveContainer width="100%" height={300}>
+      <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-color-border overflow-hidden">
+        <h3 className="text-sm sm:text-base font-semibold text-color-text m-0 mb-3 sm:mb-4">Monthly Cash Flow (Payment Sent & Received)</h3>
+        <div className="h-[250px] sm:h-[300px] min-h-[200px]">
+          <ResponsiveContainer width="100%" height="100%">
             <LineChart data={cashFlowData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
               <XAxis dataKey="month" />

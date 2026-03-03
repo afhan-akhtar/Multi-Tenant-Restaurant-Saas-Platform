@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
@@ -213,10 +213,11 @@ const ICONS = {
   ),
 };
 
-function NavItem({ href, label, icon, isActive, collapsed }) {
+function NavItem({ href, label, icon, isActive, collapsed, onNavigate }) {
   return (
     <Link
       href={href || "#"}
+      onClick={onNavigate}
       className={`flex items-center gap-3 py-2.5 px-4 text-slate-400 no-underline transition-all duration-200 border-l-[3px] border-transparent ml-0 hover:bg-sidebar-hover hover:text-white ${
         isActive ? "bg-primary/15 text-white border-l-primary" : ""
       }`}
@@ -259,10 +260,34 @@ const PAGE_TITLES = {
 export default function DashboardLayout({ children, user }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [isMobileLayout, setIsMobileLayout] = useState(false);
+  const userMenuRef = useRef(null);
   const pathname = usePathname();
   const isSuperAdmin = user?.type === "super_admin";
 
   const sidebarItems = isSuperAdmin ? SUPER_ADMIN_ITEMS : RESTAURANT_ITEMS;
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 1023px)");
+    setIsMobileLayout(mq.matches);
+    const handler = () => setIsMobileLayout(mq.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target)) setUserMenuOpen(false);
+    }
+    if (userMenuOpen) {
+      document.addEventListener("click", handleClickOutside);
+      return () => document.removeEventListener("click", handleClickOutside);
+    }
+  }, [userMenuOpen]);
+
+  const closeSidebarOnNavigate = () => {
+    if (isMobileLayout) setSidebarOpen(false);
+  };
 
   const isActive = (href) => {
     if (href === "/") return pathname === "/";
@@ -279,7 +304,7 @@ export default function DashboardLayout({ children, user }) {
     <div className="min-h-screen flex bg-color-bg">
       <aside
         className={`fixed top-0 left-0 z-[100] h-screen flex flex-col overflow-hidden shadow-lg text-slate-300 transition-[width,transform] duration-300 ease-out bg-sidebar
-          ${sidebarOpen ? "w-[260px] translate-x-0" : "w-[72px] -translate-x-full lg:translate-x-0"}
+          ${sidebarOpen ? "w-[min(260px,85vw)] sm:w-[260px] translate-x-0" : "w-[72px] -translate-x-full lg:translate-x-0"}
         `}
       >
         <div className={`flex items-center justify-between gap-3 p-4 min-h-[56px] shrink-0 ${!sidebarOpen ? "flex-col justify-start py-4 px-2" : ""}`}>
@@ -313,6 +338,7 @@ export default function DashboardLayout({ children, user }) {
                       icon={sub.icon}
                       isActive={isActive(sub.href)}
                       collapsed={!sidebarOpen}
+                      onNavigate={closeSidebarOnNavigate}
                     />
                   ))}
                 </div>
@@ -326,6 +352,7 @@ export default function DashboardLayout({ children, user }) {
                 icon={item.icon}
                 isActive={isActive(item.href)}
                 collapsed={!sidebarOpen}
+                onNavigate={closeSidebarOnNavigate}
               />
             );
           })}
@@ -333,10 +360,10 @@ export default function DashboardLayout({ children, user }) {
       </aside>
 
       <div className={`flex-1 min-h-screen flex flex-col transition-[margin] duration-300 ${sidebarOpen ? "lg:ml-[260px]" : "lg:ml-[72px]"} ml-0`}>
-        <header className="h-16 bg-color-card border-b border-color-border flex items-center justify-between px-6 sticky top-0 z-50 shadow-sm">
-          <div className="flex-1 flex items-center gap-3">
+        <header className="h-14 sm:h-16 bg-color-card border-b border-color-border flex items-center justify-between px-4 sm:px-6 sticky top-0 z-50 shadow-sm gap-2 min-w-0">
+          <div className="flex-1 flex items-center gap-2 sm:gap-3 min-w-0">
             <button
-              className="flex lg:hidden w-10 h-10 border-0 bg-transparent text-color-text cursor-pointer rounded-md items-center justify-center hover:bg-color-bg [&>svg]:w-6 [&>svg]:h-6"
+              className="flex lg:hidden shrink-0 w-10 h-10 border-0 bg-transparent text-color-text cursor-pointer rounded-md items-center justify-center hover:bg-color-bg [&>svg]:w-6 [&>svg]:h-6"
               onClick={() => setSidebarOpen(true)}
               aria-label="Open menu"
             >
@@ -344,12 +371,12 @@ export default function DashboardLayout({ children, user }) {
                 <path d="M3 12h18M3 6h18M3 18h18" />
               </svg>
             </button>
-            <h1 className="text-xl font-semibold text-color-text m-0 whitespace-nowrap overflow-hidden text-ellipsis max-w-full">{pageTitle}</h1>
+            <h1 className="text-base sm:text-xl font-semibold text-color-text m-0 truncate min-w-0">{pageTitle}</h1>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4 shrink-0">
             {!isSuperAdmin && (
-              <Link href="/pos" className="py-2 px-4 bg-primary text-white no-underline rounded-md font-medium text-sm transition-colors hover:bg-primary-hover">
-                POS System
+              <Link href="/pos" className="py-1.5 px-3 sm:py-2 sm:px-4 bg-primary text-white no-underline rounded-md font-medium text-xs sm:text-sm transition-colors hover:bg-primary-hover shrink-0">
+                POS
               </Link>
             )}
             <button className="w-10 h-10 border-0 bg-transparent text-color-text-muted cursor-pointer rounded-md flex items-center justify-center hover:bg-color-bg hover:text-color-text transition-colors [&>svg]:w-[22px] [&>svg]:h-[22px]" aria-label="Notifications">
@@ -358,7 +385,7 @@ export default function DashboardLayout({ children, user }) {
                 <path d="M13.73 21a2 2 0 0 1-3.46 0" />
               </svg>
             </button>
-            <div className="relative">
+            <div className="relative" ref={userMenuRef}>
               <button
                 className="flex items-center gap-2 py-1 px-2 bg-transparent border-0 cursor-pointer rounded-md text-color-text hover:bg-color-bg"
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
@@ -386,9 +413,9 @@ export default function DashboardLayout({ children, user }) {
           </div>
         </header>
 
-        <main className="flex-1 p-6">{children}</main>
+        <main className="flex-1 p-4 sm:p-6 overflow-x-hidden">{children}</main>
 
-        <footer className="py-4 px-6 text-xs text-color-text-muted border-t border-color-border bg-color-card shrink-0">
+        <footer className="py-3 px-4 sm:py-4 sm:px-6 text-xs text-color-text-muted border-t border-color-border bg-color-card shrink-0">
           Copyright © {new Date().getFullYear()} Multi-Tenant Restaurant SaaS. All Rights Reserved.
         </footer>
       </div>

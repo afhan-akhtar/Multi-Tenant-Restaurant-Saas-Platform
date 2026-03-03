@@ -47,8 +47,8 @@ function LoginForm() {
   }
 
   return (
-    <main className="min-h-screen min-h-[100dvh] flex items-center justify-center p-4 bg-gradient-to-br from-[#1a1a2e] to-[#16213e] box-border">
-      <div className="w-full max-w-[400px] bg-white/5 rounded-xl p-8 border border-white/10">
+    <main className="min-h-screen min-h-[100dvh] flex items-center justify-center p-4 sm:p-6 bg-gradient-to-br from-[#1a1a2e] to-[#16213e] box-border">
+      <div className="w-full max-w-[400px] bg-white/5 rounded-xl p-6 sm:p-8 border border-white/10">
         <h1 className="m-0 mb-6 text-2xl text-white">Sign in</h1>
         <div className="flex gap-2 mb-6">
           <button
