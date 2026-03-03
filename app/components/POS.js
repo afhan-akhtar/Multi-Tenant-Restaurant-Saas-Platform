@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 const CATEGORY_COLORS = ["#1a202c", "#3182ce", "#4299e1", "#48bb78", "#ed64a6"];
 
 export default function POS({ data }) {
+  const router = useRouter();
   const { categories = [], products = [], addonGroups = [], tables = [], customers = [] } = data || {};
 
   const [selectedCategoryId, setSelectedCategoryId] = useState(categories[0]?.id ?? null);
@@ -268,7 +270,10 @@ export default function POS({ data }) {
           >
             {placing ? "..." : "Pay"}
           </button>
-          <button className="py-4 px-5 rounded-xl font-semibold text-base cursor-pointer transition-all border-2 border-slate-400 text-slate-500 bg-gradient-to-b from-white to-slate-50 hover:border-slate-500 hover:from-slate-100 hover:to-slate-200 shadow-sm hover:-translate-y-0.5 hover:shadow-md">
+          <button
+            className="py-4 px-5 rounded-xl font-semibold text-base cursor-pointer transition-all border-2 border-slate-400 text-slate-500 bg-gradient-to-b from-white to-slate-50 hover:border-slate-500 hover:from-slate-100 hover:to-slate-200 shadow-sm hover:-translate-y-0.5 hover:shadow-md"
+            onClick={() => router.back()}
+          >
             Exit
           </button>
         </div>
