@@ -266,12 +266,12 @@ export default function Dashboard({ data = defaultData }) {
         <div className="h-[250px] sm:h-[300px] min-h-[200px] min-w-[200px] w-full">
           {mounted && (
           <ResponsiveContainer width="100%" height="100%" minWidth={200} minHeight={200} initialDimension={{ width: 400, height: 250 }}>
-            <LineChart data={cashFlowData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-              <XAxis dataKey="month" />
-              <YAxis tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
-              <Tooltip formatter={(value) => [`€${Number(value || 0).toLocaleString()}`, ""]} />
-              <Legend />
+            <LineChart data={cashFlowData} margin={{ top: 20, right: 10, left: 0, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={true} horizontal={true} />
+              <XAxis dataKey="month" tick={{ fontSize: 12, fill: "#64748b" }} axisLine={{ stroke: "#e2e8f0" }} tickLine={{ stroke: "#e2e8f0" }} />
+              <YAxis tickFormatter={(v) => Number(v).toLocaleString()} tick={{ fontSize: 12, fill: "#64748b" }} axisLine={{ stroke: "#e2e8f0" }} tickLine={{ stroke: "#e2e8f0" }} width={70} />
+              <Tooltip formatter={(value) => [`€${Number(value || 0).toLocaleString()}`, ""]} contentStyle={{ borderRadius: 8, border: "1px solid #e2e8f0" }} />
+              <Legend align="center" verticalAlign="top" wrapperStyle={{ paddingBottom: 8 }} />
               <Line type="monotone" dataKey="sent" name="Payment Sent" stroke="#f97316" strokeWidth={2} dot={{ r: 4 }} />
               <Line type="monotone" dataKey="received" name="Payment Received" stroke="#3b82f6" strokeWidth={2} dot={{ r: 4 }} />
             </LineChart>
