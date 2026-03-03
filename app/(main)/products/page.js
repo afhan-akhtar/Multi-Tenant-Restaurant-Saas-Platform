@@ -20,7 +20,7 @@ export default async function ProductsPage() {
       <div className="flex justify-between items-center flex-wrap gap-4 mb-6 md:flex-col md:items-start md:mb-4">
         <h2 className="m-0 text-xl font-semibold text-color-text md:text-lg sm:text-base">Products</h2>
       </div>
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-5 xl:gap-4 lg:gap-3.5 md:gap-3 sm:grid-cols-2 sm:gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5 xl:gap-4 lg:gap-3.5 md:gap-3 sm:gap-3">
         {products.map((p) => (
           <div key={p.id} className="bg-color-card rounded-lg border border-color-border overflow-hidden transition-all hover:shadow-md">
             <div className="aspect-square bg-slate-100 relative overflow-hidden">
