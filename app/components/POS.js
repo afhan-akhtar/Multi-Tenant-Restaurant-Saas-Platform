@@ -183,7 +183,7 @@ export default function POS({ data }) {
             >
               <div className="w-full aspect-square bg-slate-100 rounded-xl flex items-center justify-center text-slate-400 text-3xl overflow-hidden">
                 {product.imageUrl ? (
-                  <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
+                  <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" loading="lazy" />
                 ) : (
                   <span>🍽</span>
                 )}
