@@ -16,7 +16,7 @@ export async function POST(request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { items, orderType, tableId, customerId } = await request.json();
+    const { items, orderType, tableId, customerId, orderNumber: clientOrderNumber } = await request.json();
     const tenantId = token.tenantId ?? null;
     const branchId = token.branchId ?? null;
     const staffId = parseInt(token.id, 10);
@@ -59,7 +59,7 @@ export async function POST(request) {
     }
 
     const now = new Date();
-    const orderNumber = `ORD${Date.now().toString().slice(-6)}`;
+    const orderNumber = clientOrderNumber ? String(clientOrderNumber) : `ORD${Date.now().toString().slice(-6)}`;
 
     const session = await prisma.session.create({
       data: {

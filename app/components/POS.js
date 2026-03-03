@@ -12,9 +12,9 @@ export default function POS({ data }) {
   const [selectedCategoryId, setSelectedCategoryId] = useState(categories[0]?.id ?? null);
   const [cart, setCart] = useState([]);
   const [orderType, setOrderType] = useState("TAKEAWAY");
-  const [orderNumber, setOrderNumber] = useState("#---");
+  const [orderNumber, setOrderNumber] = useState("ORD---");
   useEffect(() => {
-    setOrderNumber(`#${Math.floor(800 + Math.random() * 200)}`);
+    setOrderNumber(`ORD${Math.floor(800 + Math.random() * 200)}`);
   }, []);
   const [addonProduct, setAddonProduct] = useState(null);
   const [selectedAddons, setSelectedAddons] = useState({});
@@ -123,6 +123,7 @@ export default function POS({ data }) {
             quantity: i.quantity,
           })),
           orderType,
+          orderNumber,
         }),
       });
       const json = await res.json();
