@@ -28,6 +28,10 @@ const RESTAURANT_ITEMS = [
     { href: "/products", label: "Products", icon: "products" },
     { href: "/addons", label: "Add-on Groups", icon: "addon" },
   ]},
+  { section: "POS & KITCHEN", items: [
+    { href: "/pos", label: "POS System", icon: "pos" },
+    { href: "/kds", label: "Kitchen Display (KDS)", icon: "kds" },
+  ]},
   { section: "STAFF & SECURITY", items: [
     { href: "/users", label: "Staff Management", icon: "users" },
     { href: "/roles", label: "Roles & Permissions", icon: "roles" },
@@ -46,10 +50,7 @@ const RESTAURANT_ITEMS = [
     { href: "/campaigns", label: "Email Campaigns", icon: "campaign" },
     { href: "/parties", label: "Customers", icon: "contacts" },
   ]},
-  { section: "POS & KITCHEN", items: [
-    { href: "/pos", label: "POS System", icon: "pos" },
-    { href: "/kds", label: "Kitchen Display (KDS)", icon: "kds" },
-  ]},
+  
   { href: "/settings", label: "Settings", icon: "settings" },
 ];
 
