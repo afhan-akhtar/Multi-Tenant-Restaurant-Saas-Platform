@@ -1,6 +1,8 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { redirect } from "next/navigation";
+import pageStyles from "@/app/styles/Page.module.css";
+import tableStyles from "@/app/styles/Table.module.css";
 
 export default async function CashbookPage() {
   const session = await auth();
@@ -15,46 +17,50 @@ export default async function CashbookPage() {
     take: 100,
   });
 
+  const amountColor = (type) => {
+    const t = (type || "").toLowerCase();
+    return t.includes("sent") || t.includes("expense") ? "#dc2626" : "#166534";
+  };
+
   return (
-    <div style={{ padding: "1rem 0" }}>
-      <h2 style={{ margin: "0 0 1.5rem 0", fontSize: "1.25rem" }}>Cashbook</h2>
-      <p style={{ color: "#718096", fontSize: "0.9rem", marginBottom: "1rem" }}>
+    <div className={pageStyles.page}>
+      <h2 className={pageStyles.pageTitle}>Cashbook</h2>
+      <p className={pageStyles.pageDescriptionBlock}>
         Immutable recording of all cash sales, deposits, and withdrawals (DS-FinV-K compliant).
       </p>
-      <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", overflow: "hidden" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.9rem" }}>
-          <thead>
-            <tr style={{ background: "#f8f9fa", borderBottom: "1px solid #e2e8f0" }}>
-              <th style={{ padding: "0.75rem 1rem", textAlign: "left" }}>Date</th>
-              <th style={{ padding: "0.75rem 1rem", textAlign: "left" }}>Type</th>
-              <th style={{ padding: "0.75rem 1rem", textAlign: "right" }}>Amount</th>
-            </tr>
-          </thead>
-          <tbody>
-            {entries.map((e) => (
-              <tr key={e.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                <td style={{ padding: "0.75rem 1rem", color: "#718096" }}>
-                  {new Date(e.createdAt).toLocaleString()}
-                </td>
-                <td style={{ padding: "0.75rem 1rem" }}>{e.type}</td>
-                <td
-                  style={{
-                    padding: "0.75rem 1rem",
-                    textAlign: "right",
-                    fontWeight: 600,
-                    color: (e.type || "").toLowerCase().includes("sent") || (e.type || "").toLowerCase().includes("expense") ? "#dc2626" : "#166534",
-                  }}
-                >
-                  {(e.type || "").toLowerCase().includes("sent") || (e.type || "").toLowerCase().includes("expense") ? "-" : "+"}
-                  €{Number(e.amount).toLocaleString()}
-                </td>
+      <div className={pageStyles.card}>
+        <div className={tableStyles.tableWrapper}>
+          <table className={tableStyles.table}>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Type</th>
+                <th data-align="right">Amount</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-        {entries.length === 0 && (
-          <div style={{ padding: "3rem", textAlign: "center", color: "#718096" }}>No cashbook entries</div>
-        )}
+            </thead>
+            <tbody>
+              {entries.map((e) => (
+                <tr key={e.id}>
+                  <td style={{ color: "var(--color-text-muted)" }}>
+                    {new Date(e.createdAt).toLocaleString()}
+                  </td>
+                  <td>{e.type}</td>
+                  <td
+                    data-align="right"
+                    style={{
+                      fontWeight: 600,
+                      color: amountColor(e.type),
+                    }}
+                  >
+                    {(e.type || "").toLowerCase().includes("sent") || (e.type || "").toLowerCase().includes("expense") ? "-" : "+"}
+                    €{Number(e.amount).toLocaleString()}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {entries.length === 0 && <div className={pageStyles.emptyState}>No cashbook entries</div>}
       </div>
     </div>
   );

@@ -1,8 +1,10 @@
+import pageStyles from "@/app/styles/Page.module.css";
+
 export default function DeliveryZonesPage() {
   return (
-    <div style={{ padding: "2rem", textAlign: "center" }}>
-      <h2>Delivery Zones</h2>
-      <p style={{ color: "#718096" }}>
+    <div className={pageStyles.page}>
+      <h2 className={pageStyles.pageTitle}>Delivery Zones</h2>
+      <p className={pageStyles.pageDescription} style={{ textAlign: "center" }}>
         Define custom delivery zones with distance-based pricing and validation. Coming soon.
       </p>
     </div>

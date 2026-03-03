@@ -85,10 +85,12 @@
 
 .chartContainer {
   height: 260px;
+  min-height: 200px;
 }
 
 .chartContainerLarge {
   height: 300px;
+  min-height: 220px;
 }
 
 /* Panels row */
@@ -231,5 +233,13 @@
 
   .metricCard {
     flex-direction: row;
+  }
+
+  .chartContainer {
+    height: 220px;
+  }
+
+  .chartContainerLarge {
+    height: 260px;
   }
 }

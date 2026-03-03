@@ -1,14 +1,15 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import pageStyles from "@/app/styles/Page.module.css";
 
 export default async function ProfilePage() {
   const session = await auth();
   if (!session) redirect("/login");
 
   return (
-    <div style={{ padding: "2rem" }}>
-      <h2>Profile</h2>
-      <div style={{ marginTop: "1rem", padding: "1rem", background: "#f8f9fa", borderRadius: 8 }}>
+    <div className={pageStyles.page}>
+      <h2 className={pageStyles.pageTitle}>Profile</h2>
+      <div className={pageStyles.contentCard}>
         <p><strong>Name:</strong> {session.user?.name}</p>
         <p><strong>Email:</strong> {session.user?.email}</p>
         <p><strong>Type:</strong> {session.user?.type}</p>

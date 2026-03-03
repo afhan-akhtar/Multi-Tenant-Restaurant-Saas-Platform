@@ -444,24 +444,134 @@
 
   .productsGrid {
     grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    padding: 1rem;
+  }
+
+  .posHeader {
+    padding: 0.6rem 0.75rem;
+  }
+
+  .posCategories {
+    gap: 0.4rem;
+  }
+
+  .posCategoryTab {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.85rem;
   }
 }
 
 @media (max-width: 768px) {
   .pos {
     flex-direction: column;
+    height: auto;
+    min-height: calc(100vh - 120px);
   }
 
   .cartPanel {
     width: 100%;
+    border-left: none;
+    border-top: 1px solid #e2e8f0;
   }
 
-  .toolbar {
-    position: fixed;
-    right: 0;
-    top: 50%;
-    transform: translateY(-50%);
-    height: auto;
-    z-index: 50;
+  .productsGrid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 1rem;
+    padding: 1rem;
+  }
+
+  .productCard {
+    padding: 0.75rem;
+  }
+
+  .productImage {
+    max-width: 100px;
+  }
+
+  .productName {
+    font-size: 0.95rem;
+  }
+
+  .addonModal {
+    max-height: 85vh;
+    margin: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .pos {
+    min-height: calc(100vh - 100px);
+  }
+
+  .posHeader {
+    flex-wrap: wrap;
+    padding: 0.5rem 0.75rem;
+  }
+
+  .posBrand {
+    font-size: 0.9rem;
+    margin-right: 0.5rem;
+  }
+
+  .posCategories {
+    width: 100%;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .posCategoryTab {
+    flex-shrink: 0;
+    padding: 0.35rem 0.6rem;
+    font-size: 0.8rem;
+  }
+
+  .productsGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+    padding: 0.75rem;
+  }
+
+  .productCard {
+    padding: 0.6rem;
+  }
+
+  .productImage {
+    max-width: 80px;
+  }
+
+  .productName {
+    font-size: 0.85rem;
+  }
+
+  .productPrice {
+    font-size: 1rem;
+  }
+
+  .cartHeader {
+    padding: 0.6rem 0.75rem;
+  }
+
+  .cartSummary {
+    padding: 0.75rem 1rem;
+  }
+
+  .cartActions {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.4rem;
+    padding: 0.75rem;
+  }
+
+  .cartPrimaryBtns {
+    grid-template-columns: 1fr;
+    padding: 0 0.75rem 0.75rem;
+  }
+
+  .addonOverlay {
+    padding: 0.5rem;
+  }
+
+  .addonModal {
+    max-height: 90vh;
   }
 }

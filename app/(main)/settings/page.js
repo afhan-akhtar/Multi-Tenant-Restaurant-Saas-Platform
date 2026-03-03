@@ -1,8 +1,12 @@
+import pageStyles from "@/app/styles/Page.module.css";
+
 export default function SettingsPage() {
   return (
-    <div style={{ padding: "2rem", textAlign: "center" }}>
-      <h2>Settings</h2>
-      <p style={{ color: "#718096" }}>Coming soon. Platform and tenant settings will be available here.</p>
+    <div className={pageStyles.page}>
+      <h2 className={pageStyles.pageTitle}>Settings</h2>
+      <p className={pageStyles.pageDescription} style={{ textAlign: "center" }}>
+        Coming soon. Platform and tenant settings will be available here.
+      </p>
     </div>
   );
 }

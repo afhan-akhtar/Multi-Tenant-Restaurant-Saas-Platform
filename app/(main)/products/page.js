@@ -1,6 +1,9 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { redirect } from "next/navigation";
+import pageStyles from "@/app/styles/Page.module.css";
+import gridStyles from "@/app/styles/Grid.module.css";
+
 export default async function ProductsPage() {
   const session = await auth();
   if (!session) redirect("/login");
@@ -15,73 +18,30 @@ export default async function ProductsPage() {
   });
 
   return (
-    <div style={{ padding: "1rem 0" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
-        <h2 style={{ margin: 0, fontSize: "1.25rem" }}>Products</h2>
+    <div className={pageStyles.page}>
+      <div className={pageStyles.pageHeader}>
+        <h2 className={pageStyles.pageTitle}>Products</h2>
       </div>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
-          gap: "1.25rem",
-        }}
-      >
+      <div className={gridStyles.grid}>
         {products.map((p) => (
-          <div
-            key={p.id}
-            style={{
-              background: "#fff",
-              borderRadius: 12,
-              border: "1px solid #e2e8f0",
-              overflow: "hidden",
-              transition: "box-shadow 0.2s",
-            }}
-          >
-            <div
-              style={{
-                aspectRatio: "1",
-                background: "#f1f5f9",
-                position: "relative",
-                overflow: "hidden",
-              }}
-            >
+          <div key={p.id} className={gridStyles.gridCard}>
+            <div className={gridStyles.gridCardImage}>
               {p.imageUrl ? (
-                <img
-                  src={p.imageUrl}
-                  alt={p.name}
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    objectFit: "cover",
-                  }}
-                />
+                <img src={p.imageUrl} alt={p.name} />
               ) : (
-                <div
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: "3rem",
-                  }}
-                >
-                  🍽
-                </div>
+                <div className={gridStyles.gridCardPlaceholder}>🍽</div>
               )}
             </div>
-            <div style={{ padding: "1rem" }}>
-              <div style={{ fontWeight: 600, fontSize: "1rem", marginBottom: "0.25rem" }}>{p.name}</div>
-              <div style={{ fontSize: "0.85rem", color: "#718096", marginBottom: "0.5rem" }}>{p.category?.name}</div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontWeight: 700, color: "#e94560" }}>€{Number(p.basePrice).toLocaleString()}</span>
+            <div className={gridStyles.gridCardBody}>
+              <div className={gridStyles.gridCardTitle}>{p.name}</div>
+              <div className={gridStyles.gridCardSubtitle}>{p.category?.name}</div>
+              <div className={gridStyles.gridCardFooter}>
+                <span className={gridStyles.gridCardPrice}>€{Number(p.basePrice).toLocaleString()}</span>
                 <span
+                  className={gridStyles.gridBadge}
                   style={{
-                    padding: "0.2rem 0.5rem",
-                    borderRadius: 6,
                     background: p.isActive ? "#dcfce7" : "#fee2e2",
                     color: p.isActive ? "#166534" : "#991b1b",
-                    fontSize: "0.75rem",
                   }}
                 >
                   {p.isActive ? "Active" : "Inactive"}
@@ -91,9 +51,7 @@ export default async function ProductsPage() {
           </div>
         ))}
       </div>
-      {products.length === 0 && (
-        <div style={{ padding: "3rem", textAlign: "center", color: "#718096" }}>No products found</div>
-      )}
+      {products.length === 0 && <div className={pageStyles.emptyState}>No products found</div>}
     </div>
   );
 }
