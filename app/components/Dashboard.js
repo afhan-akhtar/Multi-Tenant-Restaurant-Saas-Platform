@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import {
   BarChart,
   Bar,
@@ -141,6 +142,14 @@ const defaultData = {
 };
 
 export default function Dashboard({ data = defaultData }) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    const id = requestAnimationFrame(() => {
+      requestAnimationFrame(() => setMounted(true));
+    });
+    return () => cancelAnimationFrame(id);
+  }, []);
+
   const { metrics, paymentData, salesByCategoryData, topProducts, topCustomers, waiterPerformance, cashFlowData } = data;
 
   const metricCards = METRIC_CONFIG.map((cfg) => ({
@@ -162,8 +171,9 @@ export default function Dashboard({ data = defaultData }) {
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
         <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-color-border overflow-hidden">
           <h3 className="text-sm sm:text-base font-semibold text-color-text m-0 mb-3 sm:mb-4">Payment Method Breakdown (This Month)</h3>
-          <div className="h-[220px] sm:h-[260px] min-h-[180px]">
-            <ResponsiveContainer width="100%" height="100%">
+          <div className="h-[220px] sm:h-[260px] min-h-[180px] min-w-[200px] w-full">
+            {mounted && (
+            <ResponsiveContainer width="100%" height="100%" minWidth={200} minHeight={180} initialDimension={{ width: 400, height: 220 }}>
               <PieChart>
                 <Pie
                   data={paymentChartData}
@@ -182,12 +192,14 @@ export default function Dashboard({ data = defaultData }) {
                 <Legend />
               </PieChart>
             </ResponsiveContainer>
+            )}
           </div>
         </div>
         <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-color-border overflow-hidden">
           <h3 className="text-sm sm:text-base font-semibold text-color-text m-0 mb-3 sm:mb-4">Sales by Category (This Month)</h3>
-          <div className="h-[220px] sm:h-[260px] min-h-[180px]">
-            <ResponsiveContainer width="100%" height="100%">
+          <div className="h-[220px] sm:h-[260px] min-h-[180px] min-w-[200px] w-full">
+            {mounted && (
+            <ResponsiveContainer width="100%" height="100%" minWidth={200} minHeight={180} initialDimension={{ width: 400, height: 220 }}>
               <BarChart data={salesChartData} layout="vertical" margin={{ left: 80 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                 <XAxis type="number" tickFormatter={(v) => (v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v)} />
@@ -196,6 +208,7 @@ export default function Dashboard({ data = defaultData }) {
                 <Bar dataKey="sales" fill="#e94560" radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>
+            )}
           </div>
         </div>
       </div>
@@ -250,8 +263,9 @@ export default function Dashboard({ data = defaultData }) {
 
       <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-color-border overflow-hidden">
         <h3 className="text-sm sm:text-base font-semibold text-color-text m-0 mb-3 sm:mb-4">Monthly Cash Flow (Payment Sent & Received)</h3>
-        <div className="h-[250px] sm:h-[300px] min-h-[200px]">
-          <ResponsiveContainer width="100%" height="100%">
+        <div className="h-[250px] sm:h-[300px] min-h-[200px] min-w-[200px] w-full">
+          {mounted && (
+          <ResponsiveContainer width="100%" height="100%" minWidth={200} minHeight={200} initialDimension={{ width: 400, height: 250 }}>
             <LineChart data={cashFlowData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
               <XAxis dataKey="month" />
@@ -262,6 +276,7 @@ export default function Dashboard({ data = defaultData }) {
               <Line type="monotone" dataKey="received" name="Payment Received" stroke="#3b82f6" strokeWidth={2} dot={{ r: 4 }} />
             </LineChart>
           </ResponsiveContainer>
+          )}
         </div>
       </div>
     </div>
