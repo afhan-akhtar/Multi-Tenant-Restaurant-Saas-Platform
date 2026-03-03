@@ -1,5 +1,6 @@
 import { getToken } from "next-auth/jwt";
 import { prisma } from "@/lib/db";
+import { getNextOrderNumber } from "@/lib/pos";
 import { NextResponse } from "next/server";
 
 function toNum(d) {
@@ -59,7 +60,9 @@ export async function POST(request) {
     }
 
     const now = new Date();
-    const orderNumber = clientOrderNumber ? String(clientOrderNumber) : `ORD${Date.now().toString().slice(-6)}`;
+    const orderNumber = clientOrderNumber
+      ? String(clientOrderNumber)
+      : `ORD${await getNextOrderNumber(tenantId, branchId)}`;
 
     const session = await prisma.session.create({
       data: {

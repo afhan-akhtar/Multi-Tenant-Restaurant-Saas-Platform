@@ -7,15 +7,15 @@ const CATEGORY_COLORS = ["#1a202c", "#3182ce", "#4299e1", "#48bb78", "#ed64a6"];
 
 export default function POS({ data }) {
   const router = useRouter();
-  const { categories = [], products = [], addonGroups = [] } = data || {};
+  const { categories = [], products = [], addonGroups = [], nextOrderNumber = 1 } = data || {};
 
   const [selectedCategoryId, setSelectedCategoryId] = useState(categories[0]?.id ?? null);
   const [cart, setCart] = useState([]);
   const [orderType] = useState("TAKEAWAY");
-  const [orderNumber, setOrderNumber] = useState("ORD---");
+  const [orderNumber, setOrderNumber] = useState(() => `ORD${nextOrderNumber}`);
   useEffect(() => {
-    setOrderNumber(`ORD${Math.floor(800 + Math.random() * 200)}`);
-  }, []);
+    setOrderNumber(`ORD${nextOrderNumber}`);
+  }, [nextOrderNumber]);
   const [addonProduct, setAddonProduct] = useState(null);
   const [selectedAddons, setSelectedAddons] = useState({});
   const [placing, setPlacing] = useState(false);
@@ -130,6 +130,7 @@ export default function POS({ data }) {
       if (!res.ok) throw new Error(json.error || "Failed");
       setCart([]);
       setToast({ type: "success", message: `Order ${json.orderNumber} placed successfully!` });
+      router.refresh();
     } catch (err) {
       setToast({ type: "error", message: err.message || "Failed to place order" });
     } finally {
