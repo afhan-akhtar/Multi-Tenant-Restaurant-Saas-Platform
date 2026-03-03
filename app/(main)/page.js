@@ -3,6 +3,9 @@ import { getDashboardData, getSuperAdminDashboardData } from "@/lib/dashboard";
 import Dashboard from "@/app/components/Dashboard";
 import SuperAdminDashboard from "@/app/components/SuperAdminDashboard";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function HomePage() {
   const session = await auth();
   const isSuperAdmin = session?.user?.type === "super_admin";

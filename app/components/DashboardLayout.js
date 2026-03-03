@@ -213,7 +213,7 @@ const ICONS = {
   ),
 };
 
-function NavItem({ href, label, icon, isActive, collapsed, onNavigate }) {
+function NavItem({ href, label, icon, isActive, collapsed, onNavigate, badge }) {
   return (
     <Link
       href={href || "#"}
@@ -222,10 +222,22 @@ function NavItem({ href, label, icon, isActive, collapsed, onNavigate }) {
         isActive ? "bg-primary/15 text-white border-l-primary" : ""
       }`}
     >
-      <span className="w-5 h-5 min-w-5 shrink-0 [&>svg]:w-full [&>svg]:h-full">{ICONS[icon] || ICONS.dashboard}</span>
+      <span className="w-5 h-5 min-w-5 shrink-0 [&>svg]:w-full [&>svg]:h-full relative">
+        {ICONS[icon] || ICONS.dashboard}
+        {badge != null && badge > 0 && (
+          <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full bg-amber-500 text-white text-[10px] font-bold">
+            {badge > 99 ? "99+" : badge}
+          </span>
+        )}
+      </span>
       <span className={`whitespace-nowrap text-sm overflow-hidden transition-opacity duration-200 ${collapsed ? "opacity-0 invisible w-0" : ""}`}>
         {label}
       </span>
+      {badge != null && badge > 0 && !collapsed && (
+        <span className="ml-auto min-w-[20px] h-5 px-1.5 flex items-center justify-center rounded-full bg-amber-500 text-white text-xs font-bold shrink-0">
+          {badge > 99 ? "99+" : badge}
+        </span>
+      )}
     </Link>
   );
 }
@@ -257,7 +269,7 @@ const PAGE_TITLES = {
   "/kds": "Kitchen Display (KDS)",
 };
 
-export default function DashboardLayout({ children, user }) {
+export default function DashboardLayout({ children, user, pendingTenantCount = 0 }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [isMobileLayout, setIsMobileLayout] = useState(false);
@@ -339,6 +351,7 @@ export default function DashboardLayout({ children, user }) {
                       isActive={isActive(sub.href)}
                       collapsed={!sidebarOpen}
                       onNavigate={closeSidebarOnNavigate}
+                      badge={sub.href === "/restaurants" ? pendingTenantCount : undefined}
                     />
                   ))}
                 </div>

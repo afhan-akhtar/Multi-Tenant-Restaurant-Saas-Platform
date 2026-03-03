@@ -1,7 +1,10 @@
 "use client";
 
+import Link from "next/link";
+
 const METRIC_CONFIG = [
   { key: "totalTenants", label: "Total Restaurants", icon: "restaurant", color: "#3b82f6" },
+  { key: "pendingTenants", label: "Pending Approval", icon: "pending", color: "#f59e0b" },
   { key: "activeTenants", label: "Active Restaurants", icon: "check", color: "#22c55e" },
   { key: "blockedTenants", label: "Blocked", icon: "block", color: "#ef4444" },
   { key: "activeSubscriptions", label: "Active Subscriptions", icon: "subscription", color: "#8b5cf6" },
@@ -25,6 +28,12 @@ const ICON_SVG = {
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <circle cx="12" cy="12" r="10" />
       <path d="M4.93 4.93l14.14 14.14" />
+    </svg>
+  ),
+  pending: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 6v6l4 2" />
     </svg>
   ),
   subscription: (
@@ -79,8 +88,39 @@ export default function SuperAdminDashboard({ data }) {
     value: metrics[cfg.key] ?? "0",
   }));
 
+  const pendingCount = Number(metrics?.pendingTenants ?? 0);
+
   return (
     <div className="flex flex-col gap-4 sm:gap-6">
+      {pendingCount > 0 && (
+        <Link
+          href="/restaurants?tab=pending"
+          className="block p-4 rounded-xl border-2 border-amber-500/50 bg-amber-500/10 hover:bg-amber-500/15 transition-colors no-underline"
+        >
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-amber-500/20 text-amber-600">
+                <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M12 6v6l4 2" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="m-0 text-base font-semibold text-amber-800 dark:text-amber-200">
+                  {pendingCount} Restaurant{pendingCount !== 1 ? "s" : ""} Awaiting Approval
+                </h3>
+                <p className="m-0 text-sm text-amber-700/80 dark:text-amber-300/80">
+                  Review and approve or reject new registrations
+                </p>
+              </div>
+            </div>
+            <span className="py-2 px-4 bg-amber-500 text-white rounded-lg text-sm font-medium shrink-0">
+              Review Now →
+            </span>
+          </div>
+        </Link>
+      )}
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
         {metricCards.map((card) => (
           <MetricCard key={card.key} label={card.label} value={card.value} icon={card.icon} color={card.color} />
@@ -99,8 +139,8 @@ export default function SuperAdminDashboard({ data }) {
                     <span
                       className="py-0.5 px-2 rounded-md text-xs font-medium"
                       style={{
-                        background: t.status === "ACTIVE" ? "#dcfce7" : "#fee2e2",
-                        color: t.status === "ACTIVE" ? "#166534" : "#991b1b",
+                        background: t.status === "ACTIVE" ? "#dcfce7" : t.status === "PENDING" ? "#fef3c7" : "#fee2e2",
+                        color: t.status === "ACTIVE" ? "#166534" : t.status === "PENDING" ? "#b45309" : "#991b1b",
                       }}
                     >
                       {t.status}

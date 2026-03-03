@@ -28,8 +28,14 @@ async function main() {
       data: {
         name: "Demo Restaurant",
         subdomain: "demo",
+        country: "Germany",
         status: "ACTIVE",
       },
+    });
+  } else if (!tenant.country) {
+    tenant = await prisma.tenant.update({
+      where: { id: tenant.id },
+      data: { country: "Germany" },
     });
   }
 
@@ -41,7 +47,7 @@ async function main() {
         name: "Main Branch",
         address: "123 Demo St",
         city: "Demo City",
-        country: "Demo",
+        country: "Germany",
       },
     });
   }
