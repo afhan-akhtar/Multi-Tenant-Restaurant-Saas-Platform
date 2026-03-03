@@ -200,12 +200,12 @@ export default function Dashboard({ data = defaultData }) {
           <div className="h-[220px] sm:h-[260px] min-h-[180px] min-w-[200px] w-full">
             {mounted && (
             <ResponsiveContainer width="100%" height="100%" minWidth={200} minHeight={180} initialDimension={{ width: 400, height: 220 }}>
-              <BarChart data={salesChartData} layout="vertical" margin={{ left: 80 }}>
+              <BarChart data={salesChartData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis type="number" tickFormatter={(v) => (v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v)} />
-                <YAxis type="category" dataKey="name" width={90} />
+                <XAxis dataKey="name" />
+                <YAxis tickFormatter={(v) => (v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v)} />
                 <Tooltip formatter={(v) => [`€${Number(v).toLocaleString()}`, "Sales"]} />
-                <Bar dataKey="sales" fill="#e94560" radius={[0, 4, 4, 0]} />
+                <Bar dataKey="sales" fill="#e94560" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
             )}
