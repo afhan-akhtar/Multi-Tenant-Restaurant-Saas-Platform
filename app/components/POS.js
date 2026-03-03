@@ -7,11 +7,11 @@ const CATEGORY_COLORS = ["#1a202c", "#3182ce", "#4299e1", "#48bb78", "#ed64a6"];
 
 export default function POS({ data }) {
   const router = useRouter();
-  const { categories = [], products = [], addonGroups = [], tables = [], customers = [] } = data || {};
+  const { categories = [], products = [], addonGroups = [] } = data || {};
 
   const [selectedCategoryId, setSelectedCategoryId] = useState(categories[0]?.id ?? null);
   const [cart, setCart] = useState([]);
-  const [orderType, setOrderType] = useState("TAKEAWAY");
+  const [orderType] = useState("TAKEAWAY");
   const [orderNumber, setOrderNumber] = useState("ORD---");
   useEffect(() => {
     setOrderNumber(`ORD${Math.floor(800 + Math.random() * 200)}`);
@@ -205,7 +205,7 @@ export default function POS({ data }) {
       <div className="w-full lg:w-[360px] xl:w-[360px] shrink-0 flex flex-col border-l border-color-border bg-white lg:border-t-0 md:border-t md:border-l-0">
         <div className="bg-[#3182ce] text-white py-3 px-4 font-semibold">
           <div className="text-xs opacity-90">{orderType === "TAKEAWAY" ? "Takeaway" : "Dine-In"}</div>
-          <div className="text-[1.1rem]">Order {orderNumber}</div>
+          <div className="text-[1.1rem]">{orderNumber}</div>
         </div>
 
         <div className="flex-1 overflow-y-auto py-3 px-4">
