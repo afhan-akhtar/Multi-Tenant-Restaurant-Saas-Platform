@@ -428,6 +428,110 @@
   color: #64748b;
 }
 
+/* Confirm modal */
+.confirmOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 110;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.confirmModal {
+  background: #fff;
+  border-radius: 12px;
+  max-width: 400px;
+  width: 100%;
+  padding: 1.5rem;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.confirmModalTitle {
+  font-weight: 600;
+  font-size: 1.1rem;
+  color: #1a1d29;
+  margin: 0 0 0.75rem 0;
+}
+
+.confirmModalMessage {
+  font-size: 0.95rem;
+  color: #64748b;
+  margin: 0 0 1.5rem 0;
+}
+
+.confirmModalActions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+}
+
+.confirmModalBtn {
+  padding: 0.6rem 1.25rem;
+  border-radius: 8px;
+  font-weight: 500;
+  font-size: 0.9rem;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s;
+}
+
+.confirmModalBtnCancel {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.confirmModalBtnCancel:hover {
+  background: #e2e8f0;
+}
+
+.confirmModalBtnConfirm {
+  background: #e94560;
+  color: #fff;
+}
+
+.confirmModalBtnConfirm:hover {
+  background: #d63852;
+}
+
+/* Toast for success/error messages */
+.toast {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 120;
+  padding: 0.75rem 1.5rem;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  animation: toastIn 0.2s ease-out;
+}
+
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.toastSuccess {
+  background: #22c55e;
+  color: #fff;
+}
+
+.toastError {
+  background: #ef4444;
+  color: #fff;
+}
+
 .emptyCart {
   padding: 2rem;
   text-align: center;

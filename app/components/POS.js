@@ -18,6 +18,14 @@ export default function POS({ data }) {
   const [addonProduct, setAddonProduct] = useState(null);
   const [selectedAddons, setSelectedAddons] = useState({});
   const [placing, setPlacing] = useState(false);
+  const [confirmClearOpen, setConfirmClearOpen] = useState(false);
+  const [toast, setToast] = useState(null);
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
 
   const filteredProducts = useMemo(() => {
     if (!selectedCategoryId) return products;
@@ -119,17 +127,22 @@ export default function POS({ data }) {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Failed");
       setCart([]);
-      alert(`Order ${json.orderNumber} placed successfully!`);
+      setToast({ type: "success", message: `Order ${json.orderNumber} placed successfully!` });
     } catch (err) {
-      alert(err.message || "Failed to place order");
+      setToast({ type: "error", message: err.message || "Failed to place order" });
     } finally {
       setPlacing(false);
     }
   };
 
-  const clearCart = () => {
+  const openClearConfirm = () => {
     if (cart.length === 0) return;
-    if (confirm("Clear all items?")) setCart([]);
+    setConfirmClearOpen(true);
+  };
+
+  const confirmClearCart = () => {
+    setCart([]);
+    setConfirmClearOpen(false);
   };
 
   return (
@@ -270,9 +283,9 @@ export default function POS({ data }) {
         <div className={styles.cartPrimaryBtns}>
           <button
             className={`${styles.cartPrimaryBtn} ${styles.cartPrimaryBtnCancel}`}
-            onClick={clearCart}
+            onClick={openClearConfirm}
           >
-            Cancel
+            Clear
           </button>
           <button
             className={`${styles.cartPrimaryBtn} ${styles.cartPrimaryBtnPay}`}
@@ -288,6 +301,29 @@ export default function POS({ data }) {
           </button>
         </div>
       </div>
+
+      {confirmClearOpen && (
+        <div className={styles.confirmOverlay} onClick={() => setConfirmClearOpen(false)}>
+          <div className={styles.confirmModal} onClick={(e) => e.stopPropagation()}>
+            <h3 className={styles.confirmModalTitle}>Clear cart</h3>
+            <p className={styles.confirmModalMessage}>Clear all items from this order?</p>
+            <div className={styles.confirmModalActions}>
+              <button
+                className={`${styles.confirmModalBtn} ${styles.confirmModalBtnCancel}`}
+                onClick={() => setConfirmClearOpen(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className={`${styles.confirmModalBtn} ${styles.confirmModalBtnConfirm}`}
+                onClick={confirmClearCart}
+              >
+                Clear all
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {addonProduct && (
         <div className={styles.addonOverlay} onClick={() => setAddonProduct(null)}>
@@ -339,6 +375,12 @@ export default function POS({ data }) {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {toast && (
+        <div className={`${styles.toast} ${toast.type === "success" ? styles.toastSuccess : styles.toastError}`}>
+          {toast.message}
         </div>
       )}
     </div>
