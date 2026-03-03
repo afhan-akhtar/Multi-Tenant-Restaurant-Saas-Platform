@@ -1,10 +1,56 @@
-export default function LoyaltyPage() {
+import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/db";
+import { redirect } from "next/navigation";
+import LoyaltyClient from "@/app/components/LoyaltyClient";
+
+export const dynamic = "force-dynamic";
+
+export default async function LoyaltyPage() {
+  const session = await auth();
+  if (!session) redirect("/login");
+
+  const tenantId = session.user?.tenantId ?? null;
+  if (!tenantId) {
+    return (
+      <div className="py-4 w-full min-w-0">
+        <p className="text-color-text-muted">Restaurant context required.</p>
+      </div>
+    );
+  }
+
+  const [customers, orderStats] = await Promise.all([
+    prisma.customer.findMany({
+      where: { tenantId },
+      orderBy: { loyaltyPoints: "desc" },
+    }),
+    prisma.order.groupBy({
+      by: ["customerId"],
+      where: { tenantId, status: "COMPLETED" },
+      _sum: { grandTotal: true },
+      _count: true,
+    }),
+  ]);
+
+  const customerStats = {};
+  orderStats.forEach((o) => {
+    customerStats[o.customerId] = {
+      totalSpent: Number(o._sum.grandTotal || 0),
+      orderCount: o._count,
+    };
+  });
+
+  const customersWithStats = customers.map((c) => ({
+    ...c,
+    totalSpent: customerStats[c.id]?.totalSpent ?? 0,
+    orderCount: customerStats[c.id]?.orderCount ?? 0,
+  }));
+
+  const totalPoints = customers.reduce((s, c) => s + (c.loyaltyPoints || 0), 0);
+
   return (
-    <div className="py-4 w-full min-w-0">
-      <h2 className="m-0 text-xl font-semibold text-color-text mb-2">Loyalty Program</h2>
-      <p className="text-color-text-muted mt-2 text-[0.95rem] text-center">
-        Configure loyalty program and points rules. Coming soon.
-      </p>
-    </div>
+    <LoyaltyClient
+      customers={customersWithStats}
+      totalPoints={totalPoints}
+    />
   );
 }
