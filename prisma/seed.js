@@ -80,16 +80,43 @@ async function main() {
   const productCount = await prisma.product.count({ where: { tenantId: tenant.id } });
   const addonCount = await prisma.addonGroup.count({ where: { tenantId: tenant.id } });
 
+  // Image map for updating existing products (PLU -> high-quality Unsplash URL)
+  const productImageMap = {
+    PIZ001: "https://images.unsplash.com/photo-1574071318508-1cdbab80d002?w=600&q=90",
+    PIZ002: "https://images.unsplash.com/photo-1628840042765-356cda07504e?w=600&q=90",
+    PIZ003: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=600&q=90",
+    PIZ004: "https://images.unsplash.com/photo-1604068549290-dea0e4a305ca?w=600&q=90",
+    PIZ005: "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=600&q=90",
+    BUR001: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=600&q=90",
+    BUR002: "https://images.unsplash.com/photo-1553979459-d2229ba7433b?w=600&q=90",
+    BUR003: "https://images.unsplash.com/photo-1606755962773-d324e0a13086?w=600&q=90",
+    BUR004: "https://images.unsplash.com/photo-1550547660-d9450f859349?w=600&q=90",
+    SID001: "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=600&q=90",
+    SID002: "https://images.unsplash.com/photo-1639024471283-03518883512d?w=600&q=90",
+    SID003: "https://images.unsplash.com/photo-1573140401552-3fab0b24306f?w=600&q=90",
+    DRK001: "https://images.unsplash.com/photo-1554866585-cd94860890b7?w=600&q=90",
+    DRK002: "https://images.unsplash.com/photo-1554866585-cd94860890b7?w=600&q=90",
+    DRK003: "https://images.unsplash.com/photo-1600271886742-f049cd451bba?w=600&q=90",
+    DES001: "https://images.unsplash.com/photo-1563805042-7684c019e1cb?w=600&q=90",
+    DES002: "https://images.unsplash.com/photo-1564355808539-22fda35bed7e?w=600&q=90",
+  };
+
   if (productCount === 0) {
-    // Categories
+    // Categories (matching professional POS layout: Pizzas, Combos, Sides, Dips, Drinks)
     const catPizzas = await prisma.category.create({
       data: { tenantId: tenant.id, name: "Pizzas" },
+    });
+    const catCombos = await prisma.category.create({
+      data: { tenantId: tenant.id, name: "Combos" },
     });
     const catBurgers = await prisma.category.create({
       data: { tenantId: tenant.id, name: "Burgers" },
     });
     const catSides = await prisma.category.create({
       data: { tenantId: tenant.id, name: "Sides" },
+    });
+    const catDips = await prisma.category.create({
+      data: { tenantId: tenant.id, name: "Dips" },
     });
     const catDrinks = await prisma.category.create({
       data: { tenantId: tenant.id, name: "Drinks" },
@@ -98,25 +125,34 @@ async function main() {
       data: { tenantId: tenant.id, name: "Desserts" },
     });
 
-    // Products with images (Unsplash - free to use)
+    // Products with high-quality real food images (Unsplash - free to use, w=600 for sharp display)
     const productsData = [
-      { cat: catPizzas, name: "Margherita Pizza", desc: "Tomato sauce, mozzarella, fresh basil", plu: "PIZ001", price: 12.0, img: "https://images.unsplash.com/photo-1574071318508-1cdbab80d002?w=400&q=80" },
-      { cat: catPizzas, name: "Pepperoni Pizza", desc: "Spicy pepperoni, mozzarella, tomato sauce", plu: "PIZ002", price: 14.0, img: "https://images.unsplash.com/photo-1628840042765-356cda07504e?w=400&q=80" },
-      { cat: catPizzas, name: "BBQ Chicken Pizza", desc: "BBQ sauce, grilled chicken, red onion", plu: "PIZ003", price: 15.0, img: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=400&q=80" },
-      { cat: catPizzas, name: "Veggie Supreme", desc: "Bell peppers, olives, mushrooms, onions", plu: "PIZ004", price: 13.0, img: "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=400&q=80" },
-      { cat: catPizzas, name: "Hawaiian Pizza", desc: "Ham, pineapple, mozzarella", plu: "PIZ005", price: 14.5, img: "https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=400&q=80" },
-      { cat: catBurgers, name: "Classic Beef Burger", desc: "Angus beef, lettuce, tomato, cheese", plu: "BUR001", price: 11.0, img: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400&q=80" },
-      { cat: catBurgers, name: "Cheese Burger", desc: "Double cheese, beef patty, pickles", plu: "BUR002", price: 12.0, img: "https://images.unsplash.com/photo-1553979459-d2229ba7433b?w=400&q=80" },
-      { cat: catBurgers, name: "Chicken Burger", desc: "Crispy chicken fillet, mayo, lettuce", plu: "BUR003", price: 10.0, img: "https://images.unsplash.com/photo-1606755962773-d324e0a13086?w=400&q=80" },
-      { cat: catBurgers, name: "Double Patty Burger", desc: "Two beef patties, special sauce", plu: "BUR004", price: 15.0, img: "https://images.unsplash.com/photo-1550547660-d9450f859349?w=400&q=80" },
-      { cat: catSides, name: "French Fries", desc: "Crispy golden fries with seasoning", plu: "SID001", price: 4.0, img: "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=400&q=80" },
-      { cat: catSides, name: "Onion Rings", desc: "Crispy battered onion rings", plu: "SID002", price: 5.0, img: "https://images.unsplash.com/photo-1639024471283-03518883512d?w=400&q=80" },
-      { cat: catSides, name: "Garlic Bread", desc: "Toasted bread with garlic butter", plu: "SID003", price: 6.0, img: "https://images.unsplash.com/photo-1573140401552-3fab0b24306f?w=400&q=80" },
-      { cat: catDrinks, name: "Coca Cola", desc: "Classic Coca Cola 330ml", plu: "DRK001", price: 2.5, img: "https://images.unsplash.com/photo-1554866585-cd94860890b7?w=400&q=80" },
-      { cat: catDrinks, name: "Fresh Orange Juice", desc: "Freshly squeezed orange juice", plu: "DRK002", price: 5.0, img: "https://images.unsplash.com/photo-1600271886742-f049cd451bba?w=400&q=80" },
-      { cat: catDrinks, name: "Chocolate Milkshake", desc: "Creamy chocolate milkshake", plu: "DRK003", price: 6.0, img: "https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=400&q=80" },
-      { cat: catDesserts, name: "Ice Cream Sundae", desc: "Vanilla ice cream, chocolate syrup", plu: "DES001", price: 7.0, img: "https://images.unsplash.com/photo-1563805042-7684c019e1cb?w=400&q=80" },
-      { cat: catDesserts, name: "Brownie", desc: "Warm chocolate brownie", plu: "DES002", price: 6.5, img: "https://images.unsplash.com/photo-1564355808539-22fda35bed7e?w=400&q=80" },
+      { cat: catPizzas, name: "Margherita Pizza", desc: "Tomato sauce, mozzarella, fresh basil", plu: "PIZ001", price: 10.0, img: "https://images.unsplash.com/photo-1574071318508-1cdbab80d002?w=600&q=90" },
+      { cat: catPizzas, name: "Pepperoni Inferno", desc: "Pizza sauce, mozzarella, pepperoni, tomatoes, chilli & onions", plu: "PIZ002", price: 13.5, img: "https://images.unsplash.com/photo-1628840042765-356cda07504e?w=600&q=90" },
+      { cat: catPizzas, name: "The Sizzler", desc: "Spicy beef, jalapeños, red peppers, mozzarella", plu: "PIZ003", price: 12.6, img: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=600&q=90" },
+      { cat: catPizzas, name: "Hot n Spicy Pizza", desc: "Pizza sauce, mozzarella, pepperoni, tomatoes, chilli & onions", plu: "PIZ004", price: 13.5, img: "https://images.unsplash.com/photo-1604068549290-dea0e4a305ca?w=600&q=90" },
+      { cat: catPizzas, name: "BBQ Pizza", desc: "BBQ sauce, grilled chicken, red onion, mozzarella", plu: "PIZ005", price: 12.3, img: "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=600&q=90" },
+      { cat: catPizzas, name: "Vegetariana Pizza", desc: "Bell peppers, olives, mushrooms, onions, tomato", plu: "PIZ006", price: 11.1, img: "https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=600&q=90" },
+      { cat: catPizzas, name: "La Espanola", desc: "Spanish chorizo, olives, manchego, roasted peppers", plu: "PIZ007", price: 14.0, img: "https://images.unsplash.com/photo-1579751626657-72bc17010498?w=600&q=90" },
+      { cat: catPizzas, name: "Hawaiian Pizza", desc: "Ham, pineapple, mozzarella, tomato sauce", plu: "PIZ008", price: 12.0, img: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=600&q=90" },
+      { cat: catCombos, name: "Pizza & Drink Combo", desc: "Any medium pizza + soft drink 330ml", plu: "CMB001", price: 14.0, img: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=600&q=90" },
+      { cat: catCombos, name: "Burger & Fries Combo", desc: "Classic burger with fries and drink", plu: "CMB002", price: 12.5, img: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=600&q=90" },
+      { cat: catBurgers, name: "Classic Beef Burger", desc: "Angus beef, lettuce, tomato, cheese, special sauce", plu: "BUR001", price: 11.0, img: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=600&q=90" },
+      { cat: catBurgers, name: "Cheese Burger", desc: "Double cheese, beef patty, pickles, lettuce", plu: "BUR002", price: 12.0, img: "https://images.unsplash.com/photo-1553979459-d2229ba7433b?w=600&q=90" },
+      { cat: catBurgers, name: "Chicken Burger", desc: "Crispy chicken fillet, mayo, lettuce", plu: "BUR003", price: 10.0, img: "https://images.unsplash.com/photo-1606755962773-d324e0a13086?w=600&q=90" },
+      { cat: catBurgers, name: "Double Patty Burger", desc: "Two beef patties, special sauce, cheese", plu: "BUR004", price: 15.0, img: "https://images.unsplash.com/photo-1550547660-d9450f859349?w=600&q=90" },
+      { cat: catSides, name: "French Fries", desc: "Crispy golden fries with seasoning", plu: "SID001", price: 4.0, img: "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=600&q=90" },
+      { cat: catSides, name: "Onion Rings", desc: "Crispy battered onion rings", plu: "SID002", price: 5.0, img: "https://images.unsplash.com/photo-1639024471283-03518883512d?w=600&q=90" },
+      { cat: catSides, name: "Garlic Bread", desc: "Toasted bread with garlic butter", plu: "SID003", price: 6.0, img: "https://images.unsplash.com/photo-1573140401552-3fab0b24306f?w=600&q=90" },
+      { cat: catDips, name: "Garlic Mayo Dip", desc: "Creamy garlic mayonnaise", plu: "DIP001", price: 1.5, img: "https://images.unsplash.com/photo-1605516606192-4d0182ef16b2?w=600&q=90" },
+      { cat: catDips, name: "BBQ Sauce", desc: "Smoky BBQ sauce", plu: "DIP002", price: 1.0, img: "https://images.unsplash.com/photo-1599487488170-d11ec9c172f0?w=600&q=90" },
+      { cat: catDips, name: "Sour Cream", desc: "Cool sour cream dip", plu: "DIP003", price: 1.5, img: "https://images.unsplash.com/photo-1556909212-d5b604d0c90d?w=600&q=90" },
+      { cat: catDrinks, name: "Coca Cola", desc: "Classic Coca Cola 330ml", plu: "DRK001", price: 2.5, img: "https://images.unsplash.com/photo-1554866585-cd94860890b7?w=600&q=90" },
+      { cat: catDrinks, name: "Coke Zero", desc: "Coca Cola Zero Sugar 330ml", plu: "DRK002", price: 2.5, img: "https://images.unsplash.com/photo-1554866585-cd94860890b7?w=600&q=90" },
+      { cat: catDrinks, name: "Fresh Orange Juice", desc: "Freshly squeezed orange juice", plu: "DRK003", price: 5.0, img: "https://images.unsplash.com/photo-1600271886742-f049cd451bba?w=600&q=90" },
+      { cat: catDrinks, name: "Chocolate Milkshake", desc: "Creamy chocolate milkshake", plu: "DRK004", price: 6.0, img: "https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=600&q=90" },
+      { cat: catDesserts, name: "Ice Cream Sundae", desc: "Vanilla ice cream, chocolate syrup", plu: "DES001", price: 7.0, img: "https://images.unsplash.com/photo-1563805042-7684c019e1cb?w=600&q=90" },
+      { cat: catDesserts, name: "Brownie", desc: "Warm chocolate brownie with nuts", plu: "DES002", price: 6.5, img: "https://images.unsplash.com/photo-1564355808539-22fda35bed7e?w=600&q=90" },
     ];
 
     const products = await Promise.all(
@@ -270,6 +306,24 @@ async function main() {
           createdAt: d,
         },
       });
+    }
+  } else {
+    // Update existing products with high-quality images
+    const existingProducts = await prisma.product.findMany({ where: { tenantId: tenant.id }, select: { id: true, plu: true } });
+    for (const p of existingProducts) {
+      const img = productImageMap[p.plu];
+      if (img) {
+        await prisma.product.update({ where: { id: p.id }, data: { imageUrl: img } });
+      }
+    }
+    // Ensure Combos and Dips categories exist
+    let catCombos = await prisma.category.findFirst({ where: { tenantId: tenant.id, name: "Combos" } });
+    let catDips = await prisma.category.findFirst({ where: { tenantId: tenant.id, name: "Dips" } });
+    if (!catCombos) {
+      await prisma.category.create({ data: { tenantId: tenant.id, name: "Combos" } });
+    }
+    if (!catDips) {
+      await prisma.category.create({ data: { tenantId: tenant.id, name: "Dips" } });
     }
   }
 

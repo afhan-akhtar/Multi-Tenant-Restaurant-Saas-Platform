@@ -94,16 +94,14 @@
 .productImage {
   width: 100%;
   aspect-ratio: 1;
-  background: #1a1d29;
-  border-radius: 50%;
+  background: #f1f5f9;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #94a3b8;
   font-size: 2rem;
   overflow: hidden;
-  margin: 0 auto;
-  max-width: 140px;
 }
 
 .productImage img {
