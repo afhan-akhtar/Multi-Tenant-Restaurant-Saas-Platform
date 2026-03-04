@@ -2,6 +2,8 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import POSPaymentModal from "./POSPaymentModal";
+import { printReceipt } from "./Receipt";
 
 const CATEGORY_COLORS = ["#1a202c", "#3182ce", "#4299e1", "#48bb78", "#ed64a6"];
 
@@ -18,7 +20,7 @@ export default function POS({ data }) {
   }, [nextOrderNumber]);
   const [addonProduct, setAddonProduct] = useState(null);
   const [selectedAddons, setSelectedAddons] = useState({});
-  const [placing, setPlacing] = useState(false);
+  const [payModalOpen, setPayModalOpen] = useState(false);
   const [confirmClearOpen, setConfirmClearOpen] = useState(false);
   const [toast, setToast] = useState(null);
 
@@ -107,35 +109,28 @@ export default function POS({ data }) {
   const taxAmount = subtotal * 0.1;
   const grandTotal = subtotal + taxAmount;
 
-  const placeOrder = async () => {
-    if (cart.length === 0) return;
-    setPlacing(true);
-    try {
-      const res = await fetch("/api/pos/order", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          items: cart.map((i) => ({
-            productId: i.productId,
-            productName: i.productName,
-            unitPrice: i.unitPrice,
-            taxRate: i.taxRate,
-            quantity: i.quantity,
-          })),
-          orderType,
-          orderNumber,
-        }),
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Failed");
-      setCart([]);
-      setToast({ type: "success", message: `Order ${json.orderNumber} placed successfully!` });
-      router.refresh();
-    } catch (err) {
-      setToast({ type: "error", message: err.message || "Failed to place order" });
-    } finally {
-      setPlacing(false);
+  const [lastReceipt, setLastReceipt] = useState(null);
+
+  const handlePaymentSuccess = (result) => {
+    setCart([]);
+    setLastReceipt(result.receipt || null);
+    setToast({ type: "success", message: `Order ${result.orderNumber} paid successfully!` });
+    router.refresh();
+  };
+
+  const handlePrintReceipt = () => {
+    if (lastReceipt) {
+      printReceipt(lastReceipt);
+    } else if (cart.length > 0) {
+      setToast({ type: "error", message: "Pay first to print receipt" });
+    } else {
+      setToast({ type: "error", message: "No receipt to print" });
     }
+  };
+
+  const openPayModal = () => {
+    if (cart.length === 0) return;
+    setPayModalOpen(true);
   };
 
   const openClearConfirm = () => {
@@ -255,7 +250,13 @@ export default function POS({ data }) {
         <div className="grid grid-cols-3 gap-2 p-4 border-t border-color-border">
           <button className="py-2.5 px-4 border border-color-border bg-white rounded-lg text-xl text-slate-500 transition-all hover:bg-color-bg hover:text-[#3182ce]" onClick={() => cart[0] && updateCartItemQty(0, -1)}>−</button>
           <button className="py-2.5 px-4 border border-color-border bg-white rounded-lg text-xl text-slate-500 transition-all hover:bg-color-bg hover:text-[#3182ce]" onClick={() => cart[0] && updateCartItemQty(0, 1)}>+</button>
-          <button className="py-2.5 px-4 border border-color-border bg-white rounded-lg text-xl text-slate-500 transition-all hover:bg-color-bg hover:text-[#3182ce]" title="Print">🖨</button>
+          <button
+            className="py-2.5 px-4 border border-color-border bg-white rounded-lg text-xl text-slate-500 transition-all hover:bg-color-bg hover:text-[#3182ce] disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Print receipt"
+            onClick={handlePrintReceipt}
+          >
+            🖨
+          </button>
         </div>
 
         <div className="grid grid-cols-3 gap-3 px-4 pb-4 lg:grid-cols-3 sm:grid-cols-1">
@@ -267,10 +268,10 @@ export default function POS({ data }) {
           </button>
           <button
             className="py-4 px-5 rounded-xl font-semibold text-base cursor-pointer transition-all border-2 border-[#2b6cb0] text-white bg-gradient-to-br from-[#3182ce] to-[#2c5282] shadow-[0_4px_14px_rgba(49,130,206,0.4)] hover:shadow-[0_6px_20px_rgba(49,130,206,0.5)] hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed disabled:translate-y-0"
-            onClick={placeOrder}
-            disabled={cart.length === 0 || placing}
+            onClick={openPayModal}
+            disabled={cart.length === 0}
           >
-            {placing ? "..." : "Pay"}
+            Pay
           </button>
           <button
             className="py-4 px-5 rounded-xl font-semibold text-base cursor-pointer transition-all border-2 border-slate-400 text-slate-500 bg-gradient-to-b from-white to-slate-50 hover:border-slate-500 hover:from-slate-100 hover:to-slate-200 shadow-sm hover:-translate-y-0.5 hover:shadow-md"
@@ -360,6 +361,16 @@ export default function POS({ data }) {
           </div>
         </div>
       )}
+
+      <POSPaymentModal
+        open={payModalOpen}
+        onClose={() => setPayModalOpen(false)}
+        grandTotal={grandTotal}
+        cart={cart}
+        orderNumber={orderNumber}
+        orderType={orderType}
+        onSuccess={handlePaymentSuccess}
+      />
 
       {toast && (
         <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-[120] py-3 px-6 rounded-[10px] text-[0.95rem] font-medium shadow-lg animate-toast-in ${

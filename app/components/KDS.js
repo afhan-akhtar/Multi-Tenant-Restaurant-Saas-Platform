@@ -40,7 +40,7 @@ function formatTime(date) {
   return d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
 }
 
-function OrderCard({ order, columnColor, onStatusChange }) {
+function OrderCard({ order, columnColor, onStatusChange, onCancel }) {
   const customerName = order.customer?.name || "Takeaway";
   const tableName = order.table?.name || "";
   const typeLabel = order.orderType === "DINE_IN" ? (tableName || "Dine-in") : "Takeaway";
@@ -97,13 +97,22 @@ function OrderCard({ order, columnColor, onStatusChange }) {
         </div>
         <div className="mt-3 pt-2 border-t border-color-border flex gap-2 flex-wrap">
           {columnColor === "#22c55e" && (
-            <button
-              type="button"
-              onClick={() => onStatusChange?.(order.id, "PREPARING")}
-              className="px-2.5 py-1 rounded text-xs font-medium bg-primary text-white hover:bg-primary-hover cursor-pointer"
-            >
-              Start
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={() => onStatusChange?.(order.id, "PREPARING")}
+                className="px-2.5 py-1 rounded text-xs font-medium bg-primary text-white hover:bg-primary-hover cursor-pointer"
+              >
+                Start
+              </button>
+              <button
+                type="button"
+                onClick={() => onCancel?.(order.id)}
+                className="px-2.5 py-1 rounded text-xs font-medium bg-red-500 text-white hover:bg-red-600 cursor-pointer"
+              >
+                Cancel (TSE)
+              </button>
+            </>
           )}
           {columnColor === "#e94560" && (
             <button
@@ -166,6 +175,23 @@ export default function KDS({ data }) {
     }
   };
 
+  const handleCancel = async (orderId) => {
+    if (!confirm("Cancel this order? TSE/Fiskaly will sign the cancellation.")) return;
+    try {
+      const res = await fetch("/api/orders/cancel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Cancel failed");
+      router.refresh();
+    } catch (err) {
+      console.error("KDS cancel failed", err);
+      alert(err.message || "Cancel failed");
+    }
+  };
+
   return (
     <div className="bg-white flex flex-col min-h-[calc(100vh-8rem)] rounded-lg overflow-hidden -m-4 sm:-m-6 border border-color-border">
       <div className="flex-1 overflow-hidden p-4">
@@ -187,6 +213,7 @@ export default function KDS({ data }) {
                     order={order}
                     columnColor={col.color}
                     onStatusChange={handleStatusChange}
+                    onCancel={handleCancel}
                   />
                 ))}
                 {getOrdersForColumn(col).length === 0 && (
