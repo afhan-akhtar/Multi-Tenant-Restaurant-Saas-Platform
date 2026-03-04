@@ -39,6 +39,9 @@ const RESTAURANT_ITEMS = [
   { section: "FLOOR", items: [
     { href: "/tables", label: "Floor & Tables", icon: "table" },
   ]},
+  { section: "BILLING", items: [
+    { href: "/subscription", label: "My Subscription", icon: "subscription" },
+  ]},
   { section: "REPORTING & ANALYTICS", items: [
     { href: "/reports", label: "Reports", icon: "reports" },
     { href: "/z-reports", label: "Z-Reports", icon: "zreport" },
@@ -255,6 +258,7 @@ const PAGE_TITLES = {
   "/settings": "Settings",
   "/restaurants": "Restaurant Management",
   "/subscriptions": "Subscriptions & Plans",
+  "/subscription": "My Subscription",
   "/commission": "Commission & Billing",
   "/logs": "Global Logs",
   "/impersonation": "Impersonation",

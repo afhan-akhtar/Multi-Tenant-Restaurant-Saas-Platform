@@ -7,6 +7,11 @@ export async function middleware(request) {
   });
   const { pathname } = request.nextUrl;
 
+  // API routes: let through, API handles auth and returns 401 if needed
+  if (pathname.startsWith("/api/")) {
+    return;
+  }
+
   const isRestaurantLogin = /^\/[^/]+\/login$/.test(pathname);
 
   // Public routes
