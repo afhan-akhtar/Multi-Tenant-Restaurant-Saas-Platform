@@ -106,12 +106,26 @@ export async function POST(request) {
       });
     }
 
-    let customer = await prisma.customer.findFirst({
-      where: { id: customerId, tenantId },
-    });
+    let customer = null;
+    if (customerId) {
+      customer = await prisma.customer.findFirst({
+        where: { id: customerId, tenantId },
+      });
+    }
     if (!customer) {
       customer = await prisma.customer.findFirst({
         where: { tenantId },
+      });
+    }
+    if (!customer) {
+      customer = await prisma.customer.create({
+        data: {
+          tenantId,
+          name: "Walk-in",
+          email: "walkin@internal.local",
+          phone: "",
+          loyaltyPoints: 0,
+        },
       });
     }
 

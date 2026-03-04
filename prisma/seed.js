@@ -178,8 +178,16 @@ async function main() {
       )
     );
 
-    // Customers
+    // Customers (Walk-in first for quick/takeaway; others for loyalty/tracking)
     const customers = await Promise.all([
+      prisma.customer.create({
+        data: {
+          tenantId: tenant.id,
+          name: "Walk-in",
+          phone: "",
+          email: "walkin@internal.local",
+        },
+      }),
       prisma.customer.create({
         data: {
           tenantId: tenant.id,

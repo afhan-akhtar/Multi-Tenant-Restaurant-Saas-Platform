@@ -20,7 +20,7 @@ function round2(n) {
   return Math.round(n * 100) / 100;
 }
 
-export default function POSPaymentModal({ open, onClose, grandTotal, cart, orderNumber, orderType, onSuccess }) {
+export default function POSPaymentModal({ open, onClose, grandTotal, cart, orderNumber, orderType, customerId, onSuccess }) {
   const [splits, setSplits] = useState([]);
   const [discount, setDiscount] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -136,6 +136,7 @@ export default function POSPaymentModal({ open, onClose, grandTotal, cart, order
           })),
           orderType: orderType || "TAKEAWAY",
           orderNumber,
+          customerId: customerId || null,
           splits: payload,
           discountAmount: Number(discount) || 0,
         }),

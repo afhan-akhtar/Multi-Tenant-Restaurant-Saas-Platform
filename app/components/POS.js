@@ -9,15 +9,62 @@ const CATEGORY_COLORS = ["#1a202c", "#3182ce", "#4299e1", "#48bb78", "#ed64a6"];
 
 export default function POS({ data }) {
   const router = useRouter();
-  const { categories = [], products = [], addonGroups = [], nextOrderNumber = 1 } = data || {};
+  const { categories = [], products = [], addonGroups = [], customers: initialCustomers = [], nextOrderNumber = 1 } = data || {};
 
+  const [customers, setCustomers] = useState(initialCustomers);
   const [selectedCategoryId, setSelectedCategoryId] = useState(categories[0]?.id ?? null);
+  const [selectedCustomerId, setSelectedCustomerId] = useState(() => initialCustomers[0]?.id ?? null);
   const [cart, setCart] = useState([]);
+  const [quickAddOpen, setQuickAddOpen] = useState(false);
+  const [quickAddForm, setQuickAddForm] = useState({ name: "", phone: "" });
+  const [quickAddLoading, setQuickAddLoading] = useState(false);
   const [orderType] = useState("TAKEAWAY");
   const [orderNumber, setOrderNumber] = useState(() => `ORD${nextOrderNumber}`);
   useEffect(() => {
     setOrderNumber(`ORD${nextOrderNumber}`);
   }, [nextOrderNumber]);
+
+  useEffect(() => {
+    setCustomers(initialCustomers);
+    if (initialCustomers.length > 0 && !selectedCustomerId) {
+      setSelectedCustomerId(initialCustomers[0].id);
+    }
+  }, [initialCustomers]);
+
+  useEffect(() => {
+    if (customers.length > 0 && (!selectedCustomerId || !customers.some((c) => c.id === selectedCustomerId))) {
+      setSelectedCustomerId(customers[0].id);
+    }
+  }, [customers, selectedCustomerId]);
+
+  const handleQuickAdd = async (e) => {
+    e.preventDefault();
+    if (!quickAddForm.name?.trim()) return;
+    setQuickAddLoading(true);
+    try {
+      const res = await fetch("/api/customers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: quickAddForm.name.trim(),
+          phone: quickAddForm.phone.trim(),
+          email: quickAddForm.name.trim().toLowerCase().replace(/\s+/g, "") + "@guest.local",
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Failed");
+      const newCustomer = data.customer;
+      setCustomers((prev) => [...prev, newCustomer]);
+      setSelectedCustomerId(newCustomer.id);
+      setQuickAddOpen(false);
+      setQuickAddForm({ name: "", phone: "" });
+      setToast({ type: "success", message: `${newCustomer.name} added` });
+    } catch (err) {
+      setToast({ type: "error", message: err.message || "Failed to add" });
+    } finally {
+      setQuickAddLoading(false);
+    }
+  };
   const [addonProduct, setAddonProduct] = useState(null);
   const [selectedAddons, setSelectedAddons] = useState({});
   const [payModalOpen, setPayModalOpen] = useState(false);
@@ -203,6 +250,37 @@ export default function POS({ data }) {
           <div className="text-xs opacity-90">{orderType === "TAKEAWAY" ? "Takeaway" : "Dine-In"}</div>
           <div className="text-[1.1rem]">{orderNumber}</div>
         </div>
+        <div className="px-4 py-2 border-b border-color-border">
+          <label className="block text-xs font-medium text-color-text-muted mb-1">Customer</label>
+          <div className="flex gap-2">
+            <select
+              value={selectedCustomerId ?? ""}
+              onChange={(e) => setSelectedCustomerId(e.target.value ? parseInt(e.target.value, 10) : null)}
+              className="flex-1 py-2 px-3 border border-color-border rounded-lg text-sm bg-white"
+            >
+              {customers.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name === "Walk-in" ? "Guest / Walk-in" : c.name}
+                  {c.phone && c.name !== "Walk-in" ? ` (${c.phone})` : ""}
+                </option>
+              ))}
+              {customers.length === 0 && (
+                <option value="">Guest (add in Customers)</option>
+              )}
+            </select>
+            <button
+              type="button"
+              onClick={() => setQuickAddOpen(true)}
+              className="py-2 px-3 rounded-lg border border-primary text-primary text-sm font-medium hover:bg-primary/5 shrink-0"
+              title="Quick add new customer"
+            >
+              + New
+            </button>
+          </div>
+          <p className="text-[10px] text-color-text-muted mt-0.5">
+            Guest = unregistered. Use + New to add on the spot.
+          </p>
+        </div>
 
         <div className="flex-1 overflow-y-auto py-3 px-4">
           {cart.length === 0 ? (
@@ -281,6 +359,55 @@ export default function POS({ data }) {
           </button>
         </div>
       </div>
+
+      {quickAddOpen && (
+        <div className="fixed inset-0 bg-black/50 z-[110] flex items-center justify-center p-4" onClick={() => setQuickAddOpen(false)}>
+          <div className="bg-white rounded-xl max-w-[340px] w-full p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <h3 className="m-0 mb-3 text-base font-semibold text-color-text">Quick add customer</h3>
+            <p className="m-0 mb-4 text-xs text-color-text-muted">Unregistered customer? Add them here for this order.</p>
+            <form onSubmit={handleQuickAdd}>
+              <div className="mb-3">
+                <label className="block text-xs font-medium text-color-text mb-1">Name *</label>
+                <input
+                  type="text"
+                  className="w-full py-2 px-3 border border-color-border rounded-lg text-sm"
+                  value={quickAddForm.name}
+                  onChange={(e) => setQuickAddForm((f) => ({ ...f, name: e.target.value }))}
+                  placeholder="Customer name"
+                  required
+                  autoFocus
+                />
+              </div>
+              <div className="mb-4">
+                <label className="block text-xs font-medium text-color-text mb-1">Phone</label>
+                <input
+                  type="tel"
+                  className="w-full py-2 px-3 border border-color-border rounded-lg text-sm"
+                  value={quickAddForm.phone}
+                  onChange={(e) => setQuickAddForm((f) => ({ ...f, phone: e.target.value }))}
+                  placeholder="+1234567890"
+                />
+              </div>
+              <div className="flex gap-2 justify-end">
+                <button
+                  type="button"
+                  onClick={() => setQuickAddOpen(false)}
+                  className="py-2 px-3 rounded-lg border border-color-border text-color-text text-sm"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={quickAddLoading || !quickAddForm.name?.trim()}
+                  className="py-2 px-4 rounded-lg bg-primary text-white text-sm font-medium disabled:opacity-60"
+                >
+                  {quickAddLoading ? "..." : "Add & select"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {confirmClearOpen && (
         <div className="fixed inset-0 bg-black/50 z-[110] flex items-center justify-center p-4" onClick={() => setConfirmClearOpen(false)}>
@@ -369,6 +496,7 @@ export default function POS({ data }) {
         cart={cart}
         orderNumber={orderNumber}
         orderType={orderType}
+        customerId={selectedCustomerId}
         onSuccess={handlePaymentSuccess}
       />
 
