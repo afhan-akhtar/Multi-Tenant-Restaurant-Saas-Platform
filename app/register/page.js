@@ -10,6 +10,7 @@ export default function RegisterPage() {
   const [success, setSuccess] = useState(false);
 
   const [restaurantName, setRestaurantName] = useState("");
+  const [branchName, setBranchName] = useState("");
   const [country, setCountry] = useState("");
   const [ownerName, setOwnerName] = useState("");
   const [email, setEmail] = useState("");
@@ -26,6 +27,7 @@ export default function RegisterPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           restaurantName: restaurantName.trim(),
+          branchName: branchName.trim(),
           country: country.trim(),
           ownerName: ownerName.trim(),
           email: email.trim(),
@@ -94,6 +96,22 @@ export default function RegisterPage() {
               onChange={(e) => setRestaurantName(e.target.value)}
               required
               autoComplete="organization"
+            />
+          </div>
+
+          <div className="mb-4">
+            <label htmlFor="branchName" className="block mb-1 text-sm text-white/80">
+              Branch name
+            </label>
+            <input
+              id="branchName"
+              type="text"
+              placeholder="Main Branch"
+              className="w-full py-3 px-4 border border-white/20 rounded-lg bg-black/20 text-white text-base box-border placeholder:text-white/40"
+              value={branchName}
+              onChange={(e) => setBranchName(e.target.value)}
+              required
+              autoComplete="organization-unit"
             />
           </div>
 

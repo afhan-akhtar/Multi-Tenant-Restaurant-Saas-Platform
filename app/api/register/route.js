@@ -8,15 +8,16 @@ export async function POST(req) {
     const body = await req.json();
     const {
       restaurantName,
+      branchName,
       country,
       ownerName,
       email,
       password,
     } = body;
 
-    if (!restaurantName?.trim() || !ownerName?.trim() || !email?.trim() || !password) {
+    if (!restaurantName?.trim() || !branchName?.trim() || !ownerName?.trim() || !email?.trim() || !password) {
       return NextResponse.json(
-        { error: "Restaurant name, owner name, email, and password are required." },
+        { error: "Restaurant name, branch name, owner name, email, and password are required." },
         { status: 400 }
       );
     }
@@ -73,7 +74,7 @@ export async function POST(req) {
       const branch = await tx.branch.create({
         data: {
           tenantId: tenant.id,
-          name: "Main Branch",
+          name: branchName.trim(),
           address: "",
           city: "",
           country: countryVal,

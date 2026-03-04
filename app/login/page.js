@@ -20,6 +20,7 @@ function LoginForm() {
   const [signUpError, setSignUpError] = useState("");
   const [signUpSuccess, setSignUpSuccess] = useState(false);
   const [restaurantName, setRestaurantName] = useState("");
+  const [branchName, setBranchName] = useState("");
   const [country, setCountry] = useState("");
   const [ownerName, setOwnerName] = useState("");
   const [signUpEmail, setSignUpEmail] = useState("");
@@ -62,6 +63,7 @@ function LoginForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           restaurantName: restaurantName.trim(),
+          branchName: branchName.trim(),
           country: country.trim(),
           ownerName: ownerName.trim(),
           email: signUpEmail.trim(),
@@ -86,6 +88,7 @@ function LoginForm() {
     setSignUpSuccess(false);
     setSignUpError("");
     setRestaurantName("");
+    setBranchName("");
     setCountry("");
     setOwnerName("");
     setSignUpEmail("");
@@ -206,6 +209,19 @@ function LoginForm() {
                       value={restaurantName}
                       onChange={(e) => setRestaurantName(e.target.value)}
                       autoComplete="organization"
+                    />
+                  </div>
+                  <div className="mb-4">
+                    <label htmlFor="modal-branchName" className="block mb-1 text-sm text-white/80">Branch name</label>
+                    <input
+                      id="modal-branchName"
+                      type="text"
+                      placeholder="Main Branch"
+                      required
+                      className="w-full py-2.5 px-4 border border-white/20 rounded-lg bg-black/20 text-white text-base box-border placeholder:text-white/40"
+                      value={branchName}
+                      onChange={(e) => setBranchName(e.target.value)}
+                      autoComplete="organization-unit"
                     />
                   </div>
                   <div className="mb-4">

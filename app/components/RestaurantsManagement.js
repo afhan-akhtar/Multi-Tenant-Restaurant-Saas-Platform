@@ -25,6 +25,7 @@ export default function RestaurantsManagement({ tenants: initialTenants, basePat
   const [error, setError] = useState("");
   const [form, setForm] = useState({
     restaurantName: "",
+    branchName: "",
     subdomain: "",
     country: "",
     ownerName: "",
@@ -60,7 +61,7 @@ export default function RestaurantsManagement({ tenants: initialTenants, basePat
         return;
       }
       setModalOpen(false);
-      setForm({ restaurantName: "", subdomain: "", country: "", ownerName: "", email: "", password: "" });
+      setForm({ restaurantName: "", branchName: "", subdomain: "", country: "", ownerName: "", email: "", password: "" });
       router.refresh();
     } catch (err) {
       setError("Something went wrong");
@@ -307,6 +308,17 @@ export default function RestaurantsManagement({ tenants: initialTenants, basePat
                   className="w-full py-2 px-3 border border-color-border rounded-lg bg-color-bg text-color-text"
                   value={form.restaurantName}
                   onChange={(e) => setForm((f) => ({ ...f, restaurantName: e.target.value }))}
+                />
+              </div>
+              <div className="mb-4">
+                <label className="block mb-1 text-sm font-medium text-color-text">Branch name</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Main Branch"
+                  className="w-full py-2 px-3 border border-color-border rounded-lg bg-color-bg text-color-text"
+                  value={form.branchName}
+                  onChange={(e) => setForm((f) => ({ ...f, branchName: e.target.value }))}
                 />
               </div>
               <div className="mb-4">
