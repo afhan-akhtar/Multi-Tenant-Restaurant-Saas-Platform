@@ -94,7 +94,7 @@ export default function SuperAdminDashboard({ data }) {
     <div className="flex flex-col gap-4 sm:gap-6">
       {pendingCount > 0 && (
         <Link
-          href="/restaurants?tab=pending"
+          href="/admin/restaurants?tab=pending"
           className="block p-4 rounded-xl border-2 border-amber-500/50 bg-amber-500/10 hover:bg-amber-500/15 transition-colors no-underline"
         >
           <div className="flex items-center justify-between gap-4 flex-wrap">

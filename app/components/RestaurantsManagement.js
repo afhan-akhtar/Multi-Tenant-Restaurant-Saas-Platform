@@ -11,7 +11,7 @@ const STATUS_STYLES = {
   BLOCKED: { bg: "#fee2e2", color: "#991b1b" },
 };
 
-export default function RestaurantsManagement({ tenants: initialTenants }) {
+export default function RestaurantsManagement({ tenants: initialTenants, basePath = "" }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [tenants, setTenants] = useState(initialTenants);
@@ -133,7 +133,7 @@ export default function RestaurantsManagement({ tenants: initialTenants }) {
       <div className="flex gap-2 mb-6 border-b border-color-border">
         <button
           type="button"
-          onClick={() => router.push("/restaurants?tab=pending")}
+          onClick={() => router.push(`${basePath || ""}/restaurants?tab=pending`)}
           className={`py-2.5 px-4 text-sm font-medium border-b-2 -mb-px transition-colors ${
             activeTab === "pending"
               ? "border-amber-500 text-amber-600 dark:text-amber-400"
@@ -149,7 +149,7 @@ export default function RestaurantsManagement({ tenants: initialTenants }) {
         </button>
         <button
           type="button"
-          onClick={() => router.push("/restaurants?tab=all")}
+          onClick={() => router.push(`${basePath || ""}/restaurants?tab=all`)}
           className={`py-2.5 px-4 text-sm font-medium border-b-2 -mb-px transition-colors ${
             activeTab === "all"
               ? "border-primary text-primary"

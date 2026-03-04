@@ -13,6 +13,10 @@ export default async function MainLayout({ children }) {
     redirect("/login");
   }
 
+  if (session.user?.type === "super_admin") {
+    redirect("/admin");
+  }
+
   let pendingTenantCount = 0;
   if (session.user?.type === "super_admin") {
     pendingTenantCount = await prisma.tenant.count({ where: { status: "PENDING" } });
