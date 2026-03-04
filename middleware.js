@@ -12,6 +12,7 @@ export async function middleware(request) {
   // Public routes
   const isPublic =
     pathname === "/login" ||
+    pathname === "/go" ||
     pathname === "/admin" ||
     isRestaurantLogin ||
     pathname === "/register" ||

@@ -8,7 +8,7 @@ import { COUNTRIES } from "@/lib/countries";
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") || "/";
+  const callbackUrl = searchParams.get("callbackUrl") || "/go";
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [email, setEmail] = useState("");
@@ -20,7 +20,6 @@ function LoginForm() {
   const [signUpError, setSignUpError] = useState("");
   const [signUpSuccess, setSignUpSuccess] = useState(false);
   const [restaurantName, setRestaurantName] = useState("");
-  const [signUpSubdomain, setSignUpSubdomain] = useState("");
   const [country, setCountry] = useState("");
   const [ownerName, setOwnerName] = useState("");
   const [signUpEmail, setSignUpEmail] = useState("");
@@ -63,7 +62,6 @@ function LoginForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           restaurantName: restaurantName.trim(),
-          subdomain: signUpSubdomain.trim(),
           country: country.trim(),
           ownerName: ownerName.trim(),
           email: signUpEmail.trim(),
@@ -88,7 +86,6 @@ function LoginForm() {
     setSignUpSuccess(false);
     setSignUpError("");
     setRestaurantName("");
-    setSignUpSubdomain("");
     setCountry("");
     setOwnerName("");
     setSignUpEmail("");
@@ -210,20 +207,6 @@ function LoginForm() {
                       onChange={(e) => setRestaurantName(e.target.value)}
                       autoComplete="organization"
                     />
-                  </div>
-                  <div className="mb-4">
-                    <label htmlFor="modal-subdomain" className="block mb-1 text-sm text-white/80">Subdomain</label>
-                    <input
-                      id="modal-subdomain"
-                      type="text"
-                      placeholder="my-restaurant"
-                      required
-                      className="w-full py-2.5 px-4 border border-white/20 rounded-lg bg-black/20 text-white text-base box-border placeholder:text-white/40"
-                      value={signUpSubdomain}
-                      onChange={(e) => setSignUpSubdomain(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-"))}
-                      autoComplete="username"
-                    />
-                    <p className="mt-1 text-xs text-white/50">Letters, numbers, hyphens only</p>
                   </div>
                   <div className="mb-4">
                     <label htmlFor="modal-country" className="block mb-1 text-sm text-white/80">Country</label>

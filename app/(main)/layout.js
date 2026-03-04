@@ -17,6 +17,12 @@ export default async function MainLayout({ children }) {
     redirect("/admin");
   }
 
+  // Restaurant staff: dashboard lives at /{subdomain}, redirect there
+  const subdomain = session.user?.subdomain;
+  if (subdomain) {
+    redirect(`/${subdomain}`);
+  }
+
   let pendingTenantCount = 0;
   if (session.user?.type === "super_admin") {
     pendingTenantCount = await prisma.tenant.count({ where: { status: "PENDING" } });

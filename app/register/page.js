@@ -10,7 +10,6 @@ export default function RegisterPage() {
   const [success, setSuccess] = useState(false);
 
   const [restaurantName, setRestaurantName] = useState("");
-  const [subdomain, setSubdomain] = useState("");
   const [country, setCountry] = useState("");
   const [ownerName, setOwnerName] = useState("");
   const [email, setEmail] = useState("");
@@ -27,7 +26,6 @@ export default function RegisterPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           restaurantName: restaurantName.trim(),
-          subdomain: subdomain.trim(),
           country: country.trim(),
           ownerName: ownerName.trim(),
           email: email.trim(),
@@ -97,23 +95,6 @@ export default function RegisterPage() {
               required
               autoComplete="organization"
             />
-          </div>
-
-          <div className="mb-4">
-            <label htmlFor="subdomain" className="block mb-1 text-sm text-white/80">
-              Subdomain
-            </label>
-            <input
-              id="subdomain"
-              type="text"
-              placeholder="my-restaurant"
-              className="w-full py-3 px-4 border border-white/20 rounded-lg bg-black/20 text-white text-base box-border placeholder:text-white/40"
-              value={subdomain}
-              onChange={(e) => setSubdomain(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-"))}
-              required
-              autoComplete="username"
-            />
-            <p className="mt-1 text-xs text-white/50">Letters, numbers, hyphens only. Used for login (e.g. my-restaurant)</p>
           </div>
 
           <div className="mb-4">

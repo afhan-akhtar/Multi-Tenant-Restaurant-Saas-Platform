@@ -270,7 +270,14 @@ const PAGE_TITLES = {
   "/kds": "Kitchen Display (KDS)",
 };
 
-export default function DashboardLayout({ children, user, pendingTenantCount = 0 }) {
+function withBasePath(basePath, href) {
+  if (!basePath) return href;
+  const base = basePath.replace(/\/$/, "");
+  if (href === "/") return base || "/";
+  return `${base}${href}`;
+}
+
+export default function DashboardLayout({ children, user, pendingTenantCount = 0, basePath = "" }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [isMobileLayout, setIsMobileLayout] = useState(false);
@@ -302,12 +309,16 @@ export default function DashboardLayout({ children, user, pendingTenantCount = 0
     if (isMobileLayout) setSidebarOpen(false);
   };
 
+  const relPath = basePath ? (pathname?.replace(new RegExp(`^${basePath.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`), "") || "/") : pathname;
+  const normRelPath = (relPath || "/").replace(/\/$/, "") || "/";
+
   const isActive = (href) => {
-    if (href === "/") return pathname === "/";
-    return pathname?.startsWith(href);
+    const fullHref = withBasePath(basePath, href);
+    if (href === "/") return pathname === fullHref || pathname === `${fullHref}/`;
+    return pathname?.startsWith(fullHref);
   };
 
-  const pageTitle = PAGE_TITLES[pathname] || pathname?.replace(/^\//, "").replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) || "Dashboard";
+  const pageTitle = PAGE_TITLES[normRelPath] || normRelPath?.replace(/^\//, "").replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) || "Dashboard";
 
   const displayName = isSuperAdmin
     ? "Super Admin"
@@ -346,7 +357,7 @@ export default function DashboardLayout({ children, user, pendingTenantCount = 0
                   {item.items.map((sub) => (
                     <NavItem
                       key={sub.href}
-                      href={sub.href}
+                      href={withBasePath(basePath, sub.href)}
                       label={sub.label}
                       icon={sub.icon}
                       isActive={isActive(sub.href)}
@@ -361,7 +372,7 @@ export default function DashboardLayout({ children, user, pendingTenantCount = 0
             return (
               <NavItem
                 key={item.href}
-                href={item.href}
+                href={withBasePath(basePath, item.href)}
                 label={item.label}
                 icon={item.icon}
                 isActive={isActive(item.href)}
@@ -389,7 +400,7 @@ export default function DashboardLayout({ children, user, pendingTenantCount = 0
           </div>
           <div className="flex items-center gap-2 sm:gap-4 shrink-0">
             {!isSuperAdmin && (
-              <Link href="/pos" className="py-1.5 px-3 sm:py-2 sm:px-4 bg-primary text-white no-underline rounded-md font-medium text-xs sm:text-sm transition-colors hover:bg-primary-hover shrink-0">
+              <Link href={withBasePath(basePath, "/pos")} className="py-1.5 px-3 sm:py-2 sm:px-4 bg-primary text-white no-underline rounded-md font-medium text-xs sm:text-sm transition-colors hover:bg-primary-hover shrink-0">
                 POS
               </Link>
             )}
@@ -416,10 +427,10 @@ export default function DashboardLayout({ children, user, pendingTenantCount = 0
               {userMenuOpen && (
                 <div className="absolute top-full right-0 mt-2 bg-color-card rounded-md shadow-lg min-w-[180px] py-2 z-[60] border border-color-border">
                   {isSuperAdmin && (
-                    <Link href="/impersonation" onClick={() => setUserMenuOpen(false)} className="block w-full py-2.5 px-4 text-left bg-transparent border-0 text-color-text no-underline cursor-pointer text-sm hover:bg-color-bg transition-colors">Impersonate</Link>
+                    <Link href={withBasePath(basePath, "/impersonation")} onClick={() => setUserMenuOpen(false)} className="block w-full py-2.5 px-4 text-left bg-transparent border-0 text-color-text no-underline cursor-pointer text-sm hover:bg-color-bg transition-colors">Impersonate</Link>
                   )}
-                  <Link href="/profile" onClick={() => setUserMenuOpen(false)} className="block w-full py-2.5 px-4 text-left bg-transparent border-0 text-color-text no-underline cursor-pointer text-sm hover:bg-color-bg transition-colors">Profile</Link>
-                  <Link href="/settings" onClick={() => setUserMenuOpen(false)} className="block w-full py-2.5 px-4 text-left bg-transparent border-0 text-color-text no-underline cursor-pointer text-sm hover:bg-color-bg transition-colors">Settings</Link>
+                  <Link href={withBasePath(basePath, "/profile")} onClick={() => setUserMenuOpen(false)} className="block w-full py-2.5 px-4 text-left bg-transparent border-0 text-color-text no-underline cursor-pointer text-sm hover:bg-color-bg transition-colors">Profile</Link>
+                  <Link href={withBasePath(basePath, "/settings")} onClick={() => setUserMenuOpen(false)} className="block w-full py-2.5 px-4 text-left bg-transparent border-0 text-color-text no-underline cursor-pointer text-sm hover:bg-color-bg transition-colors">Settings</Link>
                   <button onClick={() => signOut({ callbackUrl: "/login" })} className="block w-full py-2.5 px-4 text-left bg-transparent border-0 text-color-text no-underline cursor-pointer text-sm hover:bg-color-bg transition-colors">Sign out</button>
                 </div>
               )}

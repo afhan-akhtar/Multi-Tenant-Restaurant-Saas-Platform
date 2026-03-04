@@ -8,25 +8,30 @@ export async function POST(req) {
     const body = await req.json();
     const {
       restaurantName,
-      subdomain,
       country,
       ownerName,
       email,
       password,
     } = body;
 
-    if (!restaurantName?.trim() || !subdomain?.trim() || !ownerName?.trim() || !email?.trim() || !password) {
+    if (!restaurantName?.trim() || !ownerName?.trim() || !email?.trim() || !password) {
       return NextResponse.json(
-        { error: "Restaurant name, subdomain, owner name, email, and password are required." },
+        { error: "Restaurant name, owner name, email, and password are required." },
         { status: 400 }
       );
     }
 
-    // Subdomain: lowercase, alphanumeric + hyphen only
-    const cleanedSubdomain = subdomain.trim().toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
+    // Generate slug from restaurant name: lowercase, alphanumeric + hyphen only
+    const cleanedSubdomain = restaurantName
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, "")
+      .replace(/\s+/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-|-$/g, "");
     if (cleanedSubdomain.length < 2) {
       return NextResponse.json(
-        { error: "Subdomain must be at least 2 characters (letters, numbers, hyphens only)." },
+        { error: "Restaurant name must produce a valid URL slug (at least 2 characters)." },
         { status: 400 }
       );
     }
@@ -46,7 +51,7 @@ export async function POST(req) {
     });
     if (existingSubdomain) {
       return NextResponse.json(
-        { error: `Subdomain "${cleanedSubdomain}" is already taken. Please choose another.` },
+        { error: `A restaurant with slug "${cleanedSubdomain}" already exists. Please choose a different restaurant name.` },
         { status: 409 }
       );
     }
@@ -99,7 +104,7 @@ export async function POST(req) {
 
     return NextResponse.json({
       success: true,
-      message: "Registration successful. Your restaurant is pending approval. You will be able to log in once approved by the platform administrator.",
+      message: "Registration successful. Your restaurant is pending approval. You will be able to log in once approved by the Super Admin.",
       subdomain: result.tenant.subdomain,
     });
   } catch (err) {
