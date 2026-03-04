@@ -1,6 +1,9 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { redirect } from "next/navigation";
+import CustomersManagement from "@/app/components/CustomersManagement";
+
+export const dynamic = "force-dynamic";
 
 export default async function PartiesPage() {
   const session = await auth();
@@ -14,38 +17,5 @@ export default async function PartiesPage() {
     orderBy: { name: "asc" },
   });
 
-  return (
-    <div className="py-4 w-full min-w-0">
-      <div className="flex justify-between items-center flex-wrap gap-4 mb-6">
-        <h2 className="m-0 text-xl font-semibold text-color-text">Parties (Customers)</h2>
-      </div>
-      <div className="bg-color-card rounded-lg border border-color-border overflow-hidden shadow-sm">
-        <div className="w-full overflow-x-auto overflow-y-hidden">
-          <table className="w-full border-collapse text-sm min-w-[600px] [&_th[data-align=right]]:text-right [&_td[data-align=right]]:text-right">
-            <thead>
-              <tr className="bg-color-bg border-b border-color-border">
-                <th className="py-3 px-4 text-left font-semibold text-color-text whitespace-nowrap">Name</th>
-                <th className="py-3 px-4 text-left font-semibold text-color-text whitespace-nowrap">Email</th>
-                <th className="py-3 px-4 text-left font-semibold text-color-text whitespace-nowrap">Phone</th>
-                <th className="py-3 px-4 text-left font-semibold text-color-text whitespace-nowrap" data-align="right">Loyalty</th>
-              </tr>
-            </thead>
-            <tbody>
-              {customers.map((c) => (
-                <tr key={c.id} className="border-b border-slate-100 last:border-0">
-                  <td className="py-3 px-4">{c.name}</td>
-                  <td className="py-3 px-4">{c.email}</td>
-                  <td className="py-3 px-4">{c.phone}</td>
-                  <td className="py-3 px-4" data-align="right">{c.loyaltyPoints}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        {customers.length === 0 && (
-          <div className="py-8 px-6 text-center text-color-text-muted text-[0.95rem]">No parties found</div>
-        )}
-      </div>
-    </div>
-  );
+  return <CustomersManagement customers={customers} />;
 }
