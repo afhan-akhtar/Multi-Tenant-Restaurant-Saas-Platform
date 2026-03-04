@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import ConfirmModal from "@/app/components/ConfirmModal";
 
 const COLUMNS = [
   {
@@ -107,7 +108,7 @@ function OrderCard({ order, columnColor, onStatusChange, onCancel }) {
               </button>
               <button
                 type="button"
-                onClick={() => onCancel?.(order.id)}
+                onClick={() => onCancel?.(order)}
                 className="px-2.5 py-1 rounded text-xs font-medium bg-red-500 text-white hover:bg-red-600 cursor-pointer"
               >
                 Cancel
@@ -152,6 +153,9 @@ export default function KDS({ data }) {
   const orders = data?.orders || [];
   const [activeFilter, setActiveFilter] = useState("ALL");
   const [zoom, setZoom] = useState(100);
+  const [cancelModal, setCancelModal] = useState({ open: false, orderId: null, orderNumber: "" });
+  const [cancelLoading, setCancelLoading] = useState(false);
+  const [cancelError, setCancelError] = useState("");
 
   const newCount = orders.filter((o) => ["OPEN", "CONFIRMED"].includes(o.status)).length;
   const preparingCount = orders.filter((o) => o.status === "PREPARING").length;
@@ -175,8 +179,16 @@ export default function KDS({ data }) {
     }
   };
 
-  const handleCancel = async (orderId) => {
-    if (!confirm("Cancel this order?")) return;
+  const openCancelModal = (order) => {
+    setCancelModal({ open: true, orderId: order.id, orderNumber: order.orderNumber });
+    setCancelError("");
+  };
+
+  const handleCancelConfirm = async () => {
+    const { orderId } = cancelModal;
+    if (!orderId) return;
+    setCancelError("");
+    setCancelLoading(true);
     try {
       const res = await fetch("/api/orders/cancel", {
         method: "POST",
@@ -185,10 +197,13 @@ export default function KDS({ data }) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Cancel failed");
+      setCancelModal({ open: false, orderId: null, orderNumber: "" });
       router.refresh();
     } catch (err) {
       console.error("KDS cancel failed", err);
-      alert(err.message || "Cancel failed");
+      setCancelError(err.message || "Cancel failed");
+    } finally {
+      setCancelLoading(false);
     }
   };
 
@@ -213,7 +228,7 @@ export default function KDS({ data }) {
                     order={order}
                     columnColor={col.color}
                     onStatusChange={handleStatusChange}
-                    onCancel={handleCancel}
+                    onCancel={(order) => openCancelModal(order)}
                   />
                 ))}
                 {getOrdersForColumn(col).length === 0 && (
@@ -314,6 +329,17 @@ export default function KDS({ data }) {
           </Link>
         </div>
       </footer>
+
+      <ConfirmModal
+        open={cancelModal.open}
+        title="Cancel order"
+        message={`Cancel order ${cancelModal.orderNumber}? This cannot be undone.`}
+        confirmLabel="Yes"
+        onConfirm={handleCancelConfirm}
+        onCancel={() => { setCancelModal({ open: false, orderId: null, orderNumber: "" }); setCancelError(""); }}
+        loading={cancelLoading}
+        error={cancelError}
+      />
     </div>
   );
 }
