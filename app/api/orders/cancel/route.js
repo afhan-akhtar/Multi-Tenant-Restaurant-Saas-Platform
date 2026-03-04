@@ -1,10 +1,9 @@
 import { getToken } from "next-auth/jwt";
 import { prisma } from "@/lib/db";
-import { signCancellation } from "@/lib/fiskaly";
 import { NextResponse } from "next/server";
 
 /**
- * Cancel an order with TSE/Fiskaly signing (required for German fiscal compliance).
+ * Cancel an order.
  */
 export async function POST(request) {
   try {
@@ -22,7 +21,7 @@ export async function POST(request) {
     }
 
     const body = await request.json();
-    const { orderId, reason } = body;
+    const { orderId } = body;
     const id = parseInt(orderId, 10);
     if (!id) {
       return NextResponse.json({ error: "Order ID required" }, { status: 400 });
@@ -38,26 +37,6 @@ export async function POST(request) {
     if (["CANCELLED", "REFUNDED"].includes(order.status)) {
       return NextResponse.json({ error: "Order already cancelled or refunded" }, { status: 400 });
     }
-
-    let tseResult;
-    try {
-      tseResult = await signCancellation(id, reason || "Order cancelled");
-    } catch (tseErr) {
-      console.error("[cancel] TSE sign failed:", tseErr);
-      return NextResponse.json(
-        { error: "Fiscal signing failed. Cancellation must be signed via TSE." },
-        { status: 500 }
-      );
-    }
-
-    await prisma.tSETransaction.create({
-      data: {
-        orderId: id,
-        signature: tseResult.signature,
-        fiskalyTxId: tseResult.fiskalyTxId,
-        signedAt: new Date(),
-      },
-    });
 
     await prisma.order.update({
       where: { id },

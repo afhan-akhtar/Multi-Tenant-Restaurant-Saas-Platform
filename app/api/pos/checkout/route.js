@@ -1,7 +1,6 @@
 import { getToken } from "next-auth/jwt";
 import { prisma } from "@/lib/db";
 import { getNextOrderNumber } from "@/lib/pos";
-import { signOrder } from "@/lib/fiskaly";
 import { recordCashSale } from "@/lib/cashbook";
 import { NextResponse } from "next/server";
 
@@ -224,30 +223,6 @@ export async function POST(request) {
       }
     }
 
-    let tseResult;
-    try {
-      tseResult = await signOrder(order.id, {
-        grandTotal,
-        itemsCount: orderItemsData.length,
-        payments: paymentSplits.map((p) => ({ method: p.method, amount: p.amount })),
-      });
-    } catch (tseErr) {
-      console.error("[checkout] TSE sign failed:", tseErr);
-      return NextResponse.json(
-        { error: "Fiscal signing failed. Order created but not signed.", orderId: order.id },
-        { status: 500 }
-      );
-    }
-
-    await prisma.tSETransaction.create({
-      data: {
-        orderId: order.id,
-        signature: tseResult.signature,
-        fiskalyTxId: tseResult.fiskalyTxId,
-        signedAt: now,
-      },
-    });
-
     const tenant = await prisma.tenant.findUnique({
       where: { id: tenantId },
       select: { name: true },
@@ -270,8 +245,6 @@ export async function POST(request) {
       discountAmount: discount,
       grandTotal,
       payments: paymentSplits,
-      tseSignature: tseResult.signature,
-      tseTxId: tseResult.fiskalyTxId,
     };
 
     return NextResponse.json({

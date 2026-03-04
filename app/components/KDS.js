@@ -110,7 +110,7 @@ function OrderCard({ order, columnColor, onStatusChange, onCancel }) {
                 onClick={() => onCancel?.(order.id)}
                 className="px-2.5 py-1 rounded text-xs font-medium bg-red-500 text-white hover:bg-red-600 cursor-pointer"
               >
-                Cancel (TSE)
+                Cancel
               </button>
             </>
           )}
@@ -176,7 +176,7 @@ export default function KDS({ data }) {
   };
 
   const handleCancel = async (orderId) => {
-    if (!confirm("Cancel this order? TSE/Fiskaly will sign the cancellation.")) return;
+    if (!confirm("Cancel this order?")) return;
     try {
       const res = await fetch("/api/orders/cancel", {
         method: "POST",
