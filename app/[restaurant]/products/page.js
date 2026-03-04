@@ -12,7 +12,7 @@ export default async function ProductsPage() {
   const tenantId = session.user?.tenantId ?? null;
   const where = tenantId ? { tenantId } : {};
 
-  const [products, categories] = await Promise.all([
+  const [productsRaw, categories] = await Promise.all([
     prisma.product.findMany({
       where,
       include: { category: true },
@@ -23,6 +23,12 @@ export default async function ProductsPage() {
       orderBy: { name: "asc" },
     }),
   ]);
+
+  const products = productsRaw.map((p) => ({
+    ...p,
+    basePrice: Number(p.basePrice ?? 0),
+    taxRate: Number(p.taxRate ?? 0),
+  }));
 
   return <ProductsManagement products={products} categories={categories} />;
 }
