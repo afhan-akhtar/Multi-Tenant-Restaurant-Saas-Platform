@@ -1,3 +1,4 @@
+import { NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 
 export async function middleware(request) {
@@ -13,6 +14,13 @@ export async function middleware(request) {
   }
 
   const isRestaurantLogin = /^\/[^/]+\/login$/.test(pathname);
+
+  // Set header so layout knows we're on login page (for auth redirect logic)
+  if (isRestaurantLogin) {
+    const res = NextResponse.next();
+    res.headers.set("x-restaurant-login", "1");
+    return res;
+  }
 
   // Public routes
   const isPublic =
