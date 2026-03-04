@@ -7,10 +7,13 @@ export async function middleware(request) {
   });
   const { pathname } = request.nextUrl;
 
+  const isRestaurantLogin = /^\/[^/]+\/login$/.test(pathname);
+
   // Public routes
   const isPublic =
     pathname === "/login" ||
     pathname === "/admin" ||
+    isRestaurantLogin ||
     pathname === "/register" ||
     pathname === "/api/register" ||
     pathname.startsWith("/api/auth") ||
@@ -22,9 +25,9 @@ export async function middleware(request) {
   }
 
   if (!token) {
-    const superAdminPaths = ["/restaurants", "/subscriptions", "/commission", "/logs", "/impersonation"];
-    const isSuperAdminRoute = superAdminPaths.some((p) => pathname === p || pathname.startsWith(p + "/"));
-    const loginPath = isSuperAdminRoute ? "/admin" : "/login";
+    const isSuperAdminRoute = pathname === "/admin" || pathname.startsWith("/admin/");
+    const restaurantMatch = pathname.match(/^\/([^/]+)(?:\/|$)/);
+    const loginPath = isSuperAdminRoute ? "/admin" : (restaurantMatch ? `/${restaurantMatch[1]}/login` : "/login");
     const loginUrl = new URL(loginPath, request.url);
     loginUrl.searchParams.set("callbackUrl", pathname);
     return Response.redirect(loginUrl);

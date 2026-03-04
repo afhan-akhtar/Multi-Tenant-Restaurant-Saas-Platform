@@ -11,11 +11,9 @@ function LoginForm() {
   const callbackUrl = searchParams.get("callbackUrl") || "/";
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [signUpOpen, setSignUpOpen] = useState(false);
-
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [subdomain, setSubdomain] = useState("");
+  const [signUpOpen, setSignUpOpen] = useState(false);
 
   // Sign Up form state
   const [signUpLoading, setSignUpLoading] = useState(false);
@@ -32,15 +30,13 @@ function LoginForm() {
     e.preventDefault();
     setError("");
     setLoading(true);
-
     try {
       const res = await signIn("credentials", {
         redirect: false,
         email: email.trim(),
         password,
-        subdomain: subdomain.trim(), // Required for Restaurant Admin login
+        subdomain: "",
       });
-
       if (res?.error) {
         setError("Invalid email or password.");
         setLoading(false);
@@ -49,7 +45,6 @@ function LoginForm() {
       if (res?.ok) {
         router.push(callbackUrl);
         router.refresh();
-        return;
       }
     } catch (err) {
       setError("Something went wrong. Please try again.");
@@ -107,21 +102,6 @@ function LoginForm() {
         <p className="m-0 mb-6 text-sm text-white/60">Sign in to your restaurant</p>
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
-            <label htmlFor="subdomain" className="block mb-1 text-sm text-white/80">
-              Subdomain
-            </label>
-            <input
-              id="subdomain"
-              type="text"
-              placeholder="your-restaurant"
-              className="w-full py-3 px-4 border border-white/20 rounded-lg bg-black/20 text-white text-base box-border placeholder:text-white/40"
-              value={subdomain}
-              onChange={(e) => setSubdomain(e.target.value)}
-              required
-              autoComplete="organization"
-            />
-          </div>
-          <div className="mb-4">
             <label htmlFor="email" className="block mb-1 text-sm text-white/80">
               Email
             </label>
@@ -170,7 +150,7 @@ function LoginForm() {
           </p>
           <button
             type="submit"
-            className="w-full py-3 mt-2 bg-primary text-white border-none rounded-lg text-base font-semibold cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
+            className="w-full py-3 mt-2 bg-primary text-white border-none rounded-lg text-base font-semibold cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed hover:opacity-90 transition-opacity"
             disabled={loading}
           >
             {loading ? "Signing in…" : "Sign in"}
