@@ -16,7 +16,7 @@ export default async function ImpersonationPage() {
     <div className="py-4 w-full min-w-0">
       <h2 className="m-0 text-xl font-semibold text-color-text mb-4">Impersonation</h2>
       <p className="text-color-text-muted mb-4 text-sm">
-        Log in as any restaurant staff for support or debugging. Secure capability for Super Admin only.
+        Log in as any Restaurant Admin for support or debugging. Secure capability for Super Admin only.
       </p>
       <div className="bg-color-card rounded-lg border border-color-border overflow-hidden shadow-sm">
         <div className="w-full overflow-x-auto overflow-y-hidden">

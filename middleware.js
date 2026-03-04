@@ -10,6 +10,7 @@ export async function middleware(request) {
   // Public routes
   const isPublic =
     pathname === "/login" ||
+    pathname === "/admin" ||
     pathname === "/register" ||
     pathname === "/api/register" ||
     pathname.startsWith("/api/auth") ||
@@ -21,7 +22,10 @@ export async function middleware(request) {
   }
 
   if (!token) {
-    const loginUrl = new URL("/login", request.url);
+    const superAdminPaths = ["/restaurants", "/subscriptions", "/commission", "/logs", "/impersonation"];
+    const isSuperAdminRoute = superAdminPaths.some((p) => pathname === p || pathname.startsWith(p + "/"));
+    const loginPath = isSuperAdminRoute ? "/admin" : "/login";
+    const loginUrl = new URL(loginPath, request.url);
     loginUrl.searchParams.set("callbackUrl", pathname);
     return Response.redirect(loginUrl);
   }
