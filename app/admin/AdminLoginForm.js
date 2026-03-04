@@ -46,8 +46,8 @@ export default function AdminLoginForm() {
   return (
     <main className="min-h-screen min-h-[100dvh] flex items-center justify-center p-4 sm:p-6 bg-gradient-to-br from-[#1a1a2e] to-[#16213e] box-border">
       <div className="w-full max-w-[400px] bg-white/5 rounded-xl p-6 sm:p-8 border border-white/10">
-        <h1 className="m-0 mb-2 text-2xl text-white">Platform Admin</h1>
-        <p className="m-0 mb-6 text-sm text-white/60">Super Admin sign in</p>
+        <h1 className="m-0 mb-2 text-2xl text-white">Super Admin</h1>
+        <p className="m-0 mb-6 text-sm text-white/60">Sign in</p>
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
             <label htmlFor="email" className="block mb-1 text-sm text-white/80">

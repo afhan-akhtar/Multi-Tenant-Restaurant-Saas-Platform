@@ -84,7 +84,7 @@ function LoginForm() {
           </div>
           {error && <p className="text-primary text-sm mt-2 mb-0">{error}</p>}
           <p className="mt-4 text-center text-sm text-white/60">
-            <a href="/admin" className="text-primary hover:underline">Platform Admin</a>
+            <a href="/admin" className="text-primary hover:underline">Super Admin</a>
           </p>
           <p className="mt-2 text-center text-sm text-white/60">
             New restaurant?{" "}

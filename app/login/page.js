@@ -133,7 +133,7 @@ function LoginForm() {
           </div>
           {error && <p className="text-primary text-sm mt-2 mb-0">{error}</p>}
           <p className="mt-4 text-center text-sm text-white/60">
-            Platform administrator?{" "}
+            Super Admin?{" "}
             <a href="/admin" className="text-primary hover:underline">
               Sign in as Super Admin
             </a>
