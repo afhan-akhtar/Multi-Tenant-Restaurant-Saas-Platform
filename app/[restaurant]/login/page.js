@@ -4,6 +4,7 @@ import { Suspense, useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams, useParams } from "next/navigation";
 import Link from "next/link";
+import Spinner, { PageLoader } from "@/app/components/Spinner";
 
 function LoginForm() {
   const router = useRouter();
@@ -94,10 +95,17 @@ function LoginForm() {
           </p>
           <button
             type="submit"
-            className="w-full py-3 mt-2 bg-primary text-white border-none rounded-lg text-base font-semibold cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
+            className="w-full py-3 mt-2 bg-primary text-white border-none rounded-lg text-base font-semibold cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center"
             disabled={loading}
           >
-            {loading ? "Signing in…" : "Sign in"}
+            {loading ? (
+              <span className="flex items-center gap-2">
+                <Spinner size="sm" className="text-white" />
+                <span>Signing in…</span>
+              </span>
+            ) : (
+              "Sign in"
+            )}
           </button>
         </form>
       </div>
@@ -107,7 +115,7 @@ function LoginForm() {
 
 export default function RestaurantLoginPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-[#1a1a2e] to-[#16213e] text-white">Loading…</div>}>
+    <Suspense fallback={<PageLoader />}>
       <LoginForm />
     </Suspense>
   );

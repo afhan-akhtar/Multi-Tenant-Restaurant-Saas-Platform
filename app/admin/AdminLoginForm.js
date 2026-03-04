@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Spinner from "@/app/components/Spinner";
 
 export default function AdminLoginForm() {
   const router = useRouter();
@@ -82,10 +83,17 @@ export default function AdminLoginForm() {
           {error && <p className="text-primary text-sm mt-2 mb-0">{error}</p>}
           <button
             type="submit"
-            className="w-full py-3 mt-4 bg-primary text-white border-none rounded-lg text-base font-semibold cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
+          className="w-full py-3 mt-4 bg-primary text-white border-none rounded-lg text-base font-semibold cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center"
             disabled={loading}
           >
-            {loading ? "Signing in…" : "Sign in"}
+          {loading ? (
+            <span className="flex items-center gap-2">
+              <Spinner size="sm" className="text-white" />
+              <span>Signing in…</span>
+            </span>
+          ) : (
+            "Sign in"
+          )}
           </button>
         </form>
         <p className="mt-6 text-center text-sm text-white/60">
