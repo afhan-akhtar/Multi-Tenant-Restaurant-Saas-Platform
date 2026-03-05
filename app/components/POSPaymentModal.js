@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Spinner from "./Spinner";
+import { isOnline, queueOrder } from "@/lib/offline";
 
 const METHODS = [
   { id: "CASH", label: "Cash", color: "#22c55e" },
@@ -120,31 +121,50 @@ export default function POSPaymentModal({ open, onClose, grandTotal, cart, order
       return;
     }
 
+    const offline = !isOnline();
+    const hasOnlineOnlyPayment = payload.some((s) => s.method === "STRIPE" || s.method === "PAYPAL");
+    if (offline && hasOnlineOnlyPayment) {
+      setError("Stripe and PayPal require internet. Use Cash or Card (device) when offline.");
+      return;
+    }
+
     setError("");
     setLoading(true);
     try {
-      const res = await fetch("/api/pos/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          items: cart.map((i) => ({
-            productId: i.productId,
-            productName: i.productName,
-            unitPrice: i.unitPrice,
-            taxRate: i.taxRate || 10,
-            quantity: i.quantity,
-          })),
-          orderType: orderType || "TAKEAWAY",
-          orderNumber,
-          customerId: customerId || null,
-          splits: payload,
-          discountAmount: Number(discount) || 0,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Checkout failed");
-      onSuccess?.(data);
-      handleClose();
+      const checkoutPayload = {
+        items: cart.map((i) => ({
+          productId: i.productId,
+          productName: i.productName,
+          unitPrice: i.unitPrice,
+          taxRate: i.taxRate || 10,
+          quantity: i.quantity,
+        })),
+        orderType: orderType || "TAKEAWAY",
+        orderNumber: offline ? undefined : orderNumber,
+        customerId: customerId || null,
+        splits: payload,
+        discountAmount: Number(discount) || 0,
+      };
+
+      if (offline) {
+        const queuedId = await queueOrder(checkoutPayload);
+        if (queuedId == null) {
+          setError("Offline storage unavailable (e.g. private browsing). Please go online or try a different browser.");
+          return;
+        }
+        onSuccess?.({ queued: true, localOrderNumber: orderNumber });
+        handleClose();
+      } else {
+        const res = await fetch("/api/pos/checkout", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(checkoutPayload),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Checkout failed");
+        onSuccess?.(data);
+        handleClose();
+      }
     } catch (err) {
       setError(err.message || "Payment failed");
     } finally {

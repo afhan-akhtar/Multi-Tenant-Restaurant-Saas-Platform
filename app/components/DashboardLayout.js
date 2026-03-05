@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
+import OfflineIndicator from "./OfflineIndicator";
 
 // Super Admin: Platform Governance (Module A)
 const SUPER_ADMIN_ITEMS = [
@@ -456,6 +457,8 @@ export default function DashboardLayout({ children, user, pendingTenantCount = 0
           aria-hidden="true"
         />
       )}
+
+      <OfflineIndicator />
     </div>
   );
 }

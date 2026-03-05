@@ -160,8 +160,13 @@ export default function POS({ data }) {
 
   const handlePaymentSuccess = (result) => {
     setCart([]);
-    setLastReceipt(result.receipt || null);
-    setToast({ type: "success", message: `Order ${result.orderNumber} paid successfully!` });
+    if (result?.queued) {
+      setLastReceipt(null);
+      setToast({ type: "success", message: `Order queued for sync when online (${result.localOrderNumber})` });
+    } else {
+      setLastReceipt(result?.receipt || null);
+      setToast({ type: "success", message: `Order ${result?.orderNumber} paid successfully!` });
+    }
     router.refresh();
   };
 
