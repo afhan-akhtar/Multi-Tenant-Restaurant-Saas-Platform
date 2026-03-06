@@ -79,26 +79,6 @@ function OrderCard({ order, columnColor, onStatusChange, onCancel }) {
               <span className="flex-1 min-w-0">
                 {item.quantity}× {item.productName}
               </span>
-              <div className="flex items-center gap-1 shrink-0">
-                <button
-                  type="button"
-                  className="flex items-center justify-center w-7 h-7 rounded hover:bg-red-50 text-color-text-muted hover:text-red-600 cursor-pointer text-xs shrink-0"
-                  title="Remove"
-                >
-                  ✕
-                </button>
-                <button
-                  type="button"
-                  onClick={handlePrintReceipt}
-                  className="flex items-center justify-center w-8 h-8 rounded hover:bg-color-bg text-[#3182ce] cursor-pointer shrink-0"
-                  title="Print receipt"
-                >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4 shrink-0">
-                    <polyline points="6 9 6 2 18 2 18 9" />
-                    <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
-                  </svg>
-                </button>
-              </div>
             </div>
           ))}
         </div>
