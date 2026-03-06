@@ -37,10 +37,10 @@ export default function Spinner({ size = "md", className = "" }) {
 
 export function PageLoader() {
   return (
-    <div className="min-h-screen min-h-[100dvh] flex items-center justify-center p-4 bg-gradient-to-br from-[#1a1a2e] to-[#16213e] text-white">
+    <div className="min-h-screen min-h-[100dvh] flex items-center justify-center p-4 bg-white">
       <div className="flex flex-col items-center gap-4">
-        <Spinner size="xl" className="text-white" />
-        <p className="text-sm text-white/80">Loading...</p>
+        <Spinner size="xl" className="text-sidebar" />
+        <p className="text-sm text-sidebar">Loading...</p>
       </div>
     </div>
   );
