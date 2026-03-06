@@ -87,9 +87,9 @@ export function Receipt({ receipt, onPrinted }) {
         <div className="px-4 py-4">
           <div className="text-center mb-4">
             <div className="font-bold text-lg">{tenantName || "Restaurant"}</div>
-            {(branchAddress || branchName) && (
+            {branchName && (
               <div className="text-xs text-gray-600 mt-1">
-                {branchAddress || branchName}
+                {branchName}
               </div>
             )}
             {taxId && <div className="text-xs text-gray-500 mt-0.5">{taxId}</div>}
@@ -272,7 +272,7 @@ export function printReceipt(receipt) {
       <div class="accent" style="height:4px;"></div>
       <div class="mb mt center">
         <div class="bold" style="font-size:1.1rem;">${tenantName || "Restaurant"}</div>
-        <div style="font-size:12px;color:#666;">${branchAddress || branchName || ""}</div>
+        <div style="font-size:12px;color:#666;">${branchName || ""}</div>
         ${taxId ? `<div style="font-size:11px;color:#888;">${taxId}</div>` : ""}
       </div>
       <div class="flex mb" style="border-bottom:1px solid #ddd;padding-bottom:8px;">

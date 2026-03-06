@@ -34,9 +34,6 @@ export default async function ReceiptPage({ params }) {
 
   const tenantName = order.tenant?.name || "Restaurant";
   const branchName = order.branch?.name || "";
-  const branchAddress = [order.branch?.address, order.branch?.city, order.branch?.country]
-    .filter(Boolean)
-    .join(", ");
   const tseSignature = order.tseTransactions?.[0]?.signature || null;
 
   return (
@@ -46,8 +43,8 @@ export default async function ReceiptPage({ params }) {
         <div className="p-6">
           <div className="text-center mb-6">
             <h1 className="font-bold text-xl">{tenantName}</h1>
-            {branchAddress && (
-              <p className="text-sm text-gray-600 mt-1">{branchAddress}</p>
+            {branchName && (
+              <p className="text-sm text-gray-600 mt-1">{branchName}</p>
             )}
           </div>
 
