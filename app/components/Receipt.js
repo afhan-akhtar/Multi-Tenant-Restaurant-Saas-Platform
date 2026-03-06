@@ -5,6 +5,7 @@
  * Uses POS + payment data only: tenant, branch, items, payments, TSE signature.
  */
 import { useRef, useEffect } from "react";
+import Image from "next/image";
 
 const ACCENT = "#14b8a6";
 
@@ -183,7 +184,13 @@ export function Receipt({ receipt, onPrinted }) {
           )}
 
           <div className="mb-4 flex flex-col items-center">
-            <img src={qrSrc} alt="Scan receipt" className="w-[120px] h-[120px]" />
+            <Image
+              src={qrSrc}
+              alt="Scan receipt"
+              width={120}
+              height={120}
+              className="w-[120px] h-[120px]"
+            />
             <div className="text-xs text-gray-500 mt-1">Scan to view receipt</div>
           </div>
 
