@@ -1,5 +1,8 @@
 import { prisma } from "@/lib/db";
 import { notFound } from "next/navigation";
+import { headers } from "next/headers";
+import { ReceiptPrintButton } from "@/app/components/ReceiptPrintButton";
+import { ReceiptQRCode } from "@/app/components/ReceiptQRCode";
 
 const ACCENT = "#14b8a6";
 
@@ -23,6 +26,11 @@ export default async function ReceiptPage({ params }) {
   });
 
   if (!order) notFound();
+
+  const h = await headers();
+  const host = h.get("host") || "localhost:3000";
+  const proto = h.get("x-forwarded-proto") || "http";
+  const receiptUrl = `${proto}://${host}/receipt/${id}`;
 
   const tenantName = order.tenant?.name || "Restaurant";
   const branchName = order.branch?.name || "";
@@ -115,6 +123,12 @@ export default async function ReceiptPage({ params }) {
               {String(tseSignature).slice(0, 48)}…
             </div>
           )}
+
+          <ReceiptQRCode url={receiptUrl} />
+
+          <div className="mb-6">
+            <ReceiptPrintButton />
+          </div>
 
           <div style={{ background: ACCENT, height: 4 }} />
           <p className="text-center py-6 text-gray-600 text-sm">

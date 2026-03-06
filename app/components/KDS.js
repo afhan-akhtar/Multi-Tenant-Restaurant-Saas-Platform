@@ -46,6 +46,10 @@ function OrderCard({ order, columnColor, onStatusChange, onCancel }) {
   const tableName = order.table?.name || "";
   const typeLabel = order.orderType === "DINE_IN" ? (tableName || "Dine-in") : "Takeaway";
 
+  const handlePrintReceipt = () => {
+    window.open(`/receipt/${order.id}`, "_blank", "noopener,noreferrer");
+  };
+
   return (
     <div className="bg-color-card rounded-lg border border-color-border overflow-hidden shadow-sm hover:shadow-md transition-all">
       <div className="h-1.5" style={{ background: columnColor }} />
@@ -56,10 +60,11 @@ function OrderCard({ order, columnColor, onStatusChange, onCancel }) {
             <span className="text-xs text-color-text-muted">{formatTime(order.createdAt)}</span>
             <button
               type="button"
-              className="p-1.5 rounded hover:bg-color-bg text-[#3182ce] cursor-pointer"
-              title="Reprint"
+              onClick={handlePrintReceipt}
+              className="flex items-center justify-center w-8 h-8 rounded hover:bg-color-bg text-[#3182ce] cursor-pointer shrink-0"
+              title="Print receipt"
             >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4 shrink-0">
                 <polyline points="6 9 6 2 18 2 18 9" />
                 <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
               </svg>
@@ -70,24 +75,25 @@ function OrderCard({ order, columnColor, onStatusChange, onCancel }) {
         <div className="text-xs text-color-text-muted mb-3">{typeLabel}</div>
         <div className="space-y-2">
           {order.orderItems?.map((item) => (
-            <div key={item.id} className="flex items-start justify-between gap-2 text-sm">
-              <span>
+            <div key={item.id} className="flex items-center justify-between gap-2 text-sm min-h-[36px] py-0.5">
+              <span className="flex-1 min-w-0">
                 {item.quantity}× {item.productName}
               </span>
               <div className="flex items-center gap-1 shrink-0">
                 <button
                   type="button"
-                  className="p-1 rounded hover:bg-red-50 text-color-text-muted hover:text-red-600 cursor-pointer text-xs"
+                  className="flex items-center justify-center w-7 h-7 rounded hover:bg-red-50 text-color-text-muted hover:text-red-600 cursor-pointer text-xs shrink-0"
                   title="Remove"
                 >
                   ✕
                 </button>
                 <button
                   type="button"
-                  className="p-1 rounded hover:bg-color-bg text-[#3182ce] cursor-pointer"
-                  title="Print item"
+                  onClick={handlePrintReceipt}
+                  className="flex items-center justify-center w-8 h-8 rounded hover:bg-color-bg text-[#3182ce] cursor-pointer shrink-0"
+                  title="Print receipt"
                 >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4 shrink-0">
                     <polyline points="6 9 6 2 18 2 18 9" />
                     <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
                   </svg>
