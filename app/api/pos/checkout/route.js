@@ -2,6 +2,7 @@ import { getToken } from "next-auth/jwt";
 import { prisma } from "@/lib/db";
 import { getNextOrderNumber } from "@/lib/pos";
 import { recordCashSale } from "@/lib/cashbook";
+import { signAndStoreOrder, getOrderSignature } from "@/lib/tse/db";
 import { NextResponse } from "next/server";
 
 function toNum(d) {
@@ -223,28 +224,41 @@ export async function POST(request) {
       }
     }
 
+    const tseResult = await signAndStoreOrder(tenantId, order.id, orderNumber, grandTotal);
+
     const tenant = await prisma.tenant.findUnique({
       where: { id: tenantId },
       select: { name: true },
     });
+
+    const tseSignature = tseResult?.signature ?? (await getOrderSignature(order.id));
+
+    const host = request.headers.get("host") || "localhost:3000";
+    const proto = request.headers.get("x-forwarded-proto") || "http";
+    const baseUrl = `${proto}://${host}`;
+    const receiptUrl = `${baseUrl}/receipt/${order.id}`;
 
     const receipt = {
       orderNumber,
       orderId: order.id,
       tenantName: tenant?.name || "Restaurant",
       branchName: branch.name,
+      branchAddress: `${branch.address || ""}, ${branch.city || ""}, ${branch.country || ""}`.replace(/^,\s*|,\s*$/g, "").trim(),
       date: now.toISOString(),
+      receiptUrl,
       items: orderItemsData.map((i) => ({
         name: i.productName,
         qty: i.quantity,
         unitPrice: i.unitPrice,
         total: i.totalAmount,
+        taxRate: i.taxRate ?? 10,
       })),
       subtotal,
       taxAmount,
       discountAmount: discount,
       grandTotal,
       payments: paymentSplits,
+      tseSignature,
     };
 
     return NextResponse.json({

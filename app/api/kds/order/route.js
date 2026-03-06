@@ -1,5 +1,6 @@
 import { getToken } from "next-auth/jwt";
 import { prisma } from "@/lib/db";
+import { signAndStoreOrder, getOrderSignature } from "@/lib/tse/db";
 import { NextResponse } from "next/server";
 
 const ALLOWED_STATUSES = ["CONFIRMED", "PREPARING", "READY", "PACK", "COMPLETED"];
@@ -36,6 +37,13 @@ export async function PATCH(request) {
     });
     if (!order) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    }
+
+    if (status === "COMPLETED") {
+      const existingSig = await getOrderSignature(order.id);
+      if (!existingSig) {
+        await signAndStoreOrder(tenantId, order.id, order.orderNumber, Number(order.grandTotal));
+      }
     }
 
     await prisma.order.update({

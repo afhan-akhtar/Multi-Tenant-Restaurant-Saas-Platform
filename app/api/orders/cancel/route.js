@@ -1,5 +1,6 @@
 import { getToken } from "next-auth/jwt";
 import { prisma } from "@/lib/db";
+import { signAndStoreCancellation } from "@/lib/tse/db";
 import { NextResponse } from "next/server";
 
 /**
@@ -37,6 +38,8 @@ export async function POST(request) {
     if (["CANCELLED", "REFUNDED"].includes(order.status)) {
       return NextResponse.json({ error: "Order already cancelled or refunded" }, { status: 400 });
     }
+
+    await signAndStoreCancellation(tenantId, id, order.orderNumber);
 
     await prisma.order.update({
       where: { id },

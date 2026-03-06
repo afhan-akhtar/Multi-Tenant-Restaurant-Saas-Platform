@@ -106,6 +106,7 @@ model Tenant {
   emailCampaigns EmailCampaign[]
   orders        Order[]
   cashbookEntries CashbookEntry[]
+  tseQueues     TSEQueue[]
   auditLogs     AuditLog[]
 }
 
@@ -382,13 +383,35 @@ model Payment {
 }
 
 model TSETransaction {
-  id         Int      @id @default(autoincrement())
-  orderId    Int
-  signature  String
-  fiskalyTxId String
-  signedAt   DateTime
+  id              Int       @id @default(autoincrement())
+  orderId         Int?
+  cashbookEntryId Int?  @unique
+  transactionType String    @default("ORDER") // ORDER, CANCELLATION, PAYMENT, CASH_DEPOSIT, CASH_WITHDRAWAL
+  signature       String
+  fiskalyTxId     String
+  signedAt        DateTime
+  rawPayload      Json?     // Audit trail
 
-  order      Order    @relation(fields: [orderId], references: [id])
+  order         Order?         @relation(fields: [orderId], references: [id])
+  cashbookEntry CashbookEntry? @relation(fields: [cashbookEntryId], references: [id])
+
+  @@index([orderId])
+  @@index([cashbookEntryId])
+}
+
+model TSEQueue {
+  id          Int       @id @default(autoincrement())
+  tenantId    Int
+  entityType  String    // ORDER, CASH_DEPOSIT, CASH_WITHDRAWAL
+  entityId    Int
+  payload     Json
+  status      String    @default("PENDING") // PENDING, MIGRATED, FAILED
+  errorMsg    String?
+  createdAt   DateTime  @default(now())
+  migratedAt DateTime?
+
+  tenant      Tenant    @relation(fields: [tenantId], references: [id])
+  @@index([tenantId, status])
 }
 
 model CashbookEntry {
@@ -399,7 +422,8 @@ model CashbookEntry {
   referenceId Int?
   createdAt   DateTime @default(now())
 
-  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  tenant         Tenant         @relation(fields: [tenantId], references: [id])
+  tseTransaction TSETransaction?
 }
 
 model KDSScreen {

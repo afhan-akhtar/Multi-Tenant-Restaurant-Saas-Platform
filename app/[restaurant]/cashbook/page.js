@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { redirect } from "next/navigation";
+import CashbookClient from "@/app/components/CashbookClient";
 
 export default async function CashbookPage() {
   const session = await auth();
@@ -17,7 +18,7 @@ export default async function CashbookPage() {
 
   const amountColor = (type) => {
     const t = (type || "").toLowerCase();
-    return t.includes("sent") || t.includes("expense") ? "#dc2626" : "#166534";
+    return t.includes("withdrawal") || t.includes("sent") || t.includes("expense") ? "#dc2626" : "#166534";
   };
 
   return (
@@ -26,6 +27,26 @@ export default async function CashbookPage() {
       <p className="text-color-text-muted mb-4 text-sm">
         Immutable recording of all cash sales, deposits, and withdrawals (DS-FinV-K compliant).
       </p>
+      <CashbookClient />
+      <div className="mb-4">
+        <a
+          href="/api/tse/dsfinvk?format=json"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-sm text-primary hover:underline"
+        >
+          Export DSFinV-K (JSON)
+        </a>
+        {" · "}
+        <a
+          href="/api/tse/dsfinvk?format=csv"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-sm text-primary hover:underline"
+        >
+          Export DSFinV-K (CSV)
+        </a>
+      </div>
       <div className="bg-color-card rounded-lg border border-color-border overflow-hidden shadow-sm">
         <div className="w-full overflow-x-auto overflow-y-hidden">
           <table className="w-full border-collapse text-sm min-w-[600px] [&_th[data-align=right]]:text-right [&_td[data-align=right]]:text-right">
