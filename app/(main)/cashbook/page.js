@@ -28,24 +28,27 @@ export default async function CashbookPage() {
         Immutable recording of all cash sales, deposits, and withdrawals (DS-FinV-K compliant).
       </p>
       <CashbookClient />
-      <div className="mb-4">
+      <div className="mb-4 flex flex-wrap items-center gap-4">
+        <span className="text-sm text-color-text-muted">Tax audit export (DSFinV-K):</span>
         <a
           href="/api/tse/dsfinvk?format=json"
           target="_blank"
           rel="noopener noreferrer"
-          className="text-sm text-primary hover:underline"
+          className="text-sm text-primary hover:underline font-medium"
         >
-          Export DSFinV-K (JSON)
+          JSON
         </a>
-        {" · "}
         <a
           href="/api/tse/dsfinvk?format=csv"
           target="_blank"
           rel="noopener noreferrer"
-          className="text-sm text-primary hover:underline"
+          className="text-sm text-primary hover:underline font-medium"
         >
-          Export DSFinV-K (CSV)
+          CSV
         </a>
+        <span className="text-xs text-color-text-muted">
+          Use ?start=YYYY-MM-DD&end=YYYY-MM-DD for date range
+        </span>
       </div>
       <div className="bg-color-card rounded-lg border border-color-border overflow-hidden shadow-sm">
         <div className="w-full overflow-x-auto overflow-y-hidden">

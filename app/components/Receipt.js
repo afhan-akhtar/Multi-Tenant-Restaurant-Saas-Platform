@@ -67,6 +67,9 @@ export function Receipt({ receipt, onPrinted }) {
     grandTotal,
     payments,
     tseSignature,
+    tseTransactionId,
+    tseSignedAt,
+    tseQueued,
     taxId,
     receiptUrl,
   } = receipt;
@@ -176,12 +179,20 @@ export function Receipt({ receipt, onPrinted }) {
             ))}
           </div>
 
-          {tseSignature && (
-            <div className="mb-4 p-2 bg-gray-50 rounded text-xs break-all border border-gray-200">
-              <span className="font-medium">TSE: </span>
-              {String(tseSignature).slice(0, 48)}…
-            </div>
-          )}
+          <div className="mb-4 p-2 bg-gray-50 rounded border border-gray-200 space-y-1">
+            <div className="font-medium text-xs text-gray-700">Fiskaly TSE (KassenSichV)</div>
+            {tseSignature ? (
+              <div className="text-xs break-all space-y-0.5">
+                <div>Signature: {String(tseSignature).slice(0, 64)}{String(tseSignature).length > 64 ? "…" : ""}</div>
+                {tseTransactionId && <div>Tx ID: {tseTransactionId}</div>}
+                {tseSignedAt && <div>Signed: {new Date(tseSignedAt).toLocaleString()}</div>}
+              </div>
+            ) : tseQueued ? (
+              <span className="text-amber-600 text-xs">Pending (will be signed by daily migration)</span>
+            ) : (
+              <span className="text-amber-600 text-xs">Pending (check server logs)</span>
+            )}
+          </div>
 
           <div className="mb-4 flex flex-col items-center">
             <Image
@@ -233,9 +244,18 @@ export function printReceipt(receipt) {
     grandTotal,
     payments,
     tseSignature,
+    tseTransactionId,
+    tseSignedAt,
+    tseQueued,
     taxId,
     receiptUrl,
   } = receipt;
+
+  const tseDisplay = tseSignature
+    ? `Signature: ${String(tseSignature).slice(0, 50)}…${tseTransactionId ? ` | Tx: ${tseTransactionId}` : ""}${tseSignedAt ? ` | ${new Date(tseSignedAt).toLocaleString()}` : ""}`
+    : tseQueued
+      ? "Pending (will be signed by daily migration)"
+      : "Pending";
 
   const qrData = receiptUrl || `Receipt ${orderNumber} | ${tenantName || "Restaurant"} | ${new Date(date).toLocaleString()}`;
   const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(qrData)}`;
@@ -304,7 +324,7 @@ export function printReceipt(receipt) {
         <div style="font-size:11px;margin-bottom:4px;">Payment</div>
         ${paymentsHtml}
       </div>
-      ${tseSignature ? `<div class="mb" style="font-size:11px;word-break:break-all;padding:8px;background:#f5f5f5;border-radius:4px;">TSE: ${String(tseSignature).slice(0,50)}…</div>` : ""}
+      <div class="mb" style="font-size:11px;word-break:break-all;padding:8px;background:#f5f5f5;border-radius:4px;"><strong>Fiskaly TSE (KassenSichV)</strong><br/>${tseDisplay}</div>
       <div class="mb center">
         <img src="${qrSrc}" alt="Scan receipt" style="width:120px;height:120px;" />
         <div style="font-size:11px;color:#666;margin-top:4px;">Scan to view receipt</div>

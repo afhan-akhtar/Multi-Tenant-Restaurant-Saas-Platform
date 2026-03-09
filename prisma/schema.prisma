@@ -92,6 +92,7 @@ model Tenant {
   status      TenantStatus         @default(ACTIVE)
   createdAt   DateTime             @default(now())
 
+  fiskalyConfig TenantFiskalyConfig?
   branches      Branch[]
   roles         Role[]
   staff         Staff[]
@@ -108,6 +109,32 @@ model Tenant {
   cashbookEntries CashbookEntry[]
   tseQueues     TSEQueue[]
   auditLogs     AuditLog[]
+}
+
+model TenantFiskalyConfig {
+  id           Int      @id @default(autoincrement())
+  tenantId     Int      @unique
+  apiKey       String
+  apiSecret    String
+  tssId        String?
+  clientId     String?
+  adminPuk     String?   // Store for PIN recovery; keep secure
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+}
+
+// Platform default: TSS+client for env credentials (created via POST /api/tse/setup)
+model FiskalyPlatformConfig {
+  id        Int      @id @default(autoincrement())
+  apiKey    String   @unique  // matches FISKALY_API_KEY
+  tssId     String
+  clientId  String
+  adminPuk  String?
+  updatedAt DateTime @updatedAt
 }
 
 model SubscriptionPlan {

@@ -3,15 +3,19 @@ import { signTransaction } from "@/lib/tse";
 import { NextResponse } from "next/server";
 
 /**
- * Daily cron: migrate pending TSE queue items (e.g. offline-synced orders).
- * Call via: GET /api/cron/tse-migrate?secret=YOUR_CRON_SECRET
- * Set CRON_SECRET in env and configure your cron (Vercel, etc.) to call this daily.
+ * Daily cron: migrate pending TSE queue items (orders, cancellations, cashbook).
+ * Failed TSE signings are auto-queued; this cron retries them.
+ * Call: GET /api/cron/tse-migrate?secret=YOUR_CRON_SECRET
+ * Set CRON_SECRET in env; configure Vercel cron or system cron to run daily.
  */
 export async function GET(request) {
   const secret = process.env.CRON_SECRET;
   if (secret) {
-    const { searchParams } = new URL(request.url);
-    if (searchParams.get("secret") !== secret) {
+    const authHeader = request.headers.get("authorization");
+    const querySecret = new URL(request.url).searchParams.get("secret");
+    const bearerMatch = authHeader?.match(/^Bearer\s+(.+)$/);
+    const token = bearerMatch?.[1] ?? querySecret;
+    if (token !== secret) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
   }
@@ -28,7 +32,7 @@ export async function GET(request) {
 
     for (const item of pending) {
       try {
-        const payload = item.payload;
+        const payload = item.payload || {};
         const result = await signTransaction({
           type: payload.type || "SALE",
           tenantId: item.tenantId,
@@ -38,10 +42,14 @@ export async function GET(request) {
           fn: payload.fn || "Beleg",
         });
 
+        const txType = payload.transactionType || "ORDER";
+        const isOrder = ["ORDER", "CANCELLATION"].includes(txType) || !!payload.orderId;
+
         await prisma.tSETransaction.create({
           data: {
-            orderId: payload.orderId ?? null,
-            transactionType: payload.transactionType || "ORDER",
+            orderId: isOrder ? (payload.orderId ?? null) : null,
+            cashbookEntryId: !isOrder ? (payload.cashbookEntryId ?? null) : null,
+            transactionType: txType,
             signature: result.signature,
             fiskalyTxId: result.transactionId,
             signedAt: new Date(result.timestamp),
@@ -58,7 +66,7 @@ export async function GET(request) {
         console.error("[TSE migrate item]", item.id, err);
         await prisma.tSEQueue.update({
           where: { id: item.id },
-          data: { status: "FAILED", errorMsg: err.message?.slice(0, 500) },
+          data: { status: "FAILED", errorMsg: String(err?.message || err).slice(0, 500) },
         });
         failed++;
       }

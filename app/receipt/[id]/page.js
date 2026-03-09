@@ -27,6 +27,20 @@ export default async function ReceiptPage({ params }) {
 
   if (!order) notFound();
 
+  const tseTx = order.tseTransactions?.[0];
+  const rawPayload = (tseTx?.rawPayload && typeof tseTx.rawPayload === "object") ? tseTx.rawPayload : {};
+  const tseData = tseTx
+    ? {
+        signature: tseTx.signature,
+        fiskalyTxId: tseTx.fiskalyTxId,
+        signedAt: tseTx.signedAt,
+        qrCodeData: rawPayload.qrCodeData ?? null,
+      }
+    : null;
+
+  const { isOrderTseQueued } = await import("@/lib/tse/db");
+  const tseQueued = await isOrderTseQueued(id);
+
   const h = await headers();
   const host = h.get("host") || "localhost:3000";
   const proto = h.get("x-forwarded-proto") || "http";
@@ -34,7 +48,6 @@ export default async function ReceiptPage({ params }) {
 
   const tenantName = order.tenant?.name || "Restaurant";
   const branchName = order.branch?.name || "";
-  const tseSignature = order.tseTransactions?.[0]?.signature || null;
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
@@ -114,14 +127,22 @@ export default async function ReceiptPage({ params }) {
             ))}
           </div>
 
-          {tseSignature && (
-            <div className="mb-6 p-3 bg-gray-50 rounded text-xs break-all border border-gray-200">
-              <span className="font-medium">TSE: </span>
-              {String(tseSignature).slice(0, 48)}…
-            </div>
-          )}
+          <div className="mb-6 p-3 bg-gray-50 rounded border border-gray-200 space-y-2">
+            <div className="font-medium text-xs text-gray-700">Fiskaly TSE (KassenSichV)</div>
+            {tseData ? (
+              <div className="text-xs break-all space-y-1">
+                <div><span className="text-gray-500">Signature:</span> {String(tseData.signature).slice(0, 80)}{String(tseData.signature).length > 80 ? "…" : ""}</div>
+                <div><span className="text-gray-500">Tx ID:</span> {tseData.fiskalyTxId}</div>
+                <div><span className="text-gray-500">Signed:</span> {new Date(tseData.signedAt).toLocaleString()}</div>
+              </div>
+            ) : tseQueued ? (
+              <div className="text-amber-600 text-xs">Pending (will be signed by daily migration)</div>
+            ) : (
+              <div className="text-amber-600 text-xs">Pending (TSE signing failed; check server logs)</div>
+            )}
+          </div>
 
-          <ReceiptQRCode url={receiptUrl} />
+          <ReceiptQRCode url={receiptUrl} tseQrData={tseData?.qrCodeData} />
 
           <div className="mb-6">
             <ReceiptPrintButton />

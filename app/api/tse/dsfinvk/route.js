@@ -15,12 +15,12 @@ export async function GET(request) {
       secret: process.env.NEXTAUTH_SECRET,
     });
     if (!token) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: "401" }, { status: 401 });
     }
 
     const tenantId = token.tenantId ?? null;
     if (!tenantId) {
-      return NextResponse.json({ error: "Restaurant context required" }, { status: 400 });
+      return NextResponse.json({ error: "400 Missing tenant context" }, { status: 400 });
     }
 
     const { searchParams } = new URL(request.url);
@@ -111,7 +111,6 @@ export async function GET(request) {
 
     return NextResponse.json(exportData);
   } catch (err) {
-    console.error("[DSFinV-K export]", err);
-    return NextResponse.json({ error: err.message || "Export failed" }, { status: 500 });
+    return NextResponse.json({ error: err?.message }, { status: 500 });
   }
 }

@@ -2,7 +2,8 @@ import { getToken } from "next-auth/jwt";
 import { prisma } from "@/lib/db";
 import { getNextOrderNumber } from "@/lib/pos";
 import { recordCashSale } from "@/lib/cashbook";
-import { signAndStoreOrder, getOrderSignature } from "@/lib/tse/db";
+import { signAndStoreOrder, signAndStorePayment, getOrderTseData, isOrderTseQueued } from "@/lib/tse/db";
+import { sendToFiscalPrinter } from "@/lib/tse/fiscalPrinter";
 import { NextResponse } from "next/server";
 
 function toNum(d) {
@@ -222,16 +223,23 @@ export async function POST(request) {
       if (split.method === "CASH") {
         await recordCashSale(tenantId, split.amount, order.id);
       }
+
+      await signAndStorePayment(tenantId, order.id, orderNumber, split.amount, split.method);
     }
 
+    console.log("[POS checkout] Signing order with TSE...", order.id, orderNumber);
     const tseResult = await signAndStoreOrder(tenantId, order.id, orderNumber, grandTotal);
+    console.log("[POS checkout] TSE result:", tseResult ? "OK" : "FAILED (queued for retry)");
 
     const tenant = await prisma.tenant.findUnique({
       where: { id: tenantId },
       select: { name: true },
     });
 
-    const tseSignature = tseResult?.signature ?? (await getOrderSignature(order.id));
+    const tseData = tseResult
+      ? { signature: tseResult.signature, fiskalyTxId: tseResult.transactionId, signedAt: tseResult.signedAt }
+      : (await getOrderTseData(order.id));
+    const tseQueued = !tseResult && (await isOrderTseQueued(order.id));
 
     const host = request.headers.get("host") || "localhost:3000";
     const proto = request.headers.get("x-forwarded-proto") || "http";
@@ -258,8 +266,15 @@ export async function POST(request) {
       discountAmount: discount,
       grandTotal,
       payments: paymentSplits,
-      tseSignature,
+      tseSignature: tseData?.signature ?? null,
+      tseTransactionId: tseData?.fiskalyTxId ?? null,
+      tseSignedAt: tseData?.signedAt ? new Date(tseData.signedAt).toISOString() : null,
+      tseQueued: tseQueued || false,
     };
+
+    if (process.env.FISCAL_PRINTER_ENABLED === "1") {
+      sendToFiscalPrinter(receipt).catch((e) => console.warn("[Fiscal printer]", e));
+    }
 
     return NextResponse.json({
       order,
