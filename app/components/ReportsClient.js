@@ -1,12 +1,13 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useState } from "react";
 
 const Eur = (n) => `€${Number(n || 0).toLocaleString("de-DE", { minimumFractionDigits: 2 })}`;
 
 export default function ReportsClient({ report, defaultFrom, defaultTo }) {
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const [from, setFrom] = useState(defaultFrom);
   const [to, setTo] = useState(defaultTo);
@@ -15,8 +16,9 @@ export default function ReportsClient({ report, defaultFrom, defaultTo }) {
     const params = new URLSearchParams(searchParams);
     params.set("from", from);
     params.set("to", to);
-    router.push(`/reports?${params.toString()}`);
-  }, [from, to, router, searchParams]);
+    // Keep current route (supports both /reports and /[restaurant]/reports)
+    router.push(`${pathname}?${params.toString()}`);
+  }, [from, to, router, searchParams, pathname]);
 
   const { summary, topProducts, salesByDay, payments } = report;
   const totalPayments = payments.reduce((s, p) => s + (p.amount || 0), 0);
