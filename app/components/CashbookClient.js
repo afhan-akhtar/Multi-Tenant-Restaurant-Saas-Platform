@@ -133,7 +133,7 @@ export default function CashbookClient() {
         type="button"
         onClick={handleSyncToFiskaly}
         disabled={!!loading || syncStatus === "syncing"}
-        className="py-2 px-4 rounded-lg font-medium bg-slate-600 text-white hover:bg-slate-700 disabled:opacity-60 text-sm"
+        className="py-2 px-4 rounded-lg font-medium bg-slate-600 text-white hover:bg-slate-700 disabled:opacity-60 self-end"
         title="Submit Cash Point Closing to Fiskaly – data will appear in Dashboard DSFinV-K Exports"
       >
         {syncStatus === "syncing" ? <Spinner size="sm" className="text-white" /> : syncStatus || "Sync to Fiskaly"}
