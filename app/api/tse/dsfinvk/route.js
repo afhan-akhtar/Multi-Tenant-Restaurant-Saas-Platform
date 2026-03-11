@@ -1,12 +1,14 @@
 import { getToken } from "next-auth/jwt";
 import { prisma } from "@/lib/db";
 import { NextResponse } from "next/server";
+import JSZip from "jszip";
 
 export const dynamic = "force-dynamic";
 
 /**
  * DSFinV-K export for tax audits.
- * Returns JSON export of TSE transactions, cashbook, and orders for the given date range.
+ * Returns JSON, CSV, or ZIP (DS-FinV-K compliant with index.xml) for the given date range.
+ * ZIP format: index.xml + Bonkopf, Bonpos, TSE_Transactions, Cashbook CSVs per BMF spec.
  */
 export async function GET(request) {
   try {
@@ -89,6 +91,76 @@ export async function GET(request) {
     };
 
     const format = searchParams.get("format") || "json";
+
+    if (format === "zip") {
+      const zip = new JSZip();
+      const dateRange = `${start.toISOString().slice(0, 10)}_${end.toISOString().slice(0, 10)}`;
+
+      const escapeCsv = (v) => {
+        const s = String(v ?? "");
+        return s.includes(",") || s.includes('"') || s.includes("\n") ? `"${s.replace(/"/g, '""')}"` : s;
+      };
+
+      const BonkopfHeader = "Beleg-ID;Belegtyp;Belegdatum;Gesamtbetrag;Waehrung;TSE-Signatur;TSE-Transaktions-ID";
+      const BonkopfRows = tseTransactions.map((t) => {
+        const amount = t.orderId
+          ? (orders.find((o) => o.id === t.orderId)?.grandTotal ?? 0)
+          : (t.rawPayload?.amount ?? 0);
+        const belegtyp = t.transactionType === "CASH_DEPOSIT" ? "Einlage" : t.transactionType === "CASH_WITHDRAWAL" ? "Entnahme" : "Kassenbeleg";
+        return [t.id, belegtyp, new Date(t.signedAt).toISOString(), Number(amount).toFixed(2), "EUR", t.signature?.slice(0, 64) ?? "", t.fiskalyTxId].map(escapeCsv).join(";");
+      });
+
+      const BonposHeader = "Beleg-ID;Belegpos-ID;Artikel;Menge;Einzelpreis;Gesamtpreis";
+      const BonposRows = [];
+      for (const o of orders) {
+        for (let i = 0; i < (o.orderItems?.length ?? 0); i++) {
+          const item = o.orderItems[i];
+          BonposRows.push([o.id, i + 1, item?.productName ?? "", item?.quantity ?? 0, Number(item?.unitPrice ?? 0).toFixed(2), Number(item?.totalAmount ?? 0).toFixed(2)].map(escapeCsv).join(";"));
+        }
+      }
+
+      const TSEHeader = "ID;Transaktionstyp;Signatur;Fiskaly-Tx-ID;Signiert-am;Order-ID;Cashbook-ID";
+      const TSERows = tseTransactions.map((t) =>
+        [t.id, t.transactionType, t.signature ?? "", t.fiskalyTxId ?? "", new Date(t.signedAt).toISOString(), t.orderId ?? "", t.cashbookEntryId ?? ""].map(escapeCsv).join(";")
+      );
+
+      const CashbookHeader = "ID;Typ;Betrag;Referenz-ID;Erstellt-am";
+      const CashbookRows = cashbookEntries.map((e) =>
+        [e.id, e.type, Number(e.amount).toFixed(2), e.referenceId ?? "", new Date(e.createdAt).toISOString()].map(escapeCsv).join(";")
+      );
+
+      zip.file("Bonkopf.csv", BonkopfHeader + "\n" + BonkopfRows.join("\n"));
+      zip.file("Bonpos.csv", BonposHeader + "\n" + BonposRows.join("\n"));
+      zip.file("TSE_Transactions.csv", TSEHeader + "\n" + TSERows.join("\n"));
+      zip.file("Cashbook.csv", CashbookHeader + "\n" + CashbookRows.join("\n"));
+
+      const indexXml = `<?xml version="1.0" encoding="UTF-8"?>
+<Export xmlns="https://www.bzst.de/2017/dfue/Export">
+  <Version>2.3</Version>
+  <Erstellungszeitpunkt>${new Date().toISOString()}</Erstellungszeitpunkt>
+  <Exportzeitraum>
+    <Von>${start.toISOString()}</Von>
+    <Bis>${end.toISOString()}</Bis>
+  </Exportzeitraum>
+  <Tenant-ID>${tenantId}</Tenant-ID>
+  <Dateien>
+    <Datei Name="Bonkopf.csv" Typ="Bonkopf" Encoding="UTF-8"/>
+    <Datei Name="Bonpos.csv" Typ="Bonpos" Encoding="UTF-8"/>
+    <Datei Name="TSE_Transactions.csv" Typ="TSE_Transactions" Encoding="UTF-8"/>
+    <Datei Name="Cashbook.csv" Typ="Cashbook" Encoding="UTF-8"/>
+  </Dateien>
+</Export>`;
+      zip.file("index.xml", indexXml);
+
+      const blob = await zip.generateAsync({ type: "nodebuffer" });
+      return new NextResponse(blob, {
+        headers: {
+          "Content-Type": "application/zip",
+          "Content-Disposition": `attachment; filename="dsfinvk-${tenantId}-${dateRange}.zip"`,
+        },
+      });
+    }
+
     if (format === "csv") {
       const csv = [
         "TSE Transactions",

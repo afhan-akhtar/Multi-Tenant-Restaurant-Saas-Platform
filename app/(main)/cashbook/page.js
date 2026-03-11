@@ -29,7 +29,24 @@ export default async function CashbookPage() {
       </p>
       <CashbookClient />
       <div className="mb-4 flex flex-wrap items-center gap-4">
-        <span className="text-sm text-color-text-muted">Tax audit export (DSFinV-K):</span>
+        <span className="text-sm text-color-text-muted">Tax audit export (DS-FinV-K):</span>
+        <a
+          href="https://dashboard.fiskaly.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-sm text-primary hover:underline font-medium"
+        >
+          Fiskaly Dashboard
+        </a>
+        <span className="text-color-border">|</span>
+        <a
+          href="/api/tse/dsfinvk?format=zip"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-sm text-primary hover:underline font-medium"
+        >
+          ZIP
+        </a>
         <a
           href="/api/tse/dsfinvk?format=json"
           target="_blank"
@@ -72,8 +89,8 @@ export default async function CashbookPage() {
                     data-align="right"
                     style={{ color: amountColor(e.type) }}
                   >
-                    {(e.type || "").toLowerCase().includes("sent") || (e.type || "").toLowerCase().includes("expense") ? "-" : "+"}
-                    €{Number(e.amount).toLocaleString()}
+                    {(e.type || "").toLowerCase().includes("withdrawal") || (e.type || "").toLowerCase().includes("sent") || (e.type || "").toLowerCase().includes("expense") ? "-" : "+"}
+                    €{Math.abs(Number(e.amount)).toLocaleString()}
                   </td>
                 </tr>
               ))}

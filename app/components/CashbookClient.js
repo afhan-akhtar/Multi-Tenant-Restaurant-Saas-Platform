@@ -9,6 +9,7 @@ export default function CashbookClient() {
   const [depositAmount, setDepositAmount] = useState("");
   const [withdrawalAmount, setWithdrawalAmount] = useState("");
   const [loading, setLoading] = useState("");
+  const [syncStatus, setSyncStatus] = useState("");
   const [error, setError] = useState("");
 
   const handleDeposit = async (e) => {
@@ -63,6 +64,25 @@ export default function CashbookClient() {
     }
   };
 
+  const handleSyncToFiskaly = async () => {
+    setSyncStatus("syncing");
+    setError("");
+    try {
+      const res = await fetch("/api/tse/dsfinvk-sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ date: new Date().toISOString().slice(0, 10) }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Sync failed");
+      setSyncStatus(`Synced ${data.synced ?? 0} transactions`);
+    } catch (err) {
+      setSyncStatus("");
+      setError(err.message || "Sync failed");
+    }
+    setTimeout(() => setSyncStatus(""), 3000);
+  };
+
   return (
     <div className="mb-6 flex flex-wrap gap-4">
       <form onSubmit={handleDeposit} className="flex gap-2 items-end">
@@ -109,6 +129,15 @@ export default function CashbookClient() {
           {loading === "withdrawal" ? <Spinner size="sm" className="text-white" /> : "Withdrawal"}
         </button>
       </form>
+      <button
+        type="button"
+        onClick={handleSyncToFiskaly}
+        disabled={!!loading || syncStatus === "syncing"}
+        className="py-2 px-4 rounded-lg font-medium bg-slate-600 text-white hover:bg-slate-700 disabled:opacity-60 text-sm"
+        title="Submit Cash Point Closing to Fiskaly – data will appear in Dashboard DSFinV-K Exports"
+      >
+        {syncStatus === "syncing" ? <Spinner size="sm" className="text-white" /> : syncStatus || "Sync to Fiskaly"}
+      </button>
       {error && <p className="text-sm text-red-500 self-end">{error}</p>}
     </div>
   );

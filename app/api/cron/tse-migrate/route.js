@@ -5,21 +5,9 @@ import { NextResponse } from "next/server";
 /**
  * Daily cron: migrate pending TSE queue items (orders, cancellations, cashbook).
  * Failed TSE signings are auto-queued; this cron retries them.
- * Call: GET /api/cron/tse-migrate?secret=YOUR_CRON_SECRET
- * Set CRON_SECRET in env; configure Vercel cron or system cron to run daily.
+ * Triggered by Vercel cron (2:00 UTC). No auth required.
  */
-export async function GET(request) {
-  const secret = process.env.CRON_SECRET;
-  if (secret) {
-    const authHeader = request.headers.get("authorization");
-    const querySecret = new URL(request.url).searchParams.get("secret");
-    const bearerMatch = authHeader?.match(/^Bearer\s+(.+)$/);
-    const token = bearerMatch?.[1] ?? querySecret;
-    if (token !== secret) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-  }
-
+export async function GET() {
   try {
     const pending = await prisma.tSEQueue.findMany({
       where: { status: "PENDING" },

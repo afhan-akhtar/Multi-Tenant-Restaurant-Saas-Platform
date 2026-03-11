@@ -133,6 +133,10 @@ DATABASE_URL="postgresql://user:password@localhost:5432/restaurant_saas"
 # NextAuth (required)
 NEXTAUTH_URL="http://localhost:3000"
 NEXTAUTH_SECRET="your-secret-here"
+
+# Fiskaly TSE (German KassenSichV compliance) – see lib/tse/README.md
+# FISKALY_API_KEY=
+# FISKALY_API_SECRET=
 ```
 
 Generate a secure `NEXTAUTH_SECRET`:

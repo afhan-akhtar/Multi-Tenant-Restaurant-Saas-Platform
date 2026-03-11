@@ -32,4 +32,23 @@ German fiscal compliance only. Uses [Fiskaly SIGN DE API V2](https://developer.f
 - `POST /api/tse/setup` – provision TSS + client
 - `GET /api/tse/test` – test connectivity
 - `GET /api/tse/status` – diagnose org/TSS state
-- `GET /api/tse/dsfinvk` – DSFinV-K export
+- `GET /api/tse/dsfinvk` – DS-FinV-K export (JSON, CSV, or ZIP with index.xml)
+
+## Fiskaly Dashboard sync
+
+To see your deposits and transactions in the Fiskaly Dashboard:
+
+1. Click **"Sync to Fiskaly"** on the Cashbook page after deposits/withdrawals (submits a Cash Point Closing to Fiskaly).
+2. In the dashboard go to **DSFinV-K → Cash Point Closings** to confirm entries; then **DSFinV-K → DSFinV-K Exports** → **TRIGGER DSFINV-K EXPORT** → Download.
+
+If the cash register in the dashboard shows a **UUID** (e.g. `92c7d144-55d7-412b-9b41-e162e6gebed1`), set that as the client ID so sync and closings match:
+
+- `DSFINVK_CLIENT_ID=92c7d144-55d7-412b-9b41-e162e6gebed1` (use the ID from **DSFinV-K → Cash Registers**)
+
+Exports appear only after Cash Point Closings are submitted via the Sync button or API.
+
+## Integrations
+
+- **Cash deposits & withdrawals**: `/api/cashbook/deposit`, `/api/cashbook/withdrawal` – each entry is TSE-signed via Fiskaly
+- **DS-FinV-K export**: In-app `?format=json|csv|zip`; or use Fiskaly Dashboard for official export
+- **TSE auto-migration**: Daily cron `GET /api/cron/tse-migrate` (Vercel: 2:00 UTC) retries failed TSE signings – no auth required
