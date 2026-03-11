@@ -134,10 +134,8 @@ export default function POSPaymentModal({ open, onClose, grandTotal, cart, order
       const checkoutPayload = {
         items: cart.map((i) => ({
           productId: i.productId,
-          productName: i.productName,
-          unitPrice: i.unitPrice,
-          taxRate: i.taxRate || 10,
           quantity: i.quantity,
+          addonItemIds: Array.isArray(i.addons) ? i.addons.map((a) => a.id) : [],
         })),
         orderType: orderType || "TAKEAWAY",
         orderNumber: offline ? undefined : orderNumber,

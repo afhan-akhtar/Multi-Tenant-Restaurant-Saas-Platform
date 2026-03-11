@@ -91,6 +91,36 @@ export async function POST(request) {
       return NextResponse.json({ error: "Order must have items" }, { status: 400 });
     }
 
+    // Server-authoritative pricing: load products + add-ons from DB (never trust client-sent prices).
+    const productIds = [...new Set(items.map((i) => Number(i.productId)).filter(Boolean))];
+    const products = await prisma.product.findMany({
+      where: { tenantId, id: { in: productIds }, isActive: true },
+      select: { id: true, name: true, basePrice: true, taxRate: true },
+    });
+    const productById = new Map(products.map((p) => [p.id, p]));
+    if (productById.size !== productIds.length) {
+      return NextResponse.json({ error: "One or more products are unavailable" }, { status: 400 });
+    }
+
+    const addonIds = [
+      ...new Set(
+        items
+          .flatMap((i) => (Array.isArray(i.addonItemIds) ? i.addonItemIds : []))
+          .map((x) => Number(x))
+          .filter(Boolean)
+      ),
+    ];
+    const addons = addonIds.length
+      ? await prisma.addonItem.findMany({
+          where: { id: { in: addonIds }, group: { tenantId } },
+          select: { id: true, name: true, price: true },
+        })
+      : [];
+    const addonById = new Map(addons.map((a) => [a.id, a]));
+    if (addonById.size !== addonIds.length) {
+      return NextResponse.json({ error: "One or more add-ons are unavailable" }, { status: 400 });
+    }
+
     const branch = await prisma.branch.findFirst({
       where: { id: branchId, tenantId },
     });
@@ -151,15 +181,19 @@ export async function POST(request) {
 
     let subtotal = 0;
     const orderItemsData = items.map((item) => {
-      const price = toNum(item.unitPrice) + (item.addonTotal || 0);
-      const qty = item.quantity || 1;
-      const total = price * qty;
+      const qty = Number(item.quantity) > 0 ? Number(item.quantity) : 1;
+      const p = productById.get(Number(item.productId));
+      const addonItemIds = Array.isArray(item.addonItemIds) ? item.addonItemIds : [];
+      const addonList = addonItemIds.map((id) => addonById.get(Number(id)));
+      const addonTotal = addonList.reduce((s, a) => s + Number(a?.price || 0), 0);
+      const unitPrice = Number(p.basePrice) + addonTotal;
+      const total = unitPrice * qty;
       subtotal += total;
       return {
-        productId: item.productId,
-        productName: item.productName,
-        unitPrice: price,
-        taxRate: toNum(item.taxRate),
+        productId: p.id,
+        productName: p.name,
+        unitPrice,
+        taxRate: Number(p.taxRate) || 0,
         quantity: qty,
         totalAmount: total,
         status: "CONFIRMED",

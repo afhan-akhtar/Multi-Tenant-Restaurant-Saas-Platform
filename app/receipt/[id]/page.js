@@ -3,12 +3,17 @@ import { notFound } from "next/navigation";
 import { headers } from "next/headers";
 import { ReceiptPrintButton } from "@/app/components/ReceiptPrintButton";
 import { ReceiptQRCode } from "@/app/components/ReceiptQRCode";
+import { auth } from "@/lib/auth";
 
 const ACCENT = "#14b8a6";
 
 export default async function ReceiptPage({ params }) {
   const id = parseInt(params.id, 10);
   if (!id) notFound();
+
+  const session = await auth();
+  const tenantId = session?.user?.tenantId ?? null;
+  if (!tenantId) notFound();
 
   const order = await prisma.order.findUnique({
     where: { id },
@@ -25,7 +30,7 @@ export default async function ReceiptPage({ params }) {
     },
   });
 
-  if (!order) notFound();
+  if (!order || order.tenantId !== tenantId) notFound();
 
   const tseTx = order.tseTransactions?.[0];
   const rawPayload = (tseTx?.rawPayload && typeof tseTx.rawPayload === "object") ? tseTx.rawPayload : {};
