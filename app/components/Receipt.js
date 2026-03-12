@@ -30,9 +30,15 @@ function computeVatBreakdown(items, discountAmount = 0) {
 
 const STYLE = `
   @media print {
+    /* Thermal printer friendly defaults (80mm paper). */
+    @page { size: 80mm auto; margin: 0mm; }
+    html, body { width: 80mm; margin: 0; padding: 0; }
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     body * { visibility: hidden; }
     #receipt-print-area, #receipt-print-area * { visibility: visible; }
-    #receipt-print-area { position: absolute; left: 0; top: 0; width: 100%; max-width: 400px; }
+    #receipt-print-area { position: absolute; left: 0; top: 0; width: 80mm; max-width: 80mm; }
+    /* Avoid clipping on some thermal drivers */
+    #receipt-print-area { overflow: visible; }
   }
 `;
 
