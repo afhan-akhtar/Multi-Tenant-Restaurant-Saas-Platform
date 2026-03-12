@@ -138,6 +138,13 @@ export function Receipt({ receipt, onPrinted, embedded = false }) {
 
   const { byRate, subtotalNet, subtotalGross, grandTotal: computedTotal } = computeVatBreakdown(items, discountAmount);
 
+  const cashPayment = (payments || []).find((p) => p.method === "CASH");
+  const cashReceived = cashPayment ? Number(cashPayment.amount || 0) : null;
+  const cashChange =
+    cashReceived != null
+      ? Math.max(0, cashReceived - (computedTotal || grandTotal || 0))
+      : null;
+
   // Backward-compatible mapping (older receipts used tse* fields)
   const fiscalTssId = tss_id ?? receipt?.tssId ?? receipt?.tseTssId;
   const fiscalTxId = tx_id ?? tseTransactionId ?? receipt?.txId;
@@ -196,7 +203,7 @@ export function Receipt({ receipt, onPrinted, embedded = false }) {
               <thead>
                 <tr className="border-b border-gray-300 text-left">
                   <th className="py-2 pr-2">DESCRIPTION</th>
-                  <th className="py-2 text-right w-12">QTY</th>
+                  <th className="py-2 text-right w-24">QTY × PRICE</th>
                   <th className="py-2 text-right w-14">VAT</th>
                   <th className="py-2 text-right">TOTAL</th>
                 </tr>
@@ -205,13 +212,18 @@ export function Receipt({ receipt, onPrinted, embedded = false }) {
                 {(items || []).map((it, i) => {
                   const net = Number(it.total) || 0;
                   const rate = Number(it.taxRate) || 10;
-                  const gross = net * (1 + rate / 100);
+                  const qty = Number(it.qty) || 0;
+                  const unitNet = qty > 0 ? net / qty : net;
+                  const unitGross = unitNet * (1 + rate / 100);
+                  const lineGross = unitGross * qty;
                   return (
                     <tr key={i} className="border-b border-gray-100">
                       <td className="py-2 pr-2">{it.name}</td>
-                      <td className="py-2 text-right">{it.qty}</td>
+                      <td className="py-2 text-right">
+                        {qty} × €{unitGross.toFixed(2)}
+                      </td>
                       <td className="py-2 text-right">{rate}%</td>
-                      <td className="py-2 text-right">€{gross.toFixed(2)}</td>
+                      <td className="py-2 text-right">€{lineGross.toFixed(2)}</td>
                     </tr>
                   );
                 })}
@@ -261,6 +273,18 @@ export function Receipt({ receipt, onPrinted, embedded = false }) {
                 <span>€{(p.amount || 0).toFixed(2)}</span>
               </div>
             ))}
+            {cashReceived != null && (
+              <div className="mt-2 text-[11px] text-teal-50 space-y-0.5">
+                <div className="flex justify-between">
+                  <span>Cash received</span>
+                  <span>€{cashReceived.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Change given</span>
+                  <span>€{cashChange.toFixed(2)}</span>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="mb-4 p-2 bg-gray-50 rounded border border-gray-200 space-y-1">
@@ -351,12 +375,28 @@ export function printReceipt(receipt) {
 
   const { byRate, subtotalGross, subtotalNet, grandTotal: computedTotal } = computeVatBreakdown(items, discountAmount);
 
-  const itemsHtml = (items || []).map((it) => {
-    const net = Number(it.total) || 0;
-    const rate = Number(it.taxRate) || 10;
-    const gross = (net * (1 + rate / 100)).toFixed(2);
-    return `<tr><td>${it.name}</td><td class="r">${it.qty}</td><td class="r">${rate}%</td><td class="r">€${gross}</td></tr>`;
-  }).join("");
+  const cashPayment = (payments || []).find((p) => p.method === "CASH");
+  const cashReceived = cashPayment ? Number(cashPayment.amount || 0) : null;
+  const cashChange =
+    cashReceived != null
+      ? Math.max(0, cashReceived - (computedTotal || grandTotal || 0))
+      : null;
+
+  const itemsHtml = (items || [])
+    .map((it) => {
+      const net = Number(it.total) || 0;
+      const rate = Number(it.taxRate) || 10;
+      const qty = Number(it.qty) || 0;
+      const unitNet = qty > 0 ? net / qty : net;
+      const unitGross = unitNet * (1 + rate / 100);
+      const lineGross = unitGross * qty;
+      return `<tr><td>${it.name}</td><td class="r">${qty} × €${unitGross.toFixed(
+        2
+      )}</td><td class="r">${rate}%</td><td class="r">€${lineGross.toFixed(
+        2
+      )}</td></tr>`;
+    })
+    .join("");
 
   const vatRows = byRate.map(
     ([rate, v]) =>
@@ -413,7 +453,7 @@ export function printReceipt(receipt) {
         </div>
       </div>
       <table class="mb">
-        <tr style="border-bottom:1px solid #ccc;"><th style="text-align:left">DESCRIPTION</th><th class="r">QTY</th><th class="r">VAT</th><th class="r">TOTAL</th></tr>
+        <tr style="border-bottom:1px solid #ccc;"><th style="text-align:left">DESCRIPTION</th><th class="r">QTY × PRICE</th><th class="r">VAT</th><th class="r">TOTAL</th></tr>
         ${itemsHtml}
       </table>
       <div class="mb" style="border-top:1px solid #ddd;padding-top:8px;text-align:right;">
@@ -426,6 +466,18 @@ export function printReceipt(receipt) {
       <div class="accent" style="padding:10px;border-radius:6px;color:white;margin-bottom:12px;">
         <div style="font-size:11px;margin-bottom:4px;">Payment</div>
         ${paymentsHtml}
+        ${
+          cashReceived != null
+            ? `<div style="margin-top:6px;font-size:11px;line-height:1.3;">
+                 <div class="flex"><span>Cash received</span><span class="ml-auto">€${cashReceived.toFixed(
+                   2
+                 )}</span></div>
+                 <div class="flex"><span>Change given</span><span class="ml-auto">€${cashChange.toFixed(
+                   2
+                 )}</span></div>
+               </div>`
+            : ""
+        }
       </div>
       <div class="mb" style="font-size:11px;line-height:1.25;padding:8px;background:#f5f5f5;border-radius:4px;">${tseDisplay}</div>
       <div class="mb center">
