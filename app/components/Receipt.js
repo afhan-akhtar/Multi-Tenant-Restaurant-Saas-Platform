@@ -136,7 +136,7 @@ export function Receipt({ receipt, onPrinted, embedded = false }) {
     signature,
   } = receipt;
 
-  const { byRate, subtotalNet, subtotalGross, grandTotal: computedTotal } = computeVatBreakdown(items, discountAmount);
+  const { byRate, subtotalNet, subtotalGross, taxTotal, grandTotal: computedTotal } = computeVatBreakdown(items, discountAmount);
 
   const cashPayment = (payments || []).find((p) => p.method === "CASH");
   const cashReceived = cashPayment ? Number(cashPayment.amount || 0) : null;
@@ -202,10 +202,10 @@ export function Receipt({ receipt, onPrinted, embedded = false }) {
             <table className="w-full border-collapse text-sm">
               <thead>
                 <tr className="border-b border-gray-300 text-left">
-                  <th className="py-2 pr-2">DESCRIPTION</th>
-                  <th className="py-2 text-right w-24">QTY × PRICE</th>
-                  <th className="py-2 text-right w-14">VAT</th>
-                  <th className="py-2 text-right">TOTAL</th>
+                  <th className="py-2 pr-3">DESCRIPTION</th>
+                  <th className="py-2 px-2 text-right w-28 whitespace-nowrap">QTY × PRICE</th>
+                  <th className="py-2 px-2 text-right w-16">VAT</th>
+                  <th className="py-2 pl-2 text-right w-20">TOTAL</th>
                 </tr>
               </thead>
               <tbody>
@@ -218,12 +218,14 @@ export function Receipt({ receipt, onPrinted, embedded = false }) {
                   const lineGross = unitGross * qty;
                   return (
                     <tr key={i} className="border-b border-gray-100">
-                      <td className="py-2 pr-2">{it.name}</td>
-                      <td className="py-2 text-right">
+                      <td className="py-2 pr-3 align-top">{it.name}</td>
+                      <td className="py-2 px-2 text-right align-top whitespace-nowrap">
                         {qty} × €{unitGross.toFixed(2)}
                       </td>
-                      <td className="py-2 text-right">{rate}%</td>
-                      <td className="py-2 text-right">€{lineGross.toFixed(2)}</td>
+                      <td className="py-2 px-2 text-right align-top">{rate}%</td>
+                      <td className="py-2 pl-2 text-right align-top whitespace-nowrap">
+                        €{lineGross.toFixed(2)}
+                      </td>
                     </tr>
                   );
                 })}
@@ -231,13 +233,13 @@ export function Receipt({ receipt, onPrinted, embedded = false }) {
             </table>
           </div>
 
-          <div className="space-y-1 text-right mb-4 border-t border-gray-200 pt-2">
-            <div>Subtotal total incl. VAT: €{(subtotalGross || subtotal || 0).toFixed(2)}</div>
-            <div>Sum total excl. VAT: €{(subtotalNet || 0).toFixed(2)}</div>
+          <div className="space-y-0.5 text-right mb-3 border-t border-gray-200 pt-2">
+            <div>Subtotal (excl. VAT): €{(subtotalNet || 0).toFixed(2)}</div>
+            <div>VAT (10%): €{(taxTotal || taxAmount || 0).toFixed(2)}</div>
             {(discountAmount || 0) > 0 && (
-              <div className="text-amber-600">Discount total incl. VAT: -€{Number(discountAmount).toFixed(2)}</div>
+              <div className="text-amber-600">Discount (incl. VAT): -€{Number(discountAmount).toFixed(2)}</div>
             )}
-            <div className="font-bold text-base">Sum total incl. VAT: €{(computedTotal || grandTotal || 0).toFixed(2)}</div>
+            <div className="font-bold text-base">Total (incl. VAT): €{(computedTotal || grandTotal || 0).toFixed(2)}</div>
           </div>
 
           {byRate.length > 0 && (
@@ -287,7 +289,7 @@ export function Receipt({ receipt, onPrinted, embedded = false }) {
             )}
           </div>
 
-          <div className="mb-4 p-2 bg-gray-50 rounded border border-gray-200 space-y-1">
+          <div className="mb-2 p-2 bg-gray-50 rounded border border-gray-200 space-y-1">
             <div className="font-medium text-xs text-gray-700">Fiskaly TSE (KassenSichV)</div>
             {fiscalSignature ? (
               <div className="text-[11px] leading-snug break-all">
@@ -373,7 +375,7 @@ export function printReceipt(receipt) {
   // Higher resolution + quiet zone improves scanning on thermal/PDF.
   const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&margin=4&data=${encodeURIComponent(qrPayload)}`;
 
-  const { byRate, subtotalGross, subtotalNet, grandTotal: computedTotal } = computeVatBreakdown(items, discountAmount);
+  const { byRate, subtotalGross, subtotalNet, taxTotal, grandTotal: computedTotal } = computeVatBreakdown(items, discountAmount);
 
   const cashPayment = (payments || []).find((p) => p.method === "CASH");
   const cashReceived = cashPayment ? Number(cashPayment.amount || 0) : null;
@@ -453,17 +455,22 @@ export function printReceipt(receipt) {
         </div>
       </div>
       <table class="mb">
-        <tr style="border-bottom:1px solid #ccc;"><th style="text-align:left">DESCRIPTION</th><th class="r">QTY × PRICE</th><th class="r">VAT</th><th class="r">TOTAL</th></tr>
+        <tr style="border-bottom:1px solid #ccc;">
+          <th style="text-align:left;padding:8px 12px 8px 0;">DESCRIPTION</th>
+          <th class="r" style="padding:8px 8px;white-space:nowrap;">QTY × PRICE</th>
+          <th class="r" style="padding:8px 8px;">VAT</th>
+          <th class="r" style="padding:8px 0 8px 8px;white-space:nowrap;">TOTAL</th>
+        </tr>
         ${itemsHtml}
       </table>
-      <div class="mb" style="border-top:1px solid #ddd;padding-top:8px;text-align:right;">
-        <div>Subtotal total incl. VAT: €${(subtotalGross || subtotal || 0).toFixed(2)}</div>
-        <div>Sum total excl. VAT: €${(subtotalNet || 0).toFixed(2)}</div>
-        ${(discountAmount || 0) > 0 ? `<div style="color:#b45309;">Discount: -€${Number(discountAmount).toFixed(2)}</div>` : ""}
-        <div class="bold mt">Sum total incl. VAT: €${(computedTotal || grandTotal || 0).toFixed(2)}</div>
+      <div class="mb" style="border-top:1px solid #ddd;padding-top:8px;text-align:right;line-height:1.4;">
+        <div>Subtotal (excl. VAT): €${(subtotalNet || 0).toFixed(2)}</div>
+        <div>VAT (10%): €${(taxTotal || taxAmount || 0).toFixed(2)}</div>
+        ${(discountAmount || 0) > 0 ? `<div style="color:#b45309;">Discount (incl. VAT): -€${Number(discountAmount).toFixed(2)}</div>` : ""}
+        <div class="bold" style="margin-top:2px;">Total (incl. VAT): €${(computedTotal || grandTotal || 0).toFixed(2)}</div>
       </div>
       ${vatRows ? `<table class="mb" style="font-size:12px;"><tr style="border-bottom:1px solid #ccc;"><th style="text-align:left">VAT</th><th class="r">Net</th><th class="r">VAT</th><th class="r">Gross</th></tr>${vatRows}</table>` : ""}
-      <div class="accent" style="padding:10px;border-radius:6px;color:white;margin-bottom:12px;">
+      <div class="accent" style="padding:10px;border-radius:6px;color:white;margin-bottom:8px;">
         <div style="font-size:11px;margin-bottom:4px;">Payment</div>
         ${paymentsHtml}
         ${
