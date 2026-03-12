@@ -5,9 +5,54 @@
  * Uses POS + payment data only: tenant, branch, items, payments, TSE signature.
  */
 import { useRef, useEffect } from "react";
-import Image from "next/image";
+import { ReceiptQRCode } from "@/app/components/ReceiptQRCode";
 
 const ACCENT = "#14b8a6";
+
+function buildTseV0QrPayload(receipt) {
+  if (!receipt) return null;
+
+  const tenantName = receipt.tenantName || "Restaurant";
+  const orderNumber = receipt.orderNumber || receipt.orderNo || receipt.receiptNumber;
+
+  // Fiskaly API fields (preferred) + backward-compatible fields
+  const fiscalTssId = receipt.tss_id ?? receipt.tssId ?? receipt.tseTssId;
+  const fiscalTxId = receipt.tx_id ?? receipt.tseTransactionId ?? receipt.txId;
+  const fiscalSignatureCounter = receipt.signature_counter ?? receipt.signatureCounter;
+  const fiscalStartTime = receipt.log_time_start ?? receipt.logTimeStart;
+  const fiscalEndTime = receipt.log_time_end ?? receipt.logTimeEnd ?? receipt.tseSignedAt;
+  const fiscalSignature = receipt.signature ?? receipt.tseSignature;
+
+  const amount = Number(receipt.grandTotal ?? receipt.total ?? receipt.amount);
+
+  if (
+    !orderNumber ||
+    !fiscalStartTime ||
+    !fiscalEndTime ||
+    !Number.isFinite(amount) ||
+    !fiscalSignatureCounter ||
+    !fiscalTxId ||
+    !fiscalTssId ||
+    !fiscalSignature
+  ) {
+    return null;
+  }
+
+  // Format mirrors typical KassenSichV "V0;...;Signature" payload.
+  return [
+    "V0",
+    tenantName,
+    String(orderNumber),
+    String(fiscalStartTime),
+    String(fiscalEndTime),
+    amount.toFixed(2),
+    "EUR",
+    String(fiscalSignatureCounter),
+    String(fiscalTxId),
+    String(fiscalTssId),
+    String(fiscalSignature),
+  ].join(";");
+}
 
 function computeVatBreakdown(items, discountAmount = 0) {
   const byRate = {};
@@ -98,8 +143,8 @@ export function Receipt({ receipt, onPrinted, embedded = false }) {
   const fiscalEndTime = log_time_end ?? receipt?.logTimeEnd ?? tseSignedAt;
   const fiscalSignature = signature ?? tseSignature;
 
-  const qrData = receiptUrl || `Receipt ${orderNumber} | ${tenantName || "Restaurant"} | ${new Date(date).toLocaleString()}`;
-  const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(qrData)}`;
+  // QR must contain TSE verification data (KassenSichV), not a URL.
+  const qrData = receipt?.tseQrData || receipt?.qrCodeData || buildTseV0QrPayload(receipt);
 
   return (
     <>
@@ -219,27 +264,7 @@ export function Receipt({ receipt, onPrinted, embedded = false }) {
             )}
           </div>
 
-          <div className="mb-4 flex flex-col items-center">
-            <Image
-              src={qrSrc}
-              alt="Scan receipt"
-              width={120}
-              height={120}
-              className="w-[120px] h-[120px]"
-            />
-            <div className="text-xs text-gray-500 mt-1">Scan to view receipt</div>
-          </div>
-
-          <div className="flex gap-2 flex-wrap mb-4">
-            <button
-              type="button"
-              onClick={() => window.print()}
-              className="px-4 py-2 rounded text-sm font-medium text-white hover:opacity-90"
-              style={{ background: ACCENT }}
-            >
-              Save as PDF
-            </button>
-          </div>
+          <ReceiptQRCode url={receiptUrl} tseQrData={qrData} />
 
           <div style={{ background: ACCENT, height: 4 }} />
           <div className="text-center py-4 text-gray-600 text-sm">
@@ -302,8 +327,10 @@ export function printReceipt(receipt) {
       ? `<div><strong>Fiskaly TSE (KassenSichV)</strong></div><div style="margin-top:4px;color:#b45309;">Pending (will be signed by daily migration)</div>`
       : `<div><strong>Fiskaly TSE (KassenSichV)</strong></div><div style="margin-top:4px;color:#b45309;">Pending</div>`;
 
-  const qrData = receiptUrl || `Receipt ${orderNumber} | ${tenantName || "Restaurant"} | ${new Date(date).toLocaleString()}`;
-  const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(qrData)}`;
+  const qrData = receipt?.tseQrData || receipt?.qrCodeData || buildTseV0QrPayload(receipt);
+  const qrPayload = String(qrData || "").trim();
+  // Higher resolution + quiet zone improves scanning on thermal/PDF.
+  const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&margin=4&data=${encodeURIComponent(qrPayload)}`;
 
   const { byRate, subtotalGross, subtotalNet, grandTotal: computedTotal } = computeVatBreakdown(items, discountAmount);
 
@@ -371,8 +398,8 @@ export function printReceipt(receipt) {
       </div>
       <div class="mb" style="font-size:11px;line-height:1.25;padding:8px;background:#f5f5f5;border-radius:4px;">${tseDisplay}</div>
       <div class="mb center">
-        <img src="${qrSrc}" alt="Scan receipt" style="width:120px;height:120px;" />
-        <div style="font-size:11px;color:#666;margin-top:4px;">Scan to view receipt</div>
+        ${qrPayload ? `<img src="${qrSrc}" alt="TSE data (KassenSichV)" style="width:120px;height:120px;" />` : ""}
+        <div style="font-size:11px;color:#666;margin-top:4px;">${qrPayload ? "TSE data (KassenSichV)" : ""}</div>
       </div>
       <div class="accent" style="height:4px;"></div>
       <div class="center mt" style="color:#666;font-size:13px;">Thank you for your order!</div>

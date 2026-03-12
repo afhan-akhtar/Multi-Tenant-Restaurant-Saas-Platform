@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import QRCode from "qrcode";
 
 /**
@@ -11,18 +12,21 @@ export function ReceiptQRCode({ url, tseQrData }) {
   const [dataUrl, setDataUrl] = useState(null);
 
   useEffect(() => {
-    if (tseQrData) {
-      if (typeof tseQrData === "string" && tseQrData.startsWith("data:")) {
-        setDataUrl(tseQrData);
-      } else {
-        QRCode.toDataURL(String(tseQrData), { width: 120, margin: 1 })
-          .then(setDataUrl)
-          .catch(() => setDataUrl(null));
-      }
+    // Per KassenSichV/Fiskaly receipt spec, QR should encode TSE verification data (e.g. "V0;..."),
+    // not a URL. If no TSE payload is available, we don't render a QR.
+    if (!tseQrData) {
+      setDataUrl(null);
       return;
     }
-    if (!url) return;
-    QRCode.toDataURL(url, { width: 120, margin: 1 })
+
+    if (typeof tseQrData === "string" && tseQrData.startsWith("data:")) {
+      setDataUrl(tseQrData);
+      return;
+    }
+
+    // Fiscal payloads (e.g. "V0;...") are longer than URLs -> denser QR.
+    // Use larger size + quiet zone so phone cameras can scan reliably.
+    QRCode.toDataURL(String(tseQrData).trim(), { width: 240, margin: 3, errorCorrectionLevel: "M" })
       .then(setDataUrl)
       .catch(() => setDataUrl(null));
   }, [url, tseQrData]);
@@ -30,18 +34,21 @@ export function ReceiptQRCode({ url, tseQrData }) {
   return (
     <div className="mb-6 flex flex-col items-center">
       {dataUrl ? (
-        <img
+        <Image
           src={dataUrl}
-          alt={tseQrData ? "TSE fiscal data (KassenSichV)" : "Scan to view receipt"}
-          className="w-[120px] h-[120px]"
+          alt="TSE verification data (KassenSichV)"
+          width={140}
+          height={140}
+          className="w-[140px] h-[140px]"
+          unoptimized
         />
       ) : (
-        <div className="w-[120px] h-[120px] bg-gray-100 rounded flex items-center justify-center text-xs text-gray-400">
-          {url || tseQrData ? "Loading…" : ""}
+        <div className="w-[140px] h-[140px] bg-gray-100 rounded flex items-center justify-center text-xs text-gray-400">
+          {tseQrData ? "Loading…" : ""}
         </div>
       )}
       <div className="text-xs text-gray-500 mt-1">
-        {tseQrData ? "TSE data (KassenSichV)" : "Scan to view receipt"}
+        {tseQrData ? "TSE data (KassenSichV)" : ""}
       </div>
     </div>
   );
