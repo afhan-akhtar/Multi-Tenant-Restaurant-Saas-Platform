@@ -36,10 +36,11 @@ const STYLE = `
   }
 `;
 
-export function Receipt({ receipt, onPrinted }) {
+export function Receipt({ receipt, onPrinted, embedded = false }) {
   const printRef = useRef(null);
 
   useEffect(() => {
+    if (embedded) return;
     if (!receipt || !printRef.current) return;
     const el = printRef.current;
     const beforePrint = () => { el.style.display = "block"; };
@@ -50,7 +51,7 @@ export function Receipt({ receipt, onPrinted }) {
       window.removeEventListener("beforeprint", beforePrint);
       window.removeEventListener("afterprint", afterPrint);
     };
-  }, [receipt, onPrinted]);
+  }, [receipt, onPrinted, embedded]);
 
   if (!receipt) return null;
 
@@ -72,9 +73,24 @@ export function Receipt({ receipt, onPrinted }) {
     tseQueued,
     taxId,
     receiptUrl,
+    // Fiskaly API fields (preferred)
+    tss_id,
+    tx_id,
+    signature_counter,
+    log_time_start,
+    log_time_end,
+    signature,
   } = receipt;
 
   const { byRate, subtotalNet, subtotalGross, grandTotal: computedTotal } = computeVatBreakdown(items, discountAmount);
+
+  // Backward-compatible mapping (older receipts used tse* fields)
+  const fiscalTssId = tss_id ?? receipt?.tssId ?? receipt?.tseTssId;
+  const fiscalTxId = tx_id ?? tseTransactionId ?? receipt?.txId;
+  const fiscalSignatureCounter = signature_counter ?? receipt?.signatureCounter;
+  const fiscalStartTime = log_time_start ?? receipt?.logTimeStart;
+  const fiscalEndTime = log_time_end ?? receipt?.logTimeEnd ?? tseSignedAt;
+  const fiscalSignature = signature ?? tseSignature;
 
   const qrData = receiptUrl || `Receipt ${orderNumber} | ${tenantName || "Restaurant"} | ${new Date(date).toLocaleString()}`;
   const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(qrData)}`;
@@ -85,7 +101,7 @@ export function Receipt({ receipt, onPrinted }) {
       <div
         id="receipt-print-area"
         ref={printRef}
-        className="hidden print:block bg-white text-black max-w-[400px] mx-auto font-sans text-sm"
+        className={`${embedded ? "block" : "hidden print:block"} bg-white text-black max-w-[400px] mx-auto font-sans text-sm`}
       >
         <div style={{ background: ACCENT, height: 4 }} />
         <div className="px-4 py-4">
@@ -181,11 +197,14 @@ export function Receipt({ receipt, onPrinted }) {
 
           <div className="mb-4 p-2 bg-gray-50 rounded border border-gray-200 space-y-1">
             <div className="font-medium text-xs text-gray-700">Fiskaly TSE (KassenSichV)</div>
-            {tseSignature ? (
-              <div className="text-xs break-all space-y-0.5">
-                <div>Signature: {String(tseSignature).slice(0, 64)}{String(tseSignature).length > 64 ? "…" : ""}</div>
-                {tseTransactionId && <div>Tx ID: {tseTransactionId}</div>}
-                {tseSignedAt && <div>Signed: {new Date(tseSignedAt).toLocaleString()}</div>}
+            {fiscalSignature ? (
+              <div className="text-[11px] leading-snug break-all">
+                <div>TSS Serial: {fiscalTssId ?? "—"}</div>
+                <div>Transaction ID: {fiscalTxId ?? "—"}</div>
+                <div>Signature Counter: {fiscalSignatureCounter ?? "—"}</div>
+                <div className="mt-1">Start Time: {fiscalStartTime ?? "—"}</div>
+                <div>End Time: {fiscalEndTime ?? "—"}</div>
+                <div className="mt-1">Signature: {String(fiscalSignature)}</div>
               </div>
             ) : tseQueued ? (
               <span className="text-amber-600 text-xs">Pending (will be signed by daily migration)</span>
@@ -249,13 +268,33 @@ export function printReceipt(receipt) {
     tseQueued,
     taxId,
     receiptUrl,
+    // Fiskaly API fields (preferred)
+    tss_id,
+    tx_id,
+    signature_counter,
+    log_time_start,
+    log_time_end,
+    signature,
   } = receipt;
 
-  const tseDisplay = tseSignature
-    ? `Signature: ${String(tseSignature).slice(0, 50)}…${tseTransactionId ? ` | Tx: ${tseTransactionId}` : ""}${tseSignedAt ? ` | ${new Date(tseSignedAt).toLocaleString()}` : ""}`
+  const fiscalTssId = tss_id ?? receipt?.tssId ?? receipt?.tseTssId;
+  const fiscalTxId = tx_id ?? tseTransactionId ?? receipt?.txId;
+  const fiscalSignatureCounter = signature_counter ?? receipt?.signatureCounter;
+  const fiscalStartTime = log_time_start ?? receipt?.logTimeStart;
+  const fiscalEndTime = log_time_end ?? receipt?.logTimeEnd ?? tseSignedAt;
+  const fiscalSignature = signature ?? tseSignature;
+
+  const tseDisplay = fiscalSignature
+    ? `<div><strong>Fiskaly TSE (KassenSichV)</strong></div>
+       <div style="margin-top:4px;">TSS Serial: ${fiscalTssId ?? "—"}</div>
+       <div>Transaction ID: ${fiscalTxId ?? "—"}</div>
+       <div>Signature Counter: ${fiscalSignatureCounter ?? "—"}</div>
+       <div style="margin-top:6px;">Start Time: ${fiscalStartTime ?? "—"}</div>
+       <div>End Time: ${fiscalEndTime ?? "—"}</div>
+       <div style="margin-top:6px;word-break:break-all;">Signature: ${String(fiscalSignature)}</div>`
     : tseQueued
-      ? "Pending (will be signed by daily migration)"
-      : "Pending";
+      ? `<div><strong>Fiskaly TSE (KassenSichV)</strong></div><div style="margin-top:4px;color:#b45309;">Pending (will be signed by daily migration)</div>`
+      : `<div><strong>Fiskaly TSE (KassenSichV)</strong></div><div style="margin-top:4px;color:#b45309;">Pending</div>`;
 
   const qrData = receiptUrl || `Receipt ${orderNumber} | ${tenantName || "Restaurant"} | ${new Date(date).toLocaleString()}`;
   const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(qrData)}`;
@@ -324,7 +363,7 @@ export function printReceipt(receipt) {
         <div style="font-size:11px;margin-bottom:4px;">Payment</div>
         ${paymentsHtml}
       </div>
-      <div class="mb" style="font-size:11px;word-break:break-all;padding:8px;background:#f5f5f5;border-radius:4px;"><strong>Fiskaly TSE (KassenSichV)</strong><br/>${tseDisplay}</div>
+      <div class="mb" style="font-size:11px;line-height:1.25;padding:8px;background:#f5f5f5;border-radius:4px;">${tseDisplay}</div>
       <div class="mb center">
         <img src="${qrSrc}" alt="Scan receipt" style="width:120px;height:120px;" />
         <div style="font-size:11px;color:#666;margin-top:4px;">Scan to view receipt</div>

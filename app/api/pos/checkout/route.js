@@ -271,7 +271,16 @@ export async function POST(request) {
     });
 
     const tseData = tseResult
-      ? { signature: tseResult.signature, fiskalyTxId: tseResult.transactionId, signedAt: tseResult.signedAt }
+      ? {
+          signature: tseResult.signature,
+          fiskalyTxId: tseResult.transactionId,
+          signedAt: tseResult.signedAt,
+          tss_id: tseResult.tss_id ?? null,
+          tx_id: tseResult.tx_id ?? String(tseResult.transactionId),
+          signature_counter: tseResult.signature_counter ?? null,
+          log_time_start: tseResult.log_time_start ?? null,
+          log_time_end: tseResult.log_time_end ?? null,
+        }
       : (await getOrderTseData(order.id));
     const tseQueued = !tseResult && (await isOrderTseQueued(order.id));
 
@@ -304,6 +313,13 @@ export async function POST(request) {
       tseTransactionId: tseData?.fiskalyTxId ?? null,
       tseSignedAt: tseData?.signedAt ? new Date(tseData.signedAt).toISOString() : null,
       tseQueued: tseQueued || false,
+      // Fiskaly API receipt fields (KassenSichV)
+      tss_id: tseData?.tss_id ?? null,
+      tx_id: tseData?.tx_id ?? tseData?.fiskalyTxId ?? null,
+      signature_counter: tseData?.signature_counter ?? null,
+      log_time_start: tseData?.log_time_start ?? null,
+      log_time_end: tseData?.log_time_end ?? null,
+      signature: tseData?.signature ?? null,
     };
 
     if (process.env.FISCAL_PRINTER_ENABLED === "1") {
