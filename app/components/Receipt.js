@@ -8,6 +8,9 @@ import { useRef, useEffect } from "react";
 import { ReceiptQRCode } from "@/app/components/ReceiptQRCode";
 
 const ACCENT = "#14b8a6";
+const ORG_VAT = "DE999999999";
+const ORG_TAX_NUMBER = "2893081508152";
+const ORG_WIDNR = "123456";
 
 function buildTseV0QrPayload(receipt) {
   if (!receipt) return null;
@@ -164,6 +167,20 @@ export function Receipt({ receipt, onPrinted, embedded = false }) {
               </div>
             )}
             {taxId && <div className="text-xs text-gray-500 mt-0.5">{taxId}</div>}
+            <div className="mt-3 inline-block text-left text-xs text-gray-800">
+              <div className="flex justify-between gap-6">
+                <span>VAT</span>
+                <span className="font-medium">{ORG_VAT}</span>
+              </div>
+              <div className="flex justify-between gap-6">
+                <span>Tax Number</span>
+                <span className="font-medium">{ORG_TAX_NUMBER}</span>
+              </div>
+              <div className="flex justify-between gap-6">
+                <span>W-IdNr.</span>
+                <span className="font-medium">{ORG_WIDNR}</span>
+              </div>
+            </div>
           </div>
 
           <div className="flex justify-between items-center mb-4 border-b border-gray-200 pb-2">
@@ -373,6 +390,20 @@ export function printReceipt(receipt) {
         <div class="bold" style="font-size:1.1rem;">${tenantName || "Restaurant"}</div>
         <div style="font-size:12px;color:#666;">${branchName || ""}</div>
         ${taxId ? `<div style="font-size:11px;color:#888;">${taxId}</div>` : ""}
+        <div style="margin-top:8px;display:inline-block;text-align:left;font-size:11px;color:#111;">
+          <div style="display:flex;justify-content:space-between;gap:24px;">
+            <span>VAT</span>
+            <span style="font-weight:600;">${ORG_VAT}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;gap:24px;">
+            <span>Tax Number</span>
+            <span style="font-weight:600;">${ORG_TAX_NUMBER}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;gap:24px;">
+            <span>W-IdNr.</span>
+            <span style="font-weight:600;">${ORG_WIDNR}</span>
+          </div>
+        </div>
       </div>
       <div class="flex mb" style="border-bottom:1px solid #ddd;padding-bottom:8px;">
         <span class="bold">Receipt</span>
