@@ -107,7 +107,7 @@ function computeVatBreakdown(items, discountAmount = 0) {
 
 const STYLE = `
   @media print {
-    /* Thermal printer friendly defaults (80mm paper). */
+    /* Optimized for 80mm standard POS receipt printers and 58mm/57mm portable or handheld POS terminals. */
     @page { size: 80mm auto; margin: 0mm; }
     html, body { width: 80mm; margin: 0; padding: 0; }
     * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
