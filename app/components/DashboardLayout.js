@@ -33,8 +33,8 @@ const RESTAURANT_ITEMS = [
     { href: "/pos", label: "POS System", icon: "pos" },
     { href: "/kds", label: "Kitchen Display (KDS)", icon: "kds" },
   ]},
-  { section: "STAFF & SECURITY", items: [
-    { href: "/users", label: "Staff Management", icon: "users" },
+  { section: "TENANT ADMINS & SECURITY", items: [
+    { href: "/users", label: "Tenant Admins", icon: "users" },
     { href: "/roles", label: "Roles & Permissions", icon: "roles" },
   ]},
   { section: "FLOOR", items: [
@@ -251,7 +251,7 @@ const PAGE_TITLES = {
   "/": "Dashboard",
   "/pos": "POS System",
   "/products": "Products",
-  "/users": "Staff Management",
+  "/users": "Tenant Admins",
   "/profile": "Profile",
   "/parties": "Customers",
   "/reports": "Reports",

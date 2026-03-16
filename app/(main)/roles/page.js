@@ -24,7 +24,7 @@ export default async function RolesPage() {
             <thead>
               <tr className="bg-color-bg border-b border-color-border">
                 <th className="py-3 px-4 text-left font-semibold text-color-text whitespace-nowrap">Role</th>
-                <th className="py-3 px-4 text-left font-semibold text-color-text whitespace-nowrap" data-align="right">Staff Assigned</th>
+                <th className="py-3 px-4 text-left font-semibold text-color-text whitespace-nowrap" data-align="right">Tenant Admins Assigned</th>
               </tr>
             </thead>
             <tbody>

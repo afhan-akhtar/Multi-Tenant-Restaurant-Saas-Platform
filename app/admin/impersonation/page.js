@@ -9,7 +9,7 @@ export default async function AdminImpersonationPage() {
   const session = await auth();
   if (!session || session.user?.type !== "super_admin") redirect("/admin");
 
-  const staff = await prisma.staff.findMany({
+  const staff = await prisma.tenantAdmin.findMany({
     where: { status: "ACTIVE" },
     include: { tenant: true, role: true },
     orderBy: [{ tenant: { name: "asc" } }, { name: "asc" }],

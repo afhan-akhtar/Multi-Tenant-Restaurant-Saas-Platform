@@ -18,16 +18,16 @@ export async function POST(req) {
     const { staffId } = body;
 
     if (!staffId) {
-      return NextResponse.json({ error: "Staff ID required." }, { status: 400 });
+      return NextResponse.json({ error: "Tenant admin ID required." }, { status: 400 });
     }
 
-    const staff = await prisma.staff.findUnique({
+    const staff = await prisma.tenantAdmin.findUnique({
       where: { id: Number(staffId), status: "ACTIVE" },
       include: { role: true, tenant: true },
     });
 
     if (!staff || staff.tenant?.status !== "ACTIVE") {
-      return NextResponse.json({ error: "Staff not found or tenant inactive." }, { status: 404 });
+      return NextResponse.json({ error: "Tenant admin not found or tenant inactive." }, { status: 404 });
     }
 
     const payload = JSON.stringify({

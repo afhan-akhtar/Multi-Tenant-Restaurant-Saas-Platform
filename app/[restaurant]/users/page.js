@@ -11,13 +11,13 @@ export default async function UsersPage() {
 
   let staff = [];
   if (tenantId) {
-    staff = await prisma.staff.findMany({
+    staff = await prisma.tenantAdmin.findMany({
       where: { tenantId },
       include: { role: true, branch: true },
       orderBy: { name: "asc" },
     });
   } else if (isSuperAdmin) {
-    staff = await prisma.staff.findMany({
+    staff = await prisma.tenantAdmin.findMany({
       include: { role: true, branch: true, tenant: true },
       orderBy: { name: "asc" },
       take: 50,

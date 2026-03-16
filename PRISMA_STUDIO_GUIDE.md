@@ -49,7 +49,7 @@ Below you will find recommendations for each main model / entity.
 
 ---
 
-## 3. Branch & Staff Setup
+## 3. Branch & Tenant Admin Setup
 
 - **`Branch`**
   - **Purpose**: Multiple branches / locations for each tenant.
@@ -64,11 +64,11 @@ Below you will find recommendations for each main model / entity.
     - If you want the client to have flexible RBAC, build a **Role & RolePermission management UI** in the frontend (create roles, assign permissions).
     - If roles are fixed (e.g. only 3–4 static roles), let the dev team manage them via **Prisma Studio / seeds**, and have the frontend only read them.
 
-- **`Staff`**
+- **`Staff` (Tenant Admin users)**
   - **Where to manage**: 
-    - **Frontend (strongly recommended)**: Staff management page (add/edit staff, assign branch/role, activate/deactivate).
+    - **Frontend (strongly recommended)**: Tenant admin management page (add/edit admins, assign branch/role, activate/deactivate).
     - **Prisma Studio**: Only for manual fixes (e.g. email typo, emergency password reset).
-  - **Reason**: Staff onboarding is part of operational workflow owned by HR/management, not by developers.
+  - **Reason**: Tenant admin onboarding is part of operational workflow owned by HR/management, not by developers.
 
 ---
 
@@ -219,7 +219,7 @@ This area is used daily by the **restaurant manager / admin**, so there should d
 - **Primarily Frontend (Managed via Client UI)**
   - Tenant settings: `Tenant` basic info (name, logo, status – within limits)
   - Branch structure: `Branch`
-  - Users & roles (if flexible RBAC is desired): `Role`, `RolePermission`, `Staff`
+- Users & roles (if flexible RBAC is desired): `Role`, `RolePermission`, `Staff` (Tenant Admin users)
   - Menu: `Category`, `Product`, `ProductVariant`, `AddonGroup`, `AddonItem`
   - Floor plan: `DiningTable`
   - Live operations (create/update only through the app): `Session`, `Order`, `OrderItem`, `Payment`, `KDSItem`, `KDSScreen`

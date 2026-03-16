@@ -176,7 +176,7 @@ export default function RestaurantsManagement({ tenants: initialTenants, basePat
                   <th className="py-2 px-3 text-left font-medium text-color-text">Name</th>
                   <th className="py-2 px-3 text-left font-medium text-color-text">Subdomain</th>
                   <th className="py-2 px-3 text-left font-medium text-color-text">Country</th>
-                  <th className="py-2 px-3 text-left font-medium text-color-text">Staff</th>
+                  <th className="py-2 px-3 text-left font-medium text-color-text">Tenant Admins</th>
                   <th className="py-2 px-3 text-right font-medium text-color-text">Actions</th>
                 </tr>
               </thead>
@@ -235,7 +235,7 @@ export default function RestaurantsManagement({ tenants: initialTenants, basePat
                 <th className="py-3 px-4 text-left font-semibold text-color-text whitespace-nowrap">Country</th>
                 <th className="py-3 px-4 text-left font-semibold text-color-text whitespace-nowrap">Status</th>
                 <th className="py-3 px-4 text-left font-semibold text-color-text whitespace-nowrap" data-align="right">Orders</th>
-                <th className="py-3 px-4 text-left font-semibold text-color-text whitespace-nowrap" data-align="right">Staff</th>
+                <th className="py-3 px-4 text-left font-semibold text-color-text whitespace-nowrap" data-align="right">Tenant Admins</th>
                 <th className="py-3 px-4 text-left font-semibold text-color-text whitespace-nowrap">Actions</th>
               </tr>
             </thead>

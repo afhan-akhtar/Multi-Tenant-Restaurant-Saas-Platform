@@ -20,9 +20,11 @@ enum TenantStatus {
   BLOCKED
 }
 
-enum StaffStatus {
+enum TenantAdminStatus {
   ACTIVE
   INACTIVE
+
+  @@map("StaffStatus")
 }
 
 enum OrderType {
@@ -96,7 +98,7 @@ model Tenant {
   fiskalyConfig TenantFiskalyConfig?
   branches      Branch[]
   roles         Role[]
-  staff         Staff[]
+  staff         TenantAdmin[]
   subscription  TenantSubscription[]
   categories    Category[]
   products      Product[]
@@ -173,7 +175,7 @@ model Branch {
   country  String
 
   tenant       Tenant       @relation(fields: [tenantId], references: [id])
-  staff        Staff[]
+  staff        TenantAdmin[]
   diningTables DiningTable[]
   sessions     Session[]
   orders       Order[]
@@ -188,7 +190,7 @@ model Role {
   name     String
 
   tenant   Tenant  @relation(fields: [tenantId], references: [id])
-  staff    Staff[]
+  staff    TenantAdmin[]
   rolePermissions RolePermission[]
 
   @@index([tenantId])
@@ -211,7 +213,8 @@ model RolePermission {
   @@unique([roleId, permissionId])
 }
 
-model Staff {
+// Tenant admin / user accounts for each restaurant (per-tenant admins)
+model TenantAdmin {
   id         Int         @id @default(autoincrement())
   tenantId   Int
   branchId   Int
@@ -219,7 +222,7 @@ model Staff {
   name       String
   email      String
   passwordHash String
-  status     StaffStatus @default(ACTIVE)
+  status     TenantAdminStatus @default(ACTIVE)
   createdAt  DateTime    @default(now())
 
   tenant     Tenant      @relation(fields: [tenantId], references: [id])
@@ -229,6 +232,7 @@ model Staff {
   auditLogs  AuditLog[]
 
   @@index([tenantId])
+  @@map("Staff")
 }
 
 model Category {
@@ -323,7 +327,7 @@ model Session {
   tenant    Tenant     @relation(fields: [tenantId], references: [id])
   branch    Branch     @relation(fields: [branchId], references: [id])
   table     DiningTable @relation(fields: [tableId], references: [id])
-  waiter    Staff       @relation("WaiterSessions", fields: [waiterId], references: [id])
+  waiter    TenantAdmin       @relation("WaiterSessions", fields: [waiterId], references: [id])
   orders    Order[]
 }
 
@@ -486,5 +490,5 @@ model AuditLog {
   createdAt DateTime @default(now())
 
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
-  staff     Staff    @relation(fields: [actorId], references: [id])
+  staff     TenantAdmin    @relation(fields: [actorId], references: [id])
 }
