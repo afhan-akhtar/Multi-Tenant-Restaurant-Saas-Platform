@@ -89,6 +89,7 @@ model Tenant {
   name        String
   subdomain   String               @unique
   country     String               @default("")  // Primary country (multi-country tenants)
+  logoUrl     String?              // Optional logo for receipts and branding
   status      TenantStatus         @default(ACTIVE)
   createdAt   DateTime             @default(now())
 

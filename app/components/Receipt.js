@@ -111,6 +111,7 @@ export function Receipt({ receipt, onPrinted, embedded = false }) {
 
   const {
     tenantName,
+    tenantLogo,
     branchName,
     branchAddress,
     orderNumber,
@@ -167,10 +168,21 @@ export function Receipt({ receipt, onPrinted, embedded = false }) {
         <div style={{ background: ACCENT, height: 4 }} />
         <div className="px-4 py-4">
           <div className="text-center mb-4">
+            {/* Match sidebar logo style: square with initial */}
+            <div className="flex justify-center mb-2">
+              <div className="w-10 h-10 min-w-10 bg-[#6366f1] text-white rounded-md flex items-center justify-center font-bold text-xl">
+                {(tenantName || "R").charAt(0).toUpperCase()}
+              </div>
+            </div>
             <div className="font-bold text-lg">{tenantName || "Restaurant"}</div>
             {branchName && (
               <div className="text-xs text-gray-600 mt-1">
                 {branchName}
+              </div>
+            )}
+            {branchAddress && (
+              <div className="text-xs text-gray-600 mt-0.5">
+                {branchAddress}
               </div>
             )}
             {taxId && <div className="text-xs text-gray-500 mt-0.5">{taxId}</div>}
@@ -326,6 +338,7 @@ export function printReceipt(receipt) {
 
   const {
     tenantName,
+    tenantLogo,
     branchName,
     branchAddress,
     orderNumber,
@@ -429,8 +442,13 @@ export function printReceipt(receipt) {
     <body>
       <div class="accent" style="height:4px;"></div>
       <div class="mb mt center">
+        <div style="margin-bottom:8px;display:flex;justify-content:center;">
+          <div style="width:40px;height:40px;min-width:40px;background:#6366f1;color:white;border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:1.25rem;">${(tenantName || "R").charAt(0).toUpperCase()}</div>
+        </div>
+        ${tenantLogo ? `<div style="margin-bottom:12px;"><img src="${tenantLogo}" alt="" style="max-height:64px;max-width:180px;object-fit:contain;" /></div>` : ""}
         <div class="bold" style="font-size:1.1rem;">${tenantName || "Restaurant"}</div>
         <div style="font-size:12px;color:#666;">${branchName || ""}</div>
+        ${branchAddress ? `<div style="font-size:12px;color:#666;">${branchAddress}</div>` : ""}
         ${taxId ? `<div style="font-size:11px;color:#888;">${taxId}</div>` : ""}
         <div style="margin-top:8px;display:inline-block;text-align:left;font-size:11px;color:#111;">
           <div style="display:flex;justify-content:space-between;gap:24px;">

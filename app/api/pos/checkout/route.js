@@ -267,6 +267,7 @@ export async function POST(request) {
 
     const tenant = await prisma.tenant.findUnique({
       where: { id: tenantId },
+      // `logoUrl` is not yet on Tenant in the current DB schema
       select: { name: true },
     });
 
@@ -293,6 +294,7 @@ export async function POST(request) {
       orderNumber,
       orderId: order.id,
       tenantName: tenant?.name || "Restaurant",
+      tenantLogo: null,
       branchName: branch.name,
       branchAddress: `${branch.address || ""}, ${branch.city || ""}, ${branch.country || ""}`.replace(/^,\s*|,\s*$/g, "").trim(),
       date: now.toISOString(),

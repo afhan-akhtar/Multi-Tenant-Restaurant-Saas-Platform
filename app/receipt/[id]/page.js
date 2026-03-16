@@ -15,7 +15,8 @@ export default async function ReceiptPage({ params }) {
   const order = await prisma.order.findUnique({
     where: { id },
     include: {
-      tenant: true,
+      // `logoUrl` is not yet on Tenant in the current DB schema
+      tenant: { select: { name: true } },
       branch: true,
       orderItems: true,
       payments: true,
@@ -44,6 +45,7 @@ export default async function ReceiptPage({ params }) {
     orderNumber: order.orderNumber,
     orderId: order.id,
     tenantName: order.tenant?.name || "Restaurant",
+    tenantLogo: null,
     branchName: order.branch?.name || "",
     branchAddress: `${order.branch?.address || ""}, ${order.branch?.city || ""}, ${order.branch?.country || ""}`.replace(/^,\s*|,\s*$/g, "").trim(),
     date: order.createdAt?.toISOString?.() || new Date(order.createdAt).toISOString(),
