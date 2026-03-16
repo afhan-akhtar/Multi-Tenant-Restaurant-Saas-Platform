@@ -120,6 +120,9 @@ model TenantFiskalyConfig {
   tssId        String?
   clientId     String?
   adminPuk     String?   // Store for PIN recovery; keep secure
+  vatId        String?   // Optional: cached VAT ID for receipts
+  taxNumber    String?   // Optional: cached Tax Number for receipts
+  wIdNr        String?   // Optional: cached W-IdNr. for receipts
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

@@ -8,9 +8,6 @@ import { useRef, useEffect } from "react";
 import { ReceiptQRCode } from "@/app/components/ReceiptQRCode";
 
 const ACCENT = "#14b8a6";
-const ORG_VAT = "DE999999999";
-const ORG_TAX_NUMBER = "2893081508152";
-const ORG_WIDNR = "123456";
 
 function buildTseV0QrPayload(receipt) {
   if (!receipt) return null;
@@ -128,6 +125,9 @@ export function Receipt({ receipt, onPrinted, embedded = false }) {
     tseQueued,
     taxId,
     receiptUrl,
+    orgVat,
+    orgTaxNumber,
+    orgWidnr,
     // Fiskaly API fields (preferred)
     tss_id,
     tx_id,
@@ -186,20 +186,32 @@ export function Receipt({ receipt, onPrinted, embedded = false }) {
               </div>
             )}
             {taxId && <div className="text-xs text-gray-500 mt-0.5">{taxId}</div>}
-            <div className="mt-3 inline-block text-left text-xs text-gray-800">
-              <div className="flex justify-between gap-6">
-                <span>VAT</span>
-                <span className="font-medium">{ORG_VAT}</span>
+            {(orgVat || orgTaxNumber || orgWidnr) && (
+              <div className="mt-3 inline-flex flex-col items-stretch text-xs text-gray-800">
+                <div className="rounded-md border border-teal-100 bg-teal-50/60 px-3 py-2 text-left shadow-[0_1px_2px_rgba(15,118,110,0.15)]">
+                  <div className="space-y-0.5">
+                    {orgVat && (
+                      <div className="flex items-center justify-between gap-6">
+                        <span className="text-[11px] text-gray-600">VAT</span>
+                        <span className="font-semibold tracking-wide text-gray-900">{orgVat}</span>
+                      </div>
+                    )}
+                    {orgTaxNumber && (
+                      <div className="flex items-center justify-between gap-6">
+                        <span className="text-[11px] text-gray-600">Tax Number</span>
+                        <span className="font-semibold tracking-wide text-gray-900">{orgTaxNumber}</span>
+                      </div>
+                    )}
+                    {orgWidnr && (
+                      <div className="flex items-center justify-between gap-6">
+                        <span className="text-[11px] text-gray-600">W-IdNr.</span>
+                        <span className="font-semibold tracking-wide text-gray-900">{orgWidnr}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
-              <div className="flex justify-between gap-6">
-                <span>Tax Number</span>
-                <span className="font-medium">{ORG_TAX_NUMBER}</span>
-              </div>
-              <div className="flex justify-between gap-6">
-                <span>W-IdNr.</span>
-                <span className="font-medium">{ORG_WIDNR}</span>
-              </div>
-            </div>
+            )}
           </div>
 
           <div className="flex justify-between items-center mb-4 border-b border-gray-200 pb-2">
@@ -362,6 +374,9 @@ export function printReceipt(receipt) {
     log_time_start,
     log_time_end,
     signature,
+    orgVat,
+    orgTaxNumber,
+    orgWidnr,
   } = receipt;
 
   const fiscalTssId = tss_id ?? receipt?.tssId ?? receipt?.tseTssId;
@@ -450,20 +465,40 @@ export function printReceipt(receipt) {
         <div style="font-size:12px;color:#666;">${branchName || ""}</div>
         ${branchAddress ? `<div style="font-size:12px;color:#666;">${branchAddress}</div>` : ""}
         ${taxId ? `<div style="font-size:11px;color:#888;">${taxId}</div>` : ""}
-        <div style="margin-top:8px;display:inline-block;text-align:left;font-size:11px;color:#111;">
-          <div style="display:flex;justify-content:space-between;gap:24px;">
-            <span>VAT</span>
-            <span style="font-weight:600;">${ORG_VAT}</span>
-          </div>
-          <div style="display:flex;justify-content:space-between;gap:24px;">
-            <span>Tax Number</span>
-            <span style="font-weight:600;">${ORG_TAX_NUMBER}</span>
-          </div>
-          <div style="display:flex;justify-content:space-between;gap:24px;">
-            <span>W-IdNr.</span>
-            <span style="font-weight:600;">${ORG_WIDNR}</span>
-          </div>
-        </div>
+        ${
+          orgVat || orgTaxNumber || orgWidnr
+            ? `<div style="margin-top:8px;display:inline-flex;flex-direction:column;align-items:stretch;font-size:11px;color:#111;">
+                 <div style="border-radius:6px;border:1px solid rgba(45,212,191,0.5);background:rgba(240,253,250,0.9);padding:6px 10px;box-shadow:0 1px 2px rgba(15,118,110,0.15);text-align:left;">
+                   <div style="display:flex;flex-direction:column;gap:2px;">
+                     ${
+                       orgVat
+                         ? `<div style="display:flex;justify-content:space-between;gap:24px;">
+                              <span style="font-size:10px;color:#4b5563;">VAT</span>
+                              <span style="font-weight:600;color:#111827;">${orgVat}</span>
+                            </div>`
+                         : ""
+                     }
+                     ${
+                       orgTaxNumber
+                         ? `<div style="display:flex;justify-content:space-between;gap:24px;">
+                              <span style="font-size:10px;color:#4b5563;">Tax Number</span>
+                              <span style="font-weight:600;color:#111827;">${orgTaxNumber}</span>
+                            </div>`
+                         : ""
+                     }
+                     ${
+                       orgWidnr
+                         ? `<div style="display:flex;justify-content:space-between;gap:24px;">
+                              <span style="font-size:10px;color:#4b5563;">W-IdNr.</span>
+                              <span style="font-weight:600;color:#111827;">${orgWidnr}</span>
+                            </div>`
+                         : ""
+                     }
+                   </div>
+                 </div>
+               </div>`
+            : ""
+        }
       </div>
       <div class="flex mb" style="border-bottom:1px solid #ddd;padding-bottom:8px;">
         <span class="bold">Receipt</span>

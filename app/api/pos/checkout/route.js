@@ -4,6 +4,7 @@ import { getNextOrderNumber } from "@/lib/pos";
 import { recordCashSale } from "@/lib/cashbook";
 import { signAndStoreOrder, signAndStorePayment, getOrderTseData, isOrderTseQueued } from "@/lib/tse/db";
 import { sendToFiscalPrinter } from "@/lib/tse/fiscalPrinter";
+import { getTenantTaxInfo } from "@/lib/tse/org";
 import { NextResponse } from "next/server";
 
 function toNum(d) {
@@ -271,6 +272,9 @@ export async function POST(request) {
       select: { name: true },
     });
 
+    // Load organization-level tax identifiers from Fiskaly (per-tenant).
+    const orgTaxInfo = await getTenantTaxInfo(tenantId);
+
     const tseData = tseResult
       ? {
           signature: tseResult.signature,
@@ -311,6 +315,9 @@ export async function POST(request) {
       discountAmount: discount,
       grandTotal,
       payments: paymentSplits,
+      orgVat: orgTaxInfo?.vatId ?? null,
+      orgTaxNumber: orgTaxInfo?.taxNumber ?? null,
+      orgWidnr: orgTaxInfo?.widnr ?? null,
       tseSignature: tseData?.signature ?? null,
       tseTransactionId: tseData?.fiskalyTxId ?? null,
       tseSignedAt: tseData?.signedAt ? new Date(tseData.signedAt).toISOString() : null,

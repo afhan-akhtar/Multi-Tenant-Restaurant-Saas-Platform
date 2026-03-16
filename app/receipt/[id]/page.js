@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { Receipt } from "@/app/components/Receipt";
+import { getTenantTaxInfo } from "@/lib/tse/org";
 
 export default async function ReceiptPage({ params }) {
   const id = parseInt(params.id, 10);
@@ -41,6 +42,8 @@ export default async function ReceiptPage({ params }) {
   const proto = h.get("x-forwarded-proto") || "http";
   const receiptUrl = `${proto}://${host}/receipt/${id}`;
 
+  const orgTaxInfo = await getTenantTaxInfo(tenantId);
+
   const receipt = {
     orderNumber: order.orderNumber,
     orderId: order.id,
@@ -62,6 +65,9 @@ export default async function ReceiptPage({ params }) {
     discountAmount: Number(order.discountAmount),
     grandTotal: Number(order.grandTotal),
     payments: (order.payments || []).map((p) => ({ method: p.method, amount: Number(p.amount) })),
+    orgVat: orgTaxInfo?.vatId ?? null,
+    orgTaxNumber: orgTaxInfo?.taxNumber ?? null,
+    orgWidnr: orgTaxInfo?.widnr ?? null,
 
     // Backward-compatible fields used by Receipt.js
     tseSignature: tseTx?.signature ?? null,
