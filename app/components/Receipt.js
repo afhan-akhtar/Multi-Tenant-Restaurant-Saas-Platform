@@ -69,7 +69,8 @@ function buildTseV0QrPayload(receipt) {
     return null;
   }
 
-  // Format mirrors typical KassenSichV "V0;...;Signature" payload.
+  // Fallback: KassenSichV-style V0 payload when we don't have
+  // qrCodeData directly from Fiskaly.
   return [
     "V0",
     tenantName,
@@ -346,6 +347,8 @@ export function Receipt({ receipt, onPrinted, embedded = false }) {
             )}
           </div>
 
+          {/*
+          // Original on-screen TSE block (kept for future use):
           <div className="mb-2 p-2 bg-gray-50 rounded border border-gray-200 space-y-1">
             <div className="font-medium text-xs text-gray-700">Fiskaly TSE (KassenSichV)</div>
             {fiscalSignature ? (
@@ -367,6 +370,7 @@ export function Receipt({ receipt, onPrinted, embedded = false }) {
               <span className="text-amber-600 text-xs">Pending (check server logs)</span>
             )}
           </div>
+          */}
 
           <ReceiptQRCode url={receiptUrl} tseQrData={qrData} />
 
@@ -423,6 +427,8 @@ export function printReceipt(receipt) {
   const fiscalEndTime = log_time_end ?? receipt?.logTimeEnd ?? tseSignedAt;
   const fiscalSignature = signature ?? tseSignature;
 
+  // Original TSE display HTML snippet for print (kept for future use):
+  /*
   const tseDisplay = fiscalSignature
     ? `<div><strong>Fiskaly TSE (KassenSichV)</strong></div>
        <div style="margin-top:4px;">TSS Serial: ${fiscalTssId ?? "—"}</div>
@@ -434,6 +440,7 @@ export function printReceipt(receipt) {
     : tseQueued
       ? `<div><strong>Fiskaly TSE (KassenSichV)</strong></div><div style="margin-top:4px;color:#b45309;">Pending (will be signed by daily migration)</div>`
       : `<div><strong>Fiskaly TSE (KassenSichV)</strong></div><div style="margin-top:4px;color:#b45309;">Pending</div>`;
+  */
 
   const qrData = receipt?.tseQrData || receipt?.qrCodeData || buildTseV0QrPayload(receipt);
   const qrPayload = String(qrData || "").trim();
@@ -576,7 +583,6 @@ export function printReceipt(receipt) {
             : ""
         }
       </div>
-      <div class="mb" style="font-size:11px;line-height:1.25;padding:8px;background:#f5f5f5;border-radius:4px;">${tseDisplay}</div>
       <div class="mb center">
         ${qrPayload ? `<img src="${qrSrc}" alt="TSE data (KassenSichV)" style="width:120px;height:120px;" />` : ""}
         <div style="font-size:11px;color:#666;margin-top:4px;">${qrPayload ? "TSE data (KassenSichV)" : ""}</div>

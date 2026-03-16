@@ -285,6 +285,7 @@ export async function POST(request) {
           signature_counter: tseResult.signature_counter ?? null,
           log_time_start: tseResult.log_time_start ?? null,
           log_time_end: tseResult.log_time_end ?? null,
+          qrCodeData: tseResult.qrCodeData ?? null,
         }
       : (await getOrderTseData(order.id));
     const tseQueued = !tseResult && (await isOrderTseQueued(order.id));
@@ -329,6 +330,7 @@ export async function POST(request) {
       log_time_start: tseData?.log_time_start ?? null,
       log_time_end: tseData?.log_time_end ?? null,
       signature: tseData?.signature ?? null,
+      tseQrData: tseData?.qrCodeData ?? null,
     };
 
     if (process.env.FISCAL_PRINTER_ENABLED === "1") {

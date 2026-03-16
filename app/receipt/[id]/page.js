@@ -82,6 +82,7 @@ export default async function ReceiptPage({ params }) {
     log_time_start: rawPayload?.logTimeStart ?? null,
     log_time_end: rawPayload?.logTimeEnd ?? null,
     signature: tseTx?.signature ?? null,
+    tseQrData: rawPayload?.qrCodeData ?? null,
   };
 
   return (
