@@ -584,8 +584,8 @@ export function printReceipt(receipt) {
         }
       </div>
       <div class="mb center">
-        ${qrPayload ? `<img src="${qrSrc}" alt="TSE data (KassenSichV)" style="width:120px;height:120px;" />` : ""}
-        <div style="font-size:11px;color:#666;margin-top:4px;">${qrPayload ? "TSE data (KassenSichV)" : ""}</div>
+        ${qrPayload ? `<img src="${qrSrc}" alt="Fiscal QR (KassenSichV/TSE)" style="width:120px;height:120px;" />` : ""}
+        <div style="font-size:11px;color:#666;margin-top:4px;">${qrPayload ? "Fiscal QR (KassenSichV/TSE)" : ""}</div>
       </div>
       <div class="accent" style="height:4px;"></div>
       <div class="center mt" style="color:#666;font-size:13px;">Thank you for your order!</div>
