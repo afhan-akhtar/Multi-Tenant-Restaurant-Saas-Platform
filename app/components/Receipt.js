@@ -9,6 +9,37 @@ import { ReceiptQRCode } from "@/app/components/ReceiptQRCode";
 
 const ACCENT = "#14b8a6";
 
+function formatGermanDateTime(value) {
+  if (!value) return "—";
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+
+  const formatter = new Intl.DateTimeFormat("de-DE", {
+    timeZone: "Europe/Berlin",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
+
+  const parts = formatter.formatToParts(date).reduce((acc, part) => {
+    if (part.type !== "literal") acc[part.type] = part.value;
+    return acc;
+  }, {});
+
+  const y = parts.year;
+  const m = parts.month;
+  const d = parts.day;
+  const h = parts.hour;
+  const min = parts.minute;
+  const s = parts.second;
+
+  return `${y}-${m}-${d} ${h}:${min}:${s} CET`;
+}
+
 function buildTseV0QrPayload(receipt) {
   if (!receipt) return null;
 
@@ -217,8 +248,10 @@ export function Receipt({ receipt, onPrinted, embedded = false }) {
           <div className="flex justify-between items-center mb-4 border-b border-gray-200 pb-2">
             <h2 className="font-semibold text-base">Receipt</h2>
             <div className="text-right text-xs">
-              <div>Nr. {orderNumber}</div>
-              <div className="text-gray-600">{new Date(date).toLocaleString()}</div>
+              <div>Receipt No: {orderNumber}</div>
+              <div className="text-gray-600">
+                {date ? formatGermanDateTime(date) : "—"}
+              </div>
             </div>
           </div>
 
@@ -320,8 +353,12 @@ export function Receipt({ receipt, onPrinted, embedded = false }) {
                 <div>TSS Serial: {fiscalTssId ?? "—"}</div>
                 <div>Transaction ID: {fiscalTxId ?? "—"}</div>
                 <div>Signature Counter: {fiscalSignatureCounter ?? "—"}</div>
-                <div className="mt-1">Start Time: {fiscalStartTime ?? "—"}</div>
-                <div>End Time: {fiscalEndTime ?? "—"}</div>
+                <div className="mt-1">
+                  Start Time: {formatGermanDateTime(fiscalStartTime)}
+                </div>
+                <div>
+                  End Time: {formatGermanDateTime(fiscalEndTime)}
+                </div>
                 <div className="mt-1">Signature: {String(fiscalSignature)}</div>
               </div>
             ) : tseQueued ? (
@@ -391,8 +428,8 @@ export function printReceipt(receipt) {
        <div style="margin-top:4px;">TSS Serial: ${fiscalTssId ?? "—"}</div>
        <div>Transaction ID: ${fiscalTxId ?? "—"}</div>
        <div>Signature Counter: ${fiscalSignatureCounter ?? "—"}</div>
-       <div style="margin-top:6px;">Start Time: ${fiscalStartTime ?? "—"}</div>
-       <div>End Time: ${fiscalEndTime ?? "—"}</div>
+       <div style="margin-top:6px;">Start Time: ${formatGermanDateTime(fiscalStartTime)}</div>
+       <div>End Time: ${formatGermanDateTime(fiscalEndTime)}</div>
        <div style="margin-top:6px;word-break:break-all;">Signature: ${String(fiscalSignature)}</div>`
     : tseQueued
       ? `<div><strong>Fiskaly TSE (KassenSichV)</strong></div><div style="margin-top:4px;color:#b45309;">Pending (will be signed by daily migration)</div>`
@@ -503,8 +540,8 @@ export function printReceipt(receipt) {
       <div class="flex mb" style="border-bottom:1px solid #ddd;padding-bottom:8px;">
         <span class="bold">Receipt</span>
         <div class="r" style="font-size:12px;">
-          <div>Nr. ${orderNumber}</div>
-          <div style="color:#666;">${new Date(date).toLocaleString()}</div>
+          <div>Receipt No: ${orderNumber}</div>
+          <div style="color:#666;">${formatGermanDateTime(date)}</div>
         </div>
       </div>
       <table class="mb">
