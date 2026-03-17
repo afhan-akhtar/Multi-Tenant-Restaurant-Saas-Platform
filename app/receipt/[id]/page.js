@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { Receipt } from "@/app/components/Receipt";
 import { getTenantTaxInfo } from "@/lib/tse/org";
+import { decodeCashPaymentMeta } from "@/lib/receiptPayments";
 
 export default async function ReceiptPage({ params }) {
   const id = parseInt(params.id, 10);
@@ -43,6 +44,8 @@ export default async function ReceiptPage({ params }) {
   const receiptUrl = `${proto}://${host}/receipt/${id}`;
 
   const orgTaxInfo = await getTenantTaxInfo(tenantId);
+  const cashPayment = (order.payments || []).find((payment) => payment.method === "CASH");
+  const cashMeta = decodeCashPaymentMeta(cashPayment?.providerRef);
 
   const receipt = {
     orderNumber: order.orderNumber,
@@ -65,6 +68,8 @@ export default async function ReceiptPage({ params }) {
     discountAmount: Number(order.discountAmount),
     grandTotal: Number(order.grandTotal),
     payments: (order.payments || []).map((p) => ({ method: p.method, amount: Number(p.amount) })),
+    cashReceived: cashMeta?.cashReceived ?? null,
+    changeGiven: cashMeta?.changeGiven ?? 0,
     orgVat: orgTaxInfo?.vatId ?? null,
     orgTaxNumber: orgTaxInfo?.taxNumber ?? null,
     orgWidnr: orgTaxInfo?.widnr ?? null,

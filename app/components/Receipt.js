@@ -6,6 +6,7 @@
  */
 import { useRef, useEffect } from "react";
 import { ReceiptQRCode } from "@/app/components/ReceiptQRCode";
+import { decodeCashPaymentMeta } from "@/lib/receiptPayments";
 
 const ACCENT = "#14b8a6";
 
@@ -151,6 +152,8 @@ export function Receipt({ receipt, onPrinted, embedded = false }) {
     discountAmount,
     grandTotal,
     payments,
+    cashReceived: explicitCashReceived,
+    changeGiven: explicitChangeGiven,
     tseSignature,
     tseTransactionId,
     tseSignedAt,
@@ -172,11 +175,18 @@ export function Receipt({ receipt, onPrinted, embedded = false }) {
   const { byRate, subtotalNet, subtotalGross, taxTotal, grandTotal: computedTotal } = computeVatBreakdown(items, discountAmount);
 
   const cashPayment = (payments || []).find((p) => p.method === "CASH");
-  const cashReceived = cashPayment ? Number(cashPayment.amount || 0) : null;
+  const cashMeta = decodeCashPaymentMeta(cashPayment?.providerRef);
+  const cashReceived =
+    explicitCashReceived != null
+      ? Number(explicitCashReceived)
+      : cashMeta?.cashReceived ?? (cashPayment ? Number(cashPayment.amount || 0) : null);
   const cashChange =
-    cashReceived != null
-      ? Math.max(0, cashReceived - (computedTotal || grandTotal || 0))
-      : null;
+    explicitChangeGiven != null
+      ? Number(explicitChangeGiven)
+      : cashMeta?.changeGiven ??
+        (cashReceived != null
+          ? Math.max(0, cashReceived - (computedTotal || grandTotal || 0))
+          : null);
 
   // Backward-compatible mapping (older receipts used tse* fields)
   const fiscalTssId = tss_id ?? receipt?.tssId ?? receipt?.tseTssId;
@@ -402,6 +412,8 @@ export function printReceipt(receipt) {
     discountAmount,
     grandTotal,
     payments,
+    cashReceived: explicitCashReceived,
+    changeGiven: explicitChangeGiven,
     tseSignature,
     tseTransactionId,
     tseSignedAt,
@@ -450,11 +462,18 @@ export function printReceipt(receipt) {
   const { byRate, subtotalGross, subtotalNet, taxTotal, grandTotal: computedTotal } = computeVatBreakdown(items, discountAmount);
 
   const cashPayment = (payments || []).find((p) => p.method === "CASH");
-  const cashReceived = cashPayment ? Number(cashPayment.amount || 0) : null;
+  const cashMeta = decodeCashPaymentMeta(cashPayment?.providerRef);
+  const cashReceived =
+    explicitCashReceived != null
+      ? Number(explicitCashReceived)
+      : cashMeta?.cashReceived ?? (cashPayment ? Number(cashPayment.amount || 0) : null);
   const cashChange =
-    cashReceived != null
-      ? Math.max(0, cashReceived - (computedTotal || grandTotal || 0))
-      : null;
+    explicitChangeGiven != null
+      ? Number(explicitChangeGiven)
+      : cashMeta?.changeGiven ??
+        (cashReceived != null
+          ? Math.max(0, cashReceived - (computedTotal || grandTotal || 0))
+          : null);
 
   const itemsHtml = (items || [])
     .map((it) => {

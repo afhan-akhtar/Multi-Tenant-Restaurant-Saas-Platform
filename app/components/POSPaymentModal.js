@@ -174,16 +174,49 @@ export default function POSPaymentModal({ open, onClose, grandTotal, cart, order
       value: round2(getSplitAmount(s)),
     }));
 
+  const allocatedAmount = round2(
+    splits.reduce((sum, split) => sum + getSplitAmount(split), 0)
+  );
+  const remaining = round2(total - allocatedAmount);
+  const overpayment = remaining < 0 ? round2(-remaining) : 0;
+  const cashTendered = round2(
+    resolvedSplits
+      .filter((split) => split.method === "CASH")
+      .reduce((sum, split) => sum + split.value, 0)
+  );
+  const canReturnChange = overpayment > 0 && cashTendered >= overpayment - 0.01;
+  const hasInvalidOverpayment = overpayment > 0.01 && !canReturnChange;
+
   const payFull = () => {
     setSplits([{ method: "CASH", type: "amount", value: String(total) }]);
   };
 
   const buildPayload = () => {
-    if (resolvedSplits.length === 0) {
+    const basePayload =
+      resolvedSplits.length === 0
+        ? [{ method: "CASH", type: "amount", value: round2(total) }]
+        : resolvedSplits.map((split) => ({ ...split }));
+
+    if (overpayment > 0.01 && canReturnChange) {
+      let remainingChange = overpayment;
+      for (let index = basePayload.length - 1; index >= 0; index -= 1) {
+        if (basePayload[index].method !== "CASH") continue;
+
+        const deduction = Math.min(basePayload[index].value, remainingChange);
+        basePayload[index].value = round2(basePayload[index].value - deduction);
+        remainingChange = round2(remainingChange - deduction);
+
+        if (remainingChange <= 0.01) break;
+      }
+    }
+
+    const normalizedPayload = basePayload.filter((split) => split.value > 0.009);
+
+    if (normalizedPayload.length === 0) {
       return [{ method: "CASH", type: "amount", value: round2(total) }];
     }
 
-    return resolvedSplits;
+    return normalizedPayload;
   };
 
   const buildCheckoutPayload = (payload, offline) => ({
@@ -197,6 +230,8 @@ export default function POSPaymentModal({ open, onClose, grandTotal, cart, order
     customerId: customerId || null,
     splits: payload,
     discountAmount: Number(discount) || 0,
+    cashTenderedAmount: cashTendered > 0 ? cashTendered : null,
+    changeGiven: canReturnChange ? overpayment : 0,
   });
 
   const getOnlineProviderTotals = (payload) =>
@@ -292,7 +327,6 @@ export default function POSPaymentModal({ open, onClose, grandTotal, cart, order
     }));
   };
 
-  const remaining = round2(total - splits.reduce((s, p) => s + getSplitAmount(p), 0));
   const providerMethodsRequired = Object.entries(providerContext?.onlineProviderTotals || {})
     .filter(([, amount]) => amount > 0)
     .map(([method]) => method);
@@ -509,9 +543,21 @@ export default function POSPaymentModal({ open, onClose, grandTotal, cart, order
               <span className="font-semibold">€{round2(splits.reduce((s, p) => s + getSplitAmount(p), 0)).toFixed(2)}</span>
             </div>
           )}
-          {splits.length > 0 && Math.abs(remaining) > 0.01 && (
-            <div className={`mt-1 text-sm ${remaining > 0 ? "text-amber-600" : "text-green-600"}`}>
-              {remaining > 0 ? `Remaining: €${remaining.toFixed(2)}` : `Over: €${(-remaining).toFixed(2)}`}
+          {splits.length > 0 && (remaining > 0.01 || overpayment > 0.01) && (
+            <div
+              className={`mt-1 text-sm ${
+                remaining > 0.01
+                  ? "text-amber-600"
+                  : canReturnChange
+                  ? "text-green-600"
+                  : "text-red-500"
+              }`}
+            >
+              {remaining > 0.01
+                ? `Remaining: €${remaining.toFixed(2)}`
+                : canReturnChange
+                ? `Change: €${overpayment.toFixed(2)}`
+                : `Over: €${overpayment.toFixed(2)}`}
             </div>
           )}
 
@@ -538,7 +584,12 @@ export default function POSPaymentModal({ open, onClose, grandTotal, cart, order
             type="button"
             className="py-2.5 px-5 rounded-lg font-medium bg-primary text-white disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2"
             onClick={handleSubmit}
-            disabled={loading || configLoading || (splits.length > 0 && Math.abs(remaining) > 0.02) || total <= 0}
+            disabled={
+              loading ||
+              configLoading ||
+              (splits.length > 0 && (remaining > 0.02 || hasInvalidOverpayment)) ||
+              total <= 0
+            }
           >
             {loading ? (
               <>

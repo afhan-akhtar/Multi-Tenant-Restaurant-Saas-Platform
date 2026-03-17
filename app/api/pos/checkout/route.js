@@ -8,6 +8,7 @@ import { getTenantTaxInfo } from "@/lib/tse/org";
 import { verifyPosPaymentIntent } from "@/lib/payments/stripe";
 import { verifyCapturedPayPalOrder } from "@/lib/payments/paypal";
 import { roundMoney } from "@/lib/payments/config";
+import { encodeCashPaymentMeta } from "@/lib/receiptPayments";
 import { NextResponse } from "next/server";
 
 function toNum(d) {
@@ -93,6 +94,8 @@ export async function POST(request) {
       splits,
       discountAmount = 0,
       providerPayments = [],
+      cashTenderedAmount = null,
+      changeGiven = 0,
     } = body;
 
     const tenantId = token.tenantId ?? null;
@@ -236,6 +239,8 @@ export async function POST(request) {
         .filter(([method]) => method === "STRIPE" || method === "PAYPAL")
     );
     const verifiedProviderRefs = new Map();
+    const normalizedCashTendered = roundMoney(cashTenderedAmount);
+    const normalizedChangeGiven = roundMoney(changeGiven);
 
     for (const split of paymentSplits) {
       if (split.method === "STRIPE") {
@@ -323,7 +328,14 @@ export async function POST(request) {
     });
 
     for (const split of paymentSplits) {
-      const providerRef = verifiedProviderRefs.get(split.method) || null;
+      const providerRef =
+        verifiedProviderRefs.get(split.method) ||
+        (split.method === "CASH"
+          ? encodeCashPaymentMeta({
+              cashReceived: normalizedCashTendered || split.amount,
+              changeGiven: normalizedChangeGiven,
+            })
+          : null);
 
       await prisma.payment.create({
         data: {
@@ -396,6 +408,8 @@ export async function POST(request) {
       discountAmount: discount,
       grandTotal,
       payments: paymentSplits,
+      cashReceived: normalizedCashTendered || null,
+      changeGiven: normalizedChangeGiven || 0,
       orgVat: orgTaxInfo?.vatId ?? null,
       orgTaxNumber: orgTaxInfo?.taxNumber ?? null,
       orgWidnr: orgTaxInfo?.widnr ?? null,
