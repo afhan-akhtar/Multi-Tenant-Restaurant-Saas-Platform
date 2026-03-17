@@ -165,7 +165,7 @@ Open [http://localhost:3000](http://localhost:3000).
 | Role | URL | Email | Password |
 |------|-----|-------|----------|
 | Super Admin | [/admin](http://localhost:3000/admin) | admin@platform.com | admin123 |
-| Restaurant Admin | [/login](http://localhost:3000/login) | staff@demo.com | staff123 (subdomain: **demo**) |
+| Restaurant Admin | [/login](http://localhost:3000/login) | tenant@demo.com | tenant123 (subdomain: **demo**) |
 
 Restaurant Admin redirects to `/demo` after login.
 

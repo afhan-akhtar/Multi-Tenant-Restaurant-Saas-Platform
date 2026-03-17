@@ -62,24 +62,29 @@ async function main() {
     });
   }
 
-  let staff = await prisma.tenantAdmin.findFirst({ where: { tenantId: tenant.id } });
-  if (!staff) {
-    const staffPassword = await bcrypt.hash("staff123", 12);
-    staff = await prisma.tenantAdmin.create({
+  let manager = await prisma.tenantAdmin.findFirst({ where: { tenantId: tenant.id } });
+  if (!manager) {
+    const managerPassword = await bcrypt.hash("tenant123", 12);
+    manager = await prisma.tenantAdmin.create({
       data: {
         tenantId: tenant.id,
         branchId: branch.id,
         roleId: role.id,
         name: "Restaurant Admin",
-        email: "staff@demo.com",
-        passwordHash: staffPassword,
+        email: "tenant@demo.com",
+        passwordHash: managerPassword,
         status: "ACTIVE",
       },
     });
   } else {
+    const managerPassword = await bcrypt.hash("tenant123", 12);
     await prisma.tenantAdmin.update({
-      where: { id: staff.id },
-      data: { name: "Restaurant Admin" },
+      where: { id: manager.id },
+      data: {
+        name: "Restaurant Admin",
+        email: "tenant@demo.com",
+        passwordHash: managerPassword,
+      },
     });
   }
 
@@ -239,7 +244,7 @@ async function main() {
           tenantId: tenant.id,
           branchId: branch.id,
           tableId: table.id,
-          waiterId: staff.id,
+          waiterId: manager.id,
           openedAt,
           closedAt,
         },
@@ -362,7 +367,7 @@ async function main() {
 
   console.log("Seed completed:");
   console.log("  SuperAdmin:", admin.email, "/ admin123");
-  console.log("  Tenant admin: staff@demo.com / staff123 (subdomain: demo)");
+  console.log("  Tenant admin: tenant@demo.com / tenant123 (subdomain: demo)");
 }
 
 main()
