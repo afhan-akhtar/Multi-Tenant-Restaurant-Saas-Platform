@@ -1,6 +1,7 @@
 import { getToken } from "next-auth/jwt";
 import { prisma } from "@/lib/db";
 import { signAndStoreCancellation } from "@/lib/tse/db";
+import { refundPosPaymentIntent } from "@/lib/payments/stripe";
 import { NextResponse } from "next/server";
 
 /**
@@ -30,6 +31,7 @@ export async function POST(request) {
 
     const order = await prisma.order.findFirst({
       where: { id, tenantId },
+      include: { payments: true },
     });
     if (!order) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
@@ -37,6 +39,12 @@ export async function POST(request) {
 
     if (["CANCELLED", "REFUNDED"].includes(order.status)) {
       return NextResponse.json({ error: "Order already cancelled or refunded" }, { status: 400 });
+    }
+
+    for (const payment of order.payments || []) {
+      if (payment.method === "STRIPE" && payment.providerRef && payment.status !== "REFUNDED") {
+        await refundPosPaymentIntent(payment.providerRef);
+      }
     }
 
     await signAndStoreCancellation(tenantId, id, order.orderNumber);

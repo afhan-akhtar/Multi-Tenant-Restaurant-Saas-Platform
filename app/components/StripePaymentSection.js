@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { CardElement, Elements, useElements, useStripe } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
 import Spinner from "./Spinner";
+import StripeTerminalSection from "./StripeTerminalSection";
 
 const stripePromiseCache = new Map();
 
@@ -30,7 +31,7 @@ const cardElementOptions = {
   },
 };
 
-function StripeCardForm({ amount, currency, completedPayment, onSuccess }) {
+function StripeCardForm({ amount, currency, checkoutSessionId, completedPayment, onSuccess }) {
   const stripe = useStripe();
   const elements = useElements();
   const [intent, setIntent] = useState(null);
@@ -51,7 +52,7 @@ function StripeCardForm({ amount, currency, completedPayment, onSuccess }) {
         const response = await fetch("/api/payments/stripe/create-intent", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ amount }),
+          body: JSON.stringify({ amount, checkoutSessionId }),
         });
         const data = await response.json().catch(() => ({}));
 
@@ -79,7 +80,7 @@ function StripeCardForm({ amount, currency, completedPayment, onSuccess }) {
     return () => {
       cancelled = true;
     };
-  }, [amount, completedPayment]);
+  }, [amount, checkoutSessionId, completedPayment]);
 
   const handleCharge = async () => {
     if (!stripe || !elements || !intent?.clientSecret) return;
@@ -109,6 +110,8 @@ function StripeCardForm({ amount, currency, completedPayment, onSuccess }) {
         method: "STRIPE",
         amount,
         providerRef: result.paymentIntent.id,
+        channel: "browser",
+        checkoutSessionId,
       });
     } catch (err) {
       setError(err.message || "Stripe payment failed.");
@@ -164,9 +167,10 @@ function StripeCardForm({ amount, currency, completedPayment, onSuccess }) {
   );
 }
 
-export default function StripePaymentSection({
+function StripeBrowserSection({
   amount,
   currency,
+  checkoutSessionId,
   publishableKey,
   completedPayment,
   onSuccess,
@@ -189,9 +193,86 @@ export default function StripePaymentSection({
       <StripeCardForm
         amount={amount}
         currency={currency}
+        checkoutSessionId={checkoutSessionId}
         completedPayment={completedPayment}
         onSuccess={onSuccess}
       />
     </Elements>
+  );
+}
+
+export default function StripePaymentSection({
+  amount,
+  currency,
+  checkoutSessionId,
+  publishableKey,
+  terminalConfig,
+  completedPayment,
+  onSuccess,
+}) {
+  const [mode, setMode] = useState("browser");
+
+  useEffect(() => {
+    setMode("browser");
+  }, [checkoutSessionId]);
+
+  if (amount <= 0) {
+    return null;
+  }
+
+  const terminalEnabled = Boolean(terminalConfig?.enabled);
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-lg border border-color-border bg-white p-2">
+        <div className="mb-2 text-sm font-medium text-color-text">Stripe payment mode</div>
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            className={`rounded-lg px-3 py-2 text-sm font-medium ${
+              mode === "browser"
+                ? "bg-[#635bff] text-white"
+                : "border border-color-border bg-white text-color-text"
+            }`}
+            onClick={() => setMode("browser")}
+          >
+            Browser
+          </button>
+          <button
+            type="button"
+            className={`rounded-lg px-3 py-2 text-sm font-medium ${
+              mode === "reader"
+                ? "bg-[#635bff] text-white"
+                : "border border-color-border bg-white text-color-text"
+            } disabled:cursor-not-allowed disabled:opacity-60`}
+            onClick={() => setMode("reader")}
+            disabled={!terminalEnabled}
+            title={!terminalEnabled ? "Stripe Terminal requires Stripe to be configured." : undefined}
+          >
+            Reader
+          </button>
+        </div>
+      </div>
+
+      {mode === "browser" ? (
+        <StripeBrowserSection
+          amount={amount}
+          currency={currency}
+          checkoutSessionId={checkoutSessionId}
+          publishableKey={publishableKey}
+          completedPayment={completedPayment}
+          onSuccess={onSuccess}
+        />
+      ) : (
+        <StripeTerminalSection
+          amount={amount}
+          currency={currency}
+          terminalConfig={terminalConfig}
+          checkoutSessionId={checkoutSessionId}
+          completedPayment={completedPayment}
+          onSuccess={onSuccess}
+        />
+      )}
+    </div>
   );
 }

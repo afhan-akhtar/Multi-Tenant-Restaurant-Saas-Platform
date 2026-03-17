@@ -22,6 +22,14 @@ function round2(n) {
   return Math.round(n * 100) / 100;
 }
 
+function createCheckoutSessionId() {
+  if (typeof crypto !== "undefined" && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+
+  return `checkout_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+}
+
 export default function POSPaymentModal({ open, onClose, grandTotal, cart, orderNumber, orderType, customerId, onSuccess }) {
   const [splits, setSplits] = useState([]);
   const [discount, setDiscount] = useState(0);
@@ -82,7 +90,11 @@ export default function POSPaymentModal({ open, onClose, grandTotal, cart, order
           setPaymentConfig({
             currency: "EUR",
             providers: {
-              stripe: { enabled: false, publishableKey: null },
+              stripe: {
+                enabled: false,
+                publishableKey: null,
+                terminal: { enabled: false, simulated: false, locationId: null },
+              },
               paypal: { enabled: false, clientId: null },
             },
           });
@@ -260,6 +272,8 @@ export default function POSPaymentModal({ open, onClose, grandTotal, cart, order
       setProviderContext({
         checkoutPayload,
         onlineProviderTotals,
+        stripeCheckoutSessionId:
+          onlineProviderTotals.STRIPE > 0 ? createCheckoutSessionId() : null,
       });
       setProviderStep(true);
       return;
@@ -333,7 +347,9 @@ export default function POSPaymentModal({ open, onClose, grandTotal, cart, order
               <StripePaymentSection
                 amount={providerContext.onlineProviderTotals.STRIPE}
                 currency={paymentConfig?.currency || "EUR"}
+                checkoutSessionId={providerContext.stripeCheckoutSessionId}
                 publishableKey={paymentConfig?.providers?.stripe?.publishableKey}
+                terminalConfig={paymentConfig?.providers?.stripe?.terminal}
                 completedPayment={providerPayments.STRIPE}
                 onSuccess={registerProviderPayment}
               />

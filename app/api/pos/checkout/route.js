@@ -241,8 +241,10 @@ export async function POST(request) {
       if (split.method === "STRIPE") {
         const payment = submittedProviderPayments.get("STRIPE");
         const paymentIntentId = String(payment?.providerRef || "").trim();
+        const channel = String(payment?.channel || "").trim() || "browser";
+        const checkoutSessionId = String(payment?.checkoutSessionId || "").trim();
 
-        if (!paymentIntentId) {
+        if (!paymentIntentId || !checkoutSessionId) {
           return NextResponse.json(
             { error: "Stripe payment must be completed before checkout." },
             { status: 400 }
@@ -255,6 +257,8 @@ export async function POST(request) {
           tenantId,
           branchId,
           staffId,
+          checkoutSessionId,
+          channel,
         });
 
         verifiedProviderRefs.set("STRIPE", paymentIntent.id);

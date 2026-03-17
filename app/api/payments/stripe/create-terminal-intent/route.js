@@ -40,7 +40,7 @@ export async function POST(request) {
       branchId,
       staffId,
       checkoutSessionId,
-      channel: "browser",
+      channel: "reader",
     });
 
     return NextResponse.json({
@@ -48,9 +48,9 @@ export async function POST(request) {
       paymentIntentId: paymentIntent.id,
     });
   } catch (error) {
-    console.error("[stripe create-intent]", error);
+    console.error("[stripe create-terminal-intent]", error);
     return NextResponse.json(
-      { error: error.message || "Failed to create Stripe payment intent." },
+      { error: error.message || "Failed to create Stripe Terminal payment intent." },
       { status: 500 }
     );
   }
