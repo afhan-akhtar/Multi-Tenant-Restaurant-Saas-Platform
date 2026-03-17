@@ -136,7 +136,9 @@ export default function POSPaymentModal({ open, onClose, grandTotal, cart, order
     );
   }, [paymentConfig]);
 
-  const total = grandTotal - (Number(discount) || 0);
+  const discountPercent = Math.min(100, Math.max(0, Number(discount) || 0));
+  const discountAmount = round2((Number(grandTotal) || 0) * (discountPercent / 100));
+  const total = Math.max(0, round2((Number(grandTotal) || 0) - discountAmount));
 
   const quantityTotal = splits.filter((x) => x.type === "quantity").reduce((s, x) => s + (Number(x.value) || 0), 0);
   const remainingByQuantity = quantityTotal > 0 ? total - splits.filter((x) => x.type !== "quantity").reduce((s, x) => {
@@ -229,7 +231,7 @@ export default function POSPaymentModal({ open, onClose, grandTotal, cart, order
     orderNumber: offline ? undefined : orderNumber,
     customerId: customerId || null,
     splits: payload,
-    discountAmount: Number(discount) || 0,
+    discountAmount,
     cashTenderedAmount: cashTendered > 0 ? cashTendered : null,
     changeGiven: canReturnChange ? overpayment : 0,
   });
@@ -458,16 +460,28 @@ export default function POSPaymentModal({ open, onClose, grandTotal, cart, order
             <span className="font-bold text-lg">€{total.toFixed(2)}</span>
           </div>
           <div className="mb-4">
-            <label className="block text-sm font-medium text-color-text mb-1">Discount (€)</label>
+            <label className="block text-sm font-medium text-color-text mb-1">Discount (%)</label>
             <input
               type="number"
-              step="0.01"
+              step="1"
               min="0"
+              max="100"
               className="w-full py-2 px-3 border border-color-border rounded-lg"
               value={discount}
-              onChange={(e) => setDiscount(e.target.value)}
+              onChange={(e) =>
+                setDiscount(
+                  e.target.value === ""
+                    ? ""
+                    : String(Math.min(100, Math.max(0, Number(e.target.value) || 0)))
+                )
+              }
               placeholder="0"
             />
+            {discountPercent > 0 && (
+              <div className="mt-1 text-sm text-color-text-muted">
+                Discount amount: €{discountAmount.toFixed(2)}
+              </div>
+            )}
           </div>
 
           <div className="flex justify-between items-center mb-2">
