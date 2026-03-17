@@ -7,15 +7,15 @@ import ConfirmModal from "@/app/components/ConfirmModal";
 
 const COLUMNS = [
   {
-    id: "NEW",
+    id: "CREATED",
     label: "New",
     statuses: ["OPEN", "CONFIRMED"],
     color: "#22c55e",
     subLabel: "Arrived",
   },
   {
-    id: "PREPARING",
-    label: "Preparing",
+    id: "COOKING",
+    label: "Cooking",
     statuses: ["PREPARING"],
     color: "#e94560",
     subLabel: "In kitchen",
@@ -28,11 +28,11 @@ const COLUMNS = [
     subLabel: "Ready for pickup",
   },
   {
-    id: "PACK",
-    label: "Pack",
+    id: "DISPATCHED",
+    label: "Dispatched",
     statuses: ["PACK"],
     color: "#64748b",
-    subLabel: "Service complete",
+    subLabel: "Sent for service",
   },
 ];
 
@@ -90,7 +90,7 @@ function OrderCard({ order, columnColor, onStatusChange, onCancel }) {
                 onClick={() => onStatusChange?.(order.id, "PREPARING")}
                 className="px-2.5 py-1 rounded text-xs font-medium bg-primary text-white hover:bg-primary-hover cursor-pointer"
               >
-                Start
+                Start Cooking
               </button>
               <button
                 type="button"
@@ -116,7 +116,7 @@ function OrderCard({ order, columnColor, onStatusChange, onCancel }) {
               onClick={() => onStatusChange?.(order.id, "PACK")}
               className="px-2.5 py-1 rounded text-xs font-medium bg-[#64748b] text-white hover:bg-[#475569] cursor-pointer"
             >
-              Pack
+              Dispatch
             </button>
           )}
           {columnColor === "#64748b" && (
@@ -125,7 +125,7 @@ function OrderCard({ order, columnColor, onStatusChange, onCancel }) {
               onClick={() => onStatusChange?.(order.id, "COMPLETED")}
               className="px-2.5 py-1 rounded text-xs font-medium bg-[#22c55e] text-white hover:bg-[#16a34a] cursor-pointer"
             >
-              Service Complete
+              Complete Order
             </button>
           )}
         </div>
@@ -143,10 +143,10 @@ export default function KDS({ data }) {
   const [cancelLoading, setCancelLoading] = useState(false);
   const [cancelError, setCancelError] = useState("");
 
-  const newCount = orders.filter((o) => ["OPEN", "CONFIRMED"].includes(o.status)).length;
-  const preparingCount = orders.filter((o) => o.status === "PREPARING").length;
+  const createdCount = orders.filter((o) => ["OPEN", "CONFIRMED"].includes(o.status)).length;
+  const cookingCount = orders.filter((o) => o.status === "PREPARING").length;
   const readyCount = orders.filter((o) => o.status === "READY").length;
-  const packCount = orders.filter((o) => o.status === "PACK").length;
+  const dispatchedCount = orders.filter((o) => o.status === "PACK").length;
 
   const getOrdersForColumn = (col) => {
     return orders.filter((o) => col.statuses.includes(o.status));
@@ -233,14 +233,14 @@ export default function KDS({ data }) {
         <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={() => setActiveFilter("PACK")}
+            onClick={() => setActiveFilter("DISPATCHED")}
             className={`px-4 py-2 rounded text-sm font-medium cursor-pointer transition-colors ${
-              activeFilter === "PACK"
+              activeFilter === "DISPATCHED"
                 ? "bg-[#64748b] text-white"
                 : "bg-white border border-color-border text-color-text-muted hover:text-color-text hover:border-color-text"
             }`}
           >
-            Pack ({packCount})
+            Dispatched ({dispatchedCount})
           </button>
           <button
             type="button"
@@ -251,7 +251,7 @@ export default function KDS({ data }) {
                 : "bg-white border border-color-border text-color-text-muted hover:text-color-text hover:border-color-text"
             }`}
           >
-            Active ({newCount + preparingCount})
+            Active ({createdCount + cookingCount})
           </button>
           <button
             type="button"
@@ -264,7 +264,7 @@ export default function KDS({ data }) {
           >
             Ready ({readyCount})
           </button>
-          <span className="text-color-text-muted text-sm">Service complete</span>
+          <span className="text-color-text-muted text-sm">Workflow: New Arrived, Cooking, Ready, Dispatched</span>
         </div>
         <div className="flex items-center gap-2">
           <button

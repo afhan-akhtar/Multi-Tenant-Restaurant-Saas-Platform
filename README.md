@@ -14,7 +14,7 @@ A full-stack SaaS platform for restaurant management with multi-tenant support. 
 ### Restaurant Admin
 - **Menu Engineering:** Categories, products with variants, add-on groups
 - **POS System:** Point of sale with cart, split payments (Cash, Stripe, PayPal), real Stripe checkout, real PayPal order/capture, receipt printing, customer selection
-- **Kitchen Display (KDS):** Order workflow (New → Preparing → Ready → Pack → Complete), cancel orders via modal
+- **Kitchen Display (KDS):** Order workflow (New Arrived → Cooking → Ready → Dispatched), cancel orders via modal
 - **Tenant Admins & Security:** Tenant admin management, roles & permissions
 - **Floor:** Dining tables management
 - **Billing:** Subscription view
