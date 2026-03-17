@@ -81,10 +81,9 @@ export default function POSPaymentModal({ open, onClose, grandTotal, cart, order
         if (!cancelled) {
           setPaymentConfig({
             currency: "EUR",
-            mockMode: false,
             providers: {
-              stripe: { enabled: false, mode: "disabled", publishableKey: null },
-              paypal: { enabled: false, mode: "disabled", clientId: null },
+              stripe: { enabled: false, publishableKey: null },
+              paypal: { enabled: false, clientId: null },
             },
           });
           setError(err.message || "Failed to load payment settings.");
@@ -293,14 +292,6 @@ export default function POSPaymentModal({ open, onClose, grandTotal, cart, order
       return { ...method, label: "PayPal (not configured)", disabled: true };
     }
 
-    if (method.id === "STRIPE" && paymentConfig?.providers?.stripe?.mode === "mock") {
-      return { ...method, label: "Stripe (test mode)", disabled: false };
-    }
-
-    if (method.id === "PAYPAL" && paymentConfig?.providers?.paypal?.mode === "mock") {
-      return { ...method, label: "PayPal (test mode)", disabled: false };
-    }
-
     return { ...method, disabled: false };
   });
 
@@ -342,7 +333,6 @@ export default function POSPaymentModal({ open, onClose, grandTotal, cart, order
               <StripePaymentSection
                 amount={providerContext.onlineProviderTotals.STRIPE}
                 currency={paymentConfig?.currency || "EUR"}
-                mode={paymentConfig?.providers?.stripe?.mode}
                 publishableKey={paymentConfig?.providers?.stripe?.publishableKey}
                 completedPayment={providerPayments.STRIPE}
                 onSuccess={registerProviderPayment}
@@ -354,7 +344,6 @@ export default function POSPaymentModal({ open, onClose, grandTotal, cart, order
                 amount={providerContext.onlineProviderTotals.PAYPAL}
                 clientId={paymentConfig?.providers?.paypal?.clientId}
                 currency={paymentConfig?.currency || "EUR"}
-                mode={paymentConfig?.providers?.paypal?.mode}
                 completedPayment={providerPayments.PAYPAL}
                 onSuccess={registerProviderPayment}
               />
@@ -511,12 +500,7 @@ export default function POSPaymentModal({ open, onClose, grandTotal, cart, order
           {configLoading ? (
             <p className="mt-2 text-xs text-color-text-muted">Loading payment provider settings…</p>
           ) : null}
-          {paymentConfig?.mockMode ? (
-            <p className="mt-2 text-xs text-color-text-muted">
-              Stripe and PayPal are running in local test mode. No real provider account is required.
-            </p>
-          ) : null}
-          {!paymentConfig?.mockMode && (!paymentConfig?.providers?.stripe?.enabled || !paymentConfig?.providers?.paypal?.enabled) ? (
+          {!paymentConfig?.providers?.stripe?.enabled || !paymentConfig?.providers?.paypal?.enabled ? (
             <p className="mt-2 text-xs text-color-text-muted">
               Online methods only appear when their API credentials are configured.
             </p>

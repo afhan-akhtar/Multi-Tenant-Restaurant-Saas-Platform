@@ -164,140 +164,20 @@ function StripeCardForm({ amount, currency, completedPayment, onSuccess }) {
   );
 }
 
-function MockStripeSection({ amount, currency, completedPayment, onSuccess }) {
-  const [intent, setIntent] = useState(null);
-  const [loadingIntent, setLoadingIntent] = useState(false);
-  const [processing, setProcessing] = useState(false);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    if (completedPayment || amount <= 0) return;
-
-    let cancelled = false;
-
-    async function createIntent() {
-      setLoadingIntent(true);
-      setError("");
-
-      try {
-        const response = await fetch("/api/payments/stripe/create-intent", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ amount }),
-        });
-        const data = await response.json().catch(() => ({}));
-
-        if (!response.ok) {
-          throw new Error(data.error || "Failed to prepare Stripe test payment.");
-        }
-
-        if (!cancelled) {
-          setIntent(data);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setError(err.message || "Failed to prepare Stripe test payment.");
-        }
-      } finally {
-        if (!cancelled) {
-          setLoadingIntent(false);
-        }
-      }
-    }
-
-    createIntent();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [amount, completedPayment]);
-
-  const handleMockCharge = async () => {
-    if (!intent?.paymentIntentId) return;
-
-    setProcessing(true);
-    setError("");
-
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      onSuccess?.({
-        method: "STRIPE",
-        amount,
-        providerRef: intent.paymentIntentId,
-      });
-    } catch (err) {
-      setError(err.message || "Stripe test payment failed.");
-    } finally {
-      setProcessing(false);
-    }
-  };
-
-  if (completedPayment) {
-    return (
-      <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4">
-        <div className="font-medium text-emerald-700">Stripe test payment captured</div>
-        <div className="mt-1 text-sm text-emerald-700">
-          Ref: <span className="font-mono">{completedPayment.providerRef}</span>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="rounded-lg border border-color-border bg-white p-4">
-      <div className="font-medium text-color-text">Stripe test mode</div>
-      <div className="mt-1 text-sm text-color-text-muted">
-        Simulate a Stripe card charge for {currency} {amount.toFixed(2)}
-      </div>
-      <div className="mt-4 rounded-lg border border-dashed border-[#635bff] bg-[#635bff]/5 p-3 text-sm text-color-text-muted">
-        No real Stripe account is needed. This creates a mock Stripe payment reference so you can test the POS flow.
-      </div>
-      {error ? <p className="mt-3 text-sm text-red-500">{error}</p> : null}
-      <button
-        type="button"
-        className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#635bff] px-4 py-2.5 font-medium text-white disabled:cursor-not-allowed disabled:opacity-60"
-        onClick={handleMockCharge}
-        disabled={!intent?.paymentIntentId || loadingIntent || processing}
-      >
-        {loadingIntent || processing ? (
-          <>
-            <Spinner size="sm" className="text-white" />
-            Processing Stripe test
-          </>
-        ) : (
-          "Simulate Stripe Success"
-        )}
-      </button>
-    </div>
-  );
-}
-
 export default function StripePaymentSection({
   amount,
   currency,
-  mode,
   publishableKey,
   completedPayment,
   onSuccess,
 }) {
   const stripePromise = useMemo(
-    () => (mode === "live" && publishableKey ? getStripePromise(publishableKey) : null),
-    [mode, publishableKey]
+    () => (publishableKey ? getStripePromise(publishableKey) : null),
+    [publishableKey]
   );
 
   if (amount <= 0) {
     return null;
-  }
-
-  if (mode === "mock") {
-    return (
-      <MockStripeSection
-        amount={amount}
-        currency={currency}
-        completedPayment={completedPayment}
-        onSuccess={onSuccess}
-      />
-    );
   }
 
   if (!publishableKey) {

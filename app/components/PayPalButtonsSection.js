@@ -44,7 +44,6 @@ export default function PayPalButtonsSection({
   amount,
   clientId,
   currency,
-  mode,
   completedPayment,
   onSuccess,
 }) {
@@ -55,7 +54,7 @@ export default function PayPalButtonsSection({
   useEffect(() => {
     const container = containerRef.current;
 
-    if (mode !== "live" || !clientId || amount <= 0 || completedPayment || !container) {
+    if (!clientId || amount <= 0 || completedPayment || !container) {
       return;
     }
 
@@ -130,7 +129,7 @@ export default function PayPalButtonsSection({
       cancelled = true;
       container.innerHTML = "";
     };
-  }, [amount, clientId, completedPayment, currency, mode, onSuccess]);
+  }, [amount, clientId, completedPayment, currency, onSuccess]);
 
   if (amount <= 0) {
     return null;
@@ -143,69 +142,6 @@ export default function PayPalButtonsSection({
         <div className="mt-1 text-sm text-emerald-700">
           Ref: <span className="font-mono">{completedPayment.providerRef}</span>
         </div>
-      </div>
-    );
-  }
-
-  if (mode === "mock") {
-    const handleMockPayPal = async () => {
-      setLoading(true);
-      setError("");
-
-      try {
-        const orderResponse = await fetch("/api/payments/paypal/create-order", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ amount }),
-        });
-        const orderData = await orderResponse.json().catch(() => ({}));
-        if (!orderResponse.ok || !orderData.orderId) {
-          throw new Error(orderData.error || "Failed to create PayPal test order.");
-        }
-
-        const captureResponse = await fetch("/api/payments/paypal/capture-order", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ orderId: orderData.orderId, amount }),
-        });
-        const captureData = await captureResponse.json().catch(() => ({}));
-        if (!captureResponse.ok || !captureData.providerPayment) {
-          throw new Error(captureData.error || "Failed to capture PayPal test payment.");
-        }
-
-        onSuccess?.(captureData.providerPayment);
-      } catch (err) {
-        setError(err.message || "PayPal test payment failed.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    return (
-      <div className="rounded-lg border border-color-border bg-white p-4">
-        <div className="font-medium text-color-text">PayPal test mode</div>
-        <div className="mt-1 text-sm text-color-text-muted">
-          Simulate a PayPal payment for {currency} {amount.toFixed(2)}
-        </div>
-        <div className="mt-4 rounded-lg border border-dashed border-[#003087] bg-[#003087]/5 p-3 text-sm text-color-text-muted">
-          No real PayPal account is needed. This creates mock PayPal order and capture references for POS testing.
-        </div>
-        <button
-          type="button"
-          className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#003087] px-4 py-2.5 font-medium text-white disabled:cursor-not-allowed disabled:opacity-60"
-          onClick={handleMockPayPal}
-          disabled={loading}
-        >
-          {loading ? (
-            <>
-              <Spinner size="sm" className="text-white" />
-              Processing PayPal test
-            </>
-          ) : (
-            "Simulate PayPal Success"
-          )}
-        </button>
-        {error ? <p className="mt-3 text-sm text-red-500">{error}</p> : null}
       </div>
     );
   }
