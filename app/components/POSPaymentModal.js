@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Spinner from "./Spinner";
+import StripePaymentSection from "./StripePaymentSection";
+import PayPalButtonsSection from "./PayPalButtonsSection";
 import { isOnline, queueOrder } from "@/lib/offline";
 
 const METHODS = [
@@ -25,29 +27,107 @@ export default function POSPaymentModal({ open, onClose, grandTotal, cart, order
   const [splits, setSplits] = useState([]);
   const [discount, setDiscount] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [configLoading, setConfigLoading] = useState(false);
+  const [paymentConfig, setPaymentConfig] = useState(null);
   const [cardDeviceStep, setCardDeviceStep] = useState(false);
   const [cardAmount, setCardAmount] = useState(0);
+  const [providerStep, setProviderStep] = useState(false);
+  const [providerContext, setProviderContext] = useState(null);
+  const [providerPayments, setProviderPayments] = useState({});
   const [error, setError] = useState("");
 
   const hasCardPayment = splits.some((s) => s.method === "CARD" && (Number(s.value) || 0) > 0);
+  const hasCapturedProviderPayments = Object.keys(providerPayments).length > 0;
 
-  const handleClose = () => {
+  const resetProviderState = () => {
+    setProviderStep(false);
+    setProviderContext(null);
+    setProviderPayments({});
+  };
+
+  const closeModal = () => {
     setCardDeviceStep(false);
+    resetProviderState();
+    setError("");
     onClose();
   };
 
+  const handleClose = () => {
+    if (providerStep && hasCapturedProviderPayments && !loading) {
+      setError("Finalize the order to record the captured online payment.");
+      return;
+    }
+
+    closeModal();
+  };
+
   useEffect(() => {
-    if (!open) setCardDeviceStep(false);
+    if (!open) {
+      setCardDeviceStep(false);
+      resetProviderState();
+      setError("");
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadPaymentConfig() {
+      setConfigLoading(true);
+      try {
+        const res = await fetch("/api/payments/config", { cache: "no-store" });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(data.error || "Failed to load payment settings.");
+        }
+
+        if (!cancelled) {
+          setPaymentConfig(data);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setPaymentConfig({
+            currency: "EUR",
+            mockMode: false,
+            providers: {
+              stripe: { enabled: false, mode: "disabled", publishableKey: null },
+              paypal: { enabled: false, mode: "disabled", clientId: null },
+            },
+          });
+          setError(err.message || "Failed to load payment settings.");
+        }
+      } finally {
+        if (!cancelled) {
+          setConfigLoading(false);
+        }
+      }
+    }
+
+    loadPaymentConfig();
+
+    return () => {
+      cancelled = true;
+    };
   }, [open]);
 
+  useEffect(() => {
+    if (!paymentConfig?.providers) return;
+
+    setSplits((prev) =>
+      prev.map((split) => {
+        if (split.method === "STRIPE" && !paymentConfig.providers.stripe?.enabled) {
+          return { ...split, method: "CASH" };
+        }
+
+        if (split.method === "PAYPAL" && !paymentConfig.providers.paypal?.enabled) {
+          return { ...split, method: "CASH" };
+        }
+
+        return split;
+      })
+    );
+  }, [paymentConfig]);
+
   const total = grandTotal - (Number(discount) || 0);
-  const allocated = splits.reduce((s, p) => {
-    const v = Number(p.value) || 0;
-    if (p.type === "amount") return s + v;
-    if (p.type === "percentage") return s + (total * v) / 100;
-    if (p.type === "quantity") return s + v;
-    return s;
-  }, 0);
 
   const quantityTotal = splits.filter((x) => x.type === "quantity").reduce((s, x) => s + (Number(x.value) || 0), 0);
   const remainingByQuantity = quantityTotal > 0 ? total - splits.filter((x) => x.type !== "quantity").reduce((s, x) => {
@@ -81,26 +161,20 @@ export default function POSPaymentModal({ open, onClose, grandTotal, cart, order
     .filter((s) => (Number(s.value) || 0) > 0)
     .map((s) => ({
       method: s.method,
-      type: s.type,
-      value: s.type === "amount" ? getSplitAmount(s) : Number(s.value) || 0,
+      type: "amount",
+      value: round2(getSplitAmount(s)),
     }));
-
-  const splitTotal = resolvedSplits.reduce((s, p) => s + (p.type === "amount" ? p.value : p.type === "percentage" ? (total * p.value) / 100 : remainingByQuantity > 0 ? (remainingByQuantity * p.value) / quantityTotal : 0), 0);
 
   const payFull = () => {
     setSplits([{ method: "CASH", type: "amount", value: String(total) }]);
   };
 
   const buildPayload = () => {
-    const p = splits
-      .filter((s) => (Number(s.value) || 0) > 0)
-      .map((s) => ({
-        method: s.method,
-        type: s.type,
-        value: s.type === "amount" ? getSplitAmount(s) : Number(s.value) || 0,
-      }));
-    if (p.length === 0) p.push({ method: "CASH", type: "amount", value: total });
-    return p;
+    if (resolvedSplits.length === 0) {
+      return [{ method: "CASH", type: "amount", value: round2(total) }];
+    }
+
+    return resolvedSplits;
   };
 
   const getCardAmount = () =>
@@ -113,6 +187,63 @@ export default function POSPaymentModal({ open, onClose, grandTotal, cart, order
     setCardAmount(getCardAmount());
   };
 
+  const buildCheckoutPayload = (payload, offline) => ({
+    items: cart.map((i) => ({
+      productId: i.productId,
+      quantity: i.quantity,
+      addonItemIds: Array.isArray(i.addons) ? i.addons.map((a) => a.id) : [],
+    })),
+    orderType: orderType || "TAKEAWAY",
+    orderNumber: offline ? undefined : orderNumber,
+    customerId: customerId || null,
+    splits: payload,
+    discountAmount: Number(discount) || 0,
+  });
+
+  const getOnlineProviderTotals = (payload) =>
+    payload.reduce(
+      (totals, split) => {
+        if (split.method === "STRIPE") totals.STRIPE = round2(totals.STRIPE + (Number(split.value) || 0));
+        if (split.method === "PAYPAL") totals.PAYPAL = round2(totals.PAYPAL + (Number(split.value) || 0));
+        return totals;
+      },
+      { STRIPE: 0, PAYPAL: 0 }
+    );
+
+  const submitCheckout = async ({ checkoutPayload, offline, providerPaymentList = [] }) => {
+    setError("");
+    setLoading(true);
+
+    try {
+      if (offline) {
+        const queuedId = await queueOrder(checkoutPayload);
+        if (queuedId == null) {
+          setError("Offline storage unavailable (e.g. private browsing). Please go online or try a different browser.");
+          return;
+        }
+        onSuccess?.({ queued: true, localOrderNumber: orderNumber });
+        closeModal();
+      } else {
+        const res = await fetch("/api/pos/checkout", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...checkoutPayload,
+            providerPayments: providerPaymentList,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Checkout failed");
+        onSuccess?.(data);
+        closeModal();
+      }
+    } catch (err) {
+      setError(err.message || "Payment failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = async () => {
     const payload = buildPayload();
 
@@ -122,57 +253,171 @@ export default function POSPaymentModal({ open, onClose, grandTotal, cart, order
     }
 
     const offline = !isOnline();
-    const hasOnlineOnlyPayment = payload.some((s) => s.method === "STRIPE" || s.method === "PAYPAL");
+    const onlineProviderTotals = getOnlineProviderTotals(payload);
+    const hasOnlineOnlyPayment = onlineProviderTotals.STRIPE > 0 || onlineProviderTotals.PAYPAL > 0;
     if (offline && hasOnlineOnlyPayment) {
       setError("Stripe and PayPal require internet. Use Cash or Card (device) when offline.");
       return;
     }
 
-    setError("");
-    setLoading(true);
-    try {
-      const checkoutPayload = {
-        items: cart.map((i) => ({
-          productId: i.productId,
-          quantity: i.quantity,
-          addonItemIds: Array.isArray(i.addons) ? i.addons.map((a) => a.id) : [],
-        })),
-        orderType: orderType || "TAKEAWAY",
-        orderNumber: offline ? undefined : orderNumber,
-        customerId: customerId || null,
-        splits: payload,
-        discountAmount: Number(discount) || 0,
-      };
-
-      if (offline) {
-        const queuedId = await queueOrder(checkoutPayload);
-        if (queuedId == null) {
-          setError("Offline storage unavailable (e.g. private browsing). Please go online or try a different browser.");
-          return;
-        }
-        onSuccess?.({ queued: true, localOrderNumber: orderNumber });
-        handleClose();
-      } else {
-        const res = await fetch("/api/pos/checkout", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(checkoutPayload),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Checkout failed");
-        onSuccess?.(data);
-        handleClose();
-      }
-    } catch (err) {
-      setError(err.message || "Payment failed");
-    } finally {
-      setLoading(false);
+    if (onlineProviderTotals.STRIPE > 0 && !paymentConfig?.providers?.stripe?.enabled) {
+      setError("Stripe is not configured. Add the Stripe API keys to enable this payment method.");
+      return;
     }
+
+    if (onlineProviderTotals.PAYPAL > 0 && !paymentConfig?.providers?.paypal?.enabled) {
+      setError("PayPal is not configured. Add the PayPal API credentials to enable this payment method.");
+      return;
+    }
+
+    const checkoutPayload = buildCheckoutPayload(payload, offline);
+
+    if (!offline && hasOnlineOnlyPayment) {
+      setError("");
+      setCardDeviceStep(false);
+      setProviderPayments({});
+      setProviderContext({
+        checkoutPayload,
+        onlineProviderTotals,
+      });
+      setProviderStep(true);
+      return;
+    }
+
+    await submitCheckout({ checkoutPayload, offline });
+  };
+
+  const registerProviderPayment = (payment) => {
+    setError("");
+    setProviderPayments((prev) => ({
+      ...prev,
+      [payment.method]: payment,
+    }));
   };
 
   const remaining = round2(total - splits.reduce((s, p) => s + getSplitAmount(p), 0));
+  const providerMethodsRequired = Object.entries(providerContext?.onlineProviderTotals || {})
+    .filter(([, amount]) => amount > 0)
+    .map(([method]) => method);
+  const allProvidersComplete =
+    providerMethodsRequired.length > 0 &&
+    providerMethodsRequired.every((method) => providerPayments[method]?.providerRef);
+  const methodOptions = METHODS.map((method) => {
+    if (method.id === "STRIPE" && !paymentConfig?.providers?.stripe?.enabled) {
+      return { ...method, label: "Stripe (not configured)", disabled: true };
+    }
+
+    if (method.id === "PAYPAL" && !paymentConfig?.providers?.paypal?.enabled) {
+      return { ...method, label: "PayPal (not configured)", disabled: true };
+    }
+
+    if (method.id === "STRIPE" && paymentConfig?.providers?.stripe?.mode === "mock") {
+      return { ...method, label: "Stripe (test mode)", disabled: false };
+    }
+
+    if (method.id === "PAYPAL" && paymentConfig?.providers?.paypal?.mode === "mock") {
+      return { ...method, label: "PayPal (test mode)", disabled: false };
+    }
+
+    return { ...method, disabled: false };
+  });
 
   if (!open) return null;
+
+  if (providerStep && providerContext) {
+    return (
+      <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4" onClick={handleClose}>
+        <div
+          className="bg-white rounded-xl max-w-[560px] w-full max-h-[90vh] overflow-hidden flex flex-col shadow-xl"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="py-4 px-6 border-b border-color-border font-semibold text-[1.1rem]">
+            Complete online payment
+          </div>
+          <div className="py-4 px-6 overflow-y-auto flex-1 space-y-4">
+            <div className="rounded-lg bg-color-bg p-4 text-sm">
+              <div className="flex justify-between">
+                <span>Total order</span>
+                <span className="font-semibold">
+                  {paymentConfig?.currency || "EUR"} {total.toFixed(2)}
+                </span>
+              </div>
+              {providerContext.onlineProviderTotals.STRIPE > 0 ? (
+                <div className="mt-2 flex justify-between">
+                  <span>Stripe</span>
+                  <span>{paymentConfig?.currency || "EUR"} {providerContext.onlineProviderTotals.STRIPE.toFixed(2)}</span>
+                </div>
+              ) : null}
+              {providerContext.onlineProviderTotals.PAYPAL > 0 ? (
+                <div className="mt-2 flex justify-between">
+                  <span>PayPal</span>
+                  <span>{paymentConfig?.currency || "EUR"} {providerContext.onlineProviderTotals.PAYPAL.toFixed(2)}</span>
+                </div>
+              ) : null}
+            </div>
+
+            {providerContext.onlineProviderTotals.STRIPE > 0 ? (
+              <StripePaymentSection
+                amount={providerContext.onlineProviderTotals.STRIPE}
+                currency={paymentConfig?.currency || "EUR"}
+                mode={paymentConfig?.providers?.stripe?.mode}
+                publishableKey={paymentConfig?.providers?.stripe?.publishableKey}
+                completedPayment={providerPayments.STRIPE}
+                onSuccess={registerProviderPayment}
+              />
+            ) : null}
+
+            {providerContext.onlineProviderTotals.PAYPAL > 0 ? (
+              <PayPalButtonsSection
+                amount={providerContext.onlineProviderTotals.PAYPAL}
+                clientId={paymentConfig?.providers?.paypal?.clientId}
+                currency={paymentConfig?.currency || "EUR"}
+                mode={paymentConfig?.providers?.paypal?.mode}
+                completedPayment={providerPayments.PAYPAL}
+                onSuccess={registerProviderPayment}
+              />
+            ) : null}
+
+            {error ? <p className="text-sm text-red-500">{error}</p> : null}
+          </div>
+          <div className="py-4 px-6 border-t border-color-border flex gap-3 justify-end">
+            <button
+              type="button"
+              className="py-2.5 px-5 rounded-lg font-medium border border-color-border bg-white text-color-text hover:bg-color-bg"
+              onClick={() => {
+                resetProviderState();
+                setError("");
+              }}
+              disabled={hasCapturedProviderPayments || loading}
+            >
+              Back
+            </button>
+            <button
+              type="button"
+              className="py-2.5 px-5 rounded-lg font-medium bg-primary text-white disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2"
+              onClick={() =>
+                submitCheckout({
+                  checkoutPayload: providerContext.checkoutPayload,
+                  offline: false,
+                  providerPaymentList: Object.values(providerPayments),
+                })
+              }
+              disabled={!allProvidersComplete || loading}
+            >
+              {loading ? (
+                <>
+                  <Spinner size="sm" className="text-white" />
+                  Finalizing…
+                </>
+              ) : (
+                "Finalize Order"
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (cardDeviceStep) {
     return (
@@ -273,8 +518,10 @@ export default function POSPaymentModal({ open, onClose, grandTotal, cart, order
                   value={s.method}
                   onChange={(e) => updateSplit(idx, "method", e.target.value)}
                 >
-                  {METHODS.map((m) => (
-                    <option key={m.id} value={m.id}>{m.label}</option>
+                  {methodOptions.map((m) => (
+                    <option key={m.id} value={m.id} disabled={m.disabled}>
+                      {m.label}
+                    </option>
                   ))}
                 </select>
                 <select
@@ -323,6 +570,19 @@ export default function POSPaymentModal({ open, onClose, grandTotal, cart, order
           )}
 
           {error && <p className="mt-3 text-sm text-red-500">{error}</p>}
+          {configLoading ? (
+            <p className="mt-2 text-xs text-color-text-muted">Loading payment provider settings…</p>
+          ) : null}
+          {paymentConfig?.mockMode ? (
+            <p className="mt-2 text-xs text-color-text-muted">
+              Stripe and PayPal are running in local test mode. No real provider account is required.
+            </p>
+          ) : null}
+          {!paymentConfig?.mockMode && (!paymentConfig?.providers?.stripe?.enabled || !paymentConfig?.providers?.paypal?.enabled) ? (
+            <p className="mt-2 text-xs text-color-text-muted">
+              Online methods only appear when their API credentials are configured.
+            </p>
+          ) : null}
         </div>
 
         <div className="py-4 px-6 border-t border-color-border flex gap-3 justify-end">
@@ -337,7 +597,7 @@ export default function POSPaymentModal({ open, onClose, grandTotal, cart, order
             type="button"
             className="py-2.5 px-5 rounded-lg font-medium bg-primary text-white disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2"
             onClick={handleSubmit}
-            disabled={loading || (splits.length > 0 && Math.abs(remaining) > 0.02) || total <= 0}
+            disabled={loading || configLoading || (splits.length > 0 && Math.abs(remaining) > 0.02) || total <= 0}
           >
             {loading ? (
               <>

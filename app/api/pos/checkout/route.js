@@ -5,6 +5,9 @@ import { recordCashSale } from "@/lib/cashbook";
 import { signAndStoreOrder, signAndStorePayment, getOrderTseData, isOrderTseQueued } from "@/lib/tse/db";
 import { sendToFiscalPrinter } from "@/lib/tse/fiscalPrinter";
 import { getTenantTaxInfo } from "@/lib/tse/org";
+import { verifyPosPaymentIntent } from "@/lib/payments/stripe";
+import { verifyCapturedPayPalOrder } from "@/lib/payments/paypal";
+import { roundMoney } from "@/lib/payments/config";
 import { NextResponse } from "next/server";
 
 function toNum(d) {
@@ -12,6 +15,17 @@ function toNum(d) {
 }
 
 const PAYMENT_METHODS = ["CASH", "STRIPE", "PAYPAL", "CARD"];
+
+function aggregatePaymentsByMethod(payments) {
+  const grouped = new Map();
+
+  for (const payment of payments) {
+    const current = grouped.get(payment.method) || 0;
+    grouped.set(payment.method, roundMoney(current + payment.amount));
+  }
+
+  return Array.from(grouped.entries()).map(([method, amount]) => ({ method, amount }));
+}
 
 /**
  * Resolve payment splits to amounts. Splits: [{ method, type: "amount"|"percentage"|"quantity", value }]
@@ -56,7 +70,7 @@ function resolveSplits(splits, grandTotal) {
     resolved[0].amount = Math.round((resolved[0].amount + remaining) * 100) / 100;
   }
 
-  return resolved.filter((r) => r.amount > 0);
+  return aggregatePaymentsByMethod(resolved.filter((r) => r.amount > 0));
 }
 
 export async function POST(request) {
@@ -78,6 +92,7 @@ export async function POST(request) {
       orderNumber: clientOrderNumber,
       splits,
       discountAmount = 0,
+      providerPayments = [],
     } = body;
 
     const tenantId = token.tenantId ?? null;
@@ -215,6 +230,70 @@ export async function POST(request) {
       );
     }
 
+    const submittedProviderPayments = new Map(
+      (Array.isArray(providerPayments) ? providerPayments : [])
+        .map((payment) => [String(payment?.method || "").toUpperCase(), payment])
+        .filter(([method]) => method === "STRIPE" || method === "PAYPAL")
+    );
+    const verifiedProviderRefs = new Map();
+
+    for (const split of paymentSplits) {
+      if (split.method === "STRIPE") {
+        const payment = submittedProviderPayments.get("STRIPE");
+        const paymentIntentId = String(payment?.providerRef || "").trim();
+
+        if (!paymentIntentId) {
+          return NextResponse.json(
+            { error: "Stripe payment must be completed before checkout." },
+            { status: 400 }
+          );
+        }
+
+        const paymentIntent = await verifyPosPaymentIntent({
+          paymentIntentId,
+          expectedAmount: split.amount,
+          tenantId,
+          branchId,
+          staffId,
+        });
+
+        verifiedProviderRefs.set("STRIPE", paymentIntent.id);
+      }
+
+      if (split.method === "PAYPAL") {
+        const payment = submittedProviderPayments.get("PAYPAL");
+        const captureId = String(payment?.providerRef || "").trim();
+        const orderId = String(payment?.paypalOrderId || "").trim();
+
+        if (!captureId || !orderId) {
+          return NextResponse.json(
+            { error: "PayPal payment must be completed before checkout." },
+            { status: 400 }
+          );
+        }
+
+        const { capture } = await verifyCapturedPayPalOrder({
+          orderId,
+          captureId,
+          expectedAmount: split.amount,
+          tenantId,
+          branchId,
+          staffId,
+        });
+
+        verifiedProviderRefs.set("PAYPAL", capture.id);
+      }
+    }
+
+    for (const method of submittedProviderPayments.keys()) {
+      if (!paymentSplits.some((split) => split.method === method)) {
+        return NextResponse.json(
+          { error: `${method} confirmation does not match the current payment splits.` },
+          { status: 400 }
+        );
+      }
+    }
+
     const order = await prisma.order.create({
       data: {
         tenantId,
@@ -238,20 +317,17 @@ export async function POST(request) {
     });
 
     for (const split of paymentSplits) {
+      const providerRef =
+        verifiedProviderRefs.get(split.method) ||
+        (split.method === "CARD" ? `card_device_${Date.now()}` : null);
+
       await prisma.payment.create({
         data: {
           orderId: order.id,
           method: split.method,
           status: "COMPLETED",
           amount: split.amount,
-          providerRef:
-            split.method === "STRIPE"
-              ? `stripe_${Date.now()}`
-              : split.method === "PAYPAL"
-              ? `paypal_${Date.now()}`
-              : split.method === "CARD"
-              ? `card_device_${Date.now()}`
-              : null,
+          providerRef,
         },
       });
 

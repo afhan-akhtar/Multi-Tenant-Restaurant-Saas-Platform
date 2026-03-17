@@ -13,7 +13,7 @@ A full-stack SaaS platform for restaurant management with multi-tenant support. 
 
 ### Restaurant Admin
 - **Menu Engineering:** Categories, products with variants, add-on groups
-- **POS System:** Point of sale with cart, split payments (Cash, Stripe, PayPal, Card), receipt printing, customer selection
+- **POS System:** Point of sale with cart, split payments (Cash, Stripe, PayPal, Card), real Stripe card capture, real PayPal order/capture, receipt printing, customer selection
 - **Kitchen Display (KDS):** Order workflow (New → Preparing → Ready → Pack → Complete), cancel orders via modal
 - **Tenant Admins & Security:** Tenant admin management, roles & permissions
 - **Floor:** Dining tables management
@@ -134,6 +134,14 @@ DATABASE_URL="postgresql://user:password@localhost:5432/restaurant_saas"
 NEXTAUTH_URL="http://localhost:3000"
 NEXTAUTH_SECRET="your-secret-here"
 
+# POS Payments (optional, but required for Stripe/PayPal checkout)
+PAYMENTS_CURRENCY="EUR"
+STRIPE_SECRET_KEY=""
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=""
+PAYPAL_ENV="sandbox"
+PAYPAL_CLIENT_ID=""
+PAYPAL_CLIENT_SECRET=""
+
 # Fiskaly TSE (German KassenSichV compliance) – see lib/tse/README.md
 # FISKALY_API_KEY=
 # FISKALY_API_SECRET=
@@ -144,6 +152,17 @@ Generate a secure `NEXTAUTH_SECRET`:
 ```bash
 openssl rand -base64 32
 ```
+
+### Payment Provider Setup
+
+Stripe and PayPal are now fully wired into the POS flow instead of being saved as placeholder payment labels.
+
+- **Stripe:** add `STRIPE_SECRET_KEY` and `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
+- **PayPal:** add `PAYPAL_CLIENT_ID` and `PAYPAL_CLIENT_SECRET`
+- **Currency:** set `PAYMENTS_CURRENCY` (defaults to `EUR`)
+- **Sandbox vs live:** set `PAYPAL_ENV=sandbox` for testing or `PAYPAL_ENV=live` in production
+
+When provider credentials are missing, the POS automatically disables the related payment option and continues to allow Cash/Card checkout.
 
 ### 3. Database Setup
 
@@ -203,6 +222,10 @@ Restaurant Admin redirects to `/demo` after login.
 | `/api/auth/[...nextauth]` | NextAuth handlers |
 | `/api/pos/order` | Create/fetch POS order |
 | `/api/pos/checkout` | Checkout & payments |
+| `/api/payments/config` | POS payment provider availability |
+| `/api/payments/stripe/create-intent` | Create Stripe payment intent for POS |
+| `/api/payments/paypal/create-order` | Create PayPal order for POS |
+| `/api/payments/paypal/capture-order` | Capture approved PayPal POS order |
 | `/api/kds/order` | KDS order status update |
 | `/api/orders/cancel` | Cancel order |
 | `/api/products` | Products CRUD |
