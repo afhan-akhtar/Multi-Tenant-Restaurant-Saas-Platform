@@ -274,6 +274,8 @@ export default function POSPaymentModal({ open, onClose, grandTotal, cart, order
         onlineProviderTotals,
         stripeCheckoutSessionId:
           onlineProviderTotals.STRIPE > 0 ? createCheckoutSessionId() : null,
+        paypalCheckoutSessionId:
+          onlineProviderTotals.PAYPAL > 0 ? createCheckoutSessionId() : null,
       });
       setProviderStep(true);
       return;
@@ -360,6 +362,7 @@ export default function POSPaymentModal({ open, onClose, grandTotal, cart, order
                 amount={providerContext.onlineProviderTotals.PAYPAL}
                 clientId={paymentConfig?.providers?.paypal?.clientId}
                 currency={paymentConfig?.currency || "EUR"}
+                checkoutSessionId={providerContext.paypalCheckoutSessionId}
                 completedPayment={providerPayments.PAYPAL}
                 onSuccess={registerProviderPayment}
               />

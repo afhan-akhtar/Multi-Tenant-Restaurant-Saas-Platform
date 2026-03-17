@@ -268,8 +268,9 @@ export async function POST(request) {
         const payment = submittedProviderPayments.get("PAYPAL");
         const captureId = String(payment?.providerRef || "").trim();
         const orderId = String(payment?.paypalOrderId || "").trim();
+        const checkoutSessionId = String(payment?.checkoutSessionId || "").trim();
 
-        if (!captureId || !orderId) {
+        if (!captureId || !orderId || !checkoutSessionId) {
           return NextResponse.json(
             { error: "PayPal payment must be completed before checkout." },
             { status: 400 }
@@ -283,6 +284,7 @@ export async function POST(request) {
           tenantId,
           branchId,
           staffId,
+          checkoutSessionId,
         });
 
         verifiedProviderRefs.set("PAYPAL", capture.id);

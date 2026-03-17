@@ -2,6 +2,7 @@ import { getToken } from "next-auth/jwt";
 import { prisma } from "@/lib/db";
 import { signAndStoreCancellation } from "@/lib/tse/db";
 import { refundPosPaymentIntent } from "@/lib/payments/stripe";
+import { refundPayPalCapture } from "@/lib/payments/paypal";
 import { NextResponse } from "next/server";
 
 /**
@@ -44,6 +45,10 @@ export async function POST(request) {
     for (const payment of order.payments || []) {
       if (payment.method === "STRIPE" && payment.providerRef && payment.status !== "REFUNDED") {
         await refundPosPaymentIntent(payment.providerRef);
+      }
+
+      if (payment.method === "PAYPAL" && payment.providerRef && payment.status !== "REFUNDED") {
+        await refundPayPalCapture(payment.providerRef);
       }
     }
 

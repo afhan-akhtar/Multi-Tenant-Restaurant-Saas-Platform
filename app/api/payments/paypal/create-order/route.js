@@ -24,9 +24,14 @@ export async function POST(request) {
 
     const body = await request.json();
     const amount = roundMoney(body?.amount);
+    const checkoutSessionId = String(body?.checkoutSessionId || "").trim();
 
     if (!amount || amount <= 0) {
       return NextResponse.json({ error: "A positive PayPal amount is required." }, { status: 400 });
+    }
+
+    if (!checkoutSessionId) {
+      return NextResponse.json({ error: "PayPal checkout session ID is required." }, { status: 400 });
     }
 
     const order = await createPosPayPalOrder({
@@ -34,6 +39,7 @@ export async function POST(request) {
       tenantId,
       branchId,
       staffId,
+      checkoutSessionId,
     });
 
     return NextResponse.json({ orderId: order.id });

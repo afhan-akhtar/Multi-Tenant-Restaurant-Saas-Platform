@@ -44,6 +44,7 @@ export default function PayPalButtonsSection({
   amount,
   clientId,
   currency,
+  checkoutSessionId,
   completedPayment,
   onSuccess,
 }) {
@@ -81,7 +82,7 @@ export default function PayPalButtonsSection({
               const response = await fetch("/api/payments/paypal/create-order", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ amount }),
+                body: JSON.stringify({ amount, checkoutSessionId }),
               });
               const data = await response.json().catch(() => ({}));
 
@@ -103,7 +104,10 @@ export default function PayPalButtonsSection({
                 throw new Error(result.error || "Failed to capture PayPal payment.");
               }
 
-              onSuccess?.(result.providerPayment);
+              onSuccess?.({
+                ...result.providerPayment,
+                checkoutSessionId,
+              });
             },
             onError: (sdkError) => {
               const message =
@@ -129,7 +133,7 @@ export default function PayPalButtonsSection({
       cancelled = true;
       container.innerHTML = "";
     };
-  }, [amount, clientId, completedPayment, currency, onSuccess]);
+  }, [amount, clientId, completedPayment, currency, checkoutSessionId, onSuccess]);
 
   if (amount <= 0) {
     return null;
