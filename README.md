@@ -13,7 +13,7 @@ A full-stack SaaS platform for restaurant management with multi-tenant support. 
 
 ### Restaurant Admin
 - **Menu Engineering:** Categories, products with variants, add-on groups
-- **POS System:** Point of sale with cart, split payments (Cash, Stripe, PayPal, Card), real Stripe card capture, real PayPal order/capture, receipt printing, customer selection
+- **POS System:** Point of sale with cart, split payments (Cash, Stripe, PayPal), real Stripe checkout, real PayPal order/capture, receipt printing, customer selection
 - **Kitchen Display (KDS):** Order workflow (New → Preparing → Ready → Pack → Complete), cancel orders via modal
 - **Tenant Admins & Security:** Tenant admin management, roles & permissions
 - **Floor:** Dining tables management
@@ -27,7 +27,7 @@ A full-stack SaaS platform for restaurant management with multi-tenant support. 
 - **Auto-sync:** Queued orders sync automatically when connection is restored
 - **Conflict resolution:** Server assigns order numbers on sync; failed syncs can be retried
 - **Offline indicator:** UI badge shows connection status and queued count
-- **Offline payments:** Cash and Card (device) only when offline; Stripe/PayPal require network
+- **Offline payments:** Cash only when offline; Stripe/PayPal require network
 
 #### How Offline Mode Works (Technical)
 

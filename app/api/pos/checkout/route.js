@@ -14,7 +14,7 @@ function toNum(d) {
   return d ? Number(d) : 0;
 }
 
-const PAYMENT_METHODS = ["CASH", "STRIPE", "PAYPAL", "CARD"];
+const PAYMENT_METHODS = ["CASH", "STRIPE", "PAYPAL"];
 
 function aggregatePaymentsByMethod(payments) {
   const grouped = new Map();
@@ -317,9 +317,7 @@ export async function POST(request) {
     });
 
     for (const split of paymentSplits) {
-      const providerRef =
-        verifiedProviderRefs.get(split.method) ||
-        (split.method === "CARD" ? `card_device_${Date.now()}` : null);
+      const providerRef = verifiedProviderRefs.get(split.method) || null;
 
       await prisma.payment.create({
         data: {

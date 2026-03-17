@@ -8,7 +8,6 @@ import { isOnline, queueOrder } from "@/lib/offline";
 
 const METHODS = [
   { id: "CASH", label: "Cash", color: "#22c55e" },
-  { id: "CARD", label: "Card (Device)", color: "#64748b" },
   { id: "STRIPE", label: "Stripe", color: "#635bff" },
   { id: "PAYPAL", label: "PayPal", color: "#003087" },
 ];
@@ -29,14 +28,11 @@ export default function POSPaymentModal({ open, onClose, grandTotal, cart, order
   const [loading, setLoading] = useState(false);
   const [configLoading, setConfigLoading] = useState(false);
   const [paymentConfig, setPaymentConfig] = useState(null);
-  const [cardDeviceStep, setCardDeviceStep] = useState(false);
-  const [cardAmount, setCardAmount] = useState(0);
   const [providerStep, setProviderStep] = useState(false);
   const [providerContext, setProviderContext] = useState(null);
   const [providerPayments, setProviderPayments] = useState({});
   const [error, setError] = useState("");
 
-  const hasCardPayment = splits.some((s) => s.method === "CARD" && (Number(s.value) || 0) > 0);
   const hasCapturedProviderPayments = Object.keys(providerPayments).length > 0;
 
   const resetProviderState = () => {
@@ -46,7 +42,6 @@ export default function POSPaymentModal({ open, onClose, grandTotal, cart, order
   };
 
   const closeModal = () => {
-    setCardDeviceStep(false);
     resetProviderState();
     setError("");
     onClose();
@@ -63,7 +58,6 @@ export default function POSPaymentModal({ open, onClose, grandTotal, cart, order
 
   useEffect(() => {
     if (!open) {
-      setCardDeviceStep(false);
       resetProviderState();
       setError("");
       return;
@@ -114,6 +108,10 @@ export default function POSPaymentModal({ open, onClose, grandTotal, cart, order
 
     setSplits((prev) =>
       prev.map((split) => {
+        if (split.method === "CARD") {
+          return { ...split, method: "CASH" };
+        }
+
         if (split.method === "STRIPE" && !paymentConfig.providers.stripe?.enabled) {
           return { ...split, method: "CASH" };
         }
@@ -177,16 +175,6 @@ export default function POSPaymentModal({ open, onClose, grandTotal, cart, order
     return resolvedSplits;
   };
 
-  const getCardAmount = () =>
-    splits
-      .filter((s) => s.method === "CARD" && (Number(s.value) || 0) > 0)
-      .reduce((sum, s) => sum + getSplitAmount(s), 0);
-
-  const handleConfirmCardDevice = () => {
-    setCardDeviceStep(true);
-    setCardAmount(getCardAmount());
-  };
-
   const buildCheckoutPayload = (payload, offline) => ({
     items: cart.map((i) => ({
       productId: i.productId,
@@ -247,16 +235,11 @@ export default function POSPaymentModal({ open, onClose, grandTotal, cart, order
   const handleSubmit = async () => {
     const payload = buildPayload();
 
-    if (hasCardPayment && !cardDeviceStep) {
-      handleConfirmCardDevice();
-      return;
-    }
-
     const offline = !isOnline();
     const onlineProviderTotals = getOnlineProviderTotals(payload);
     const hasOnlineOnlyPayment = onlineProviderTotals.STRIPE > 0 || onlineProviderTotals.PAYPAL > 0;
     if (offline && hasOnlineOnlyPayment) {
-      setError("Stripe and PayPal require internet. Use Cash or Card (device) when offline.");
+      setError("Stripe and PayPal require internet. Use Cash when offline.");
       return;
     }
 
@@ -274,7 +257,6 @@ export default function POSPaymentModal({ open, onClose, grandTotal, cart, order
 
     if (!offline && hasOnlineOnlyPayment) {
       setError("");
-      setCardDeviceStep(false);
       setProviderPayments({});
       setProviderContext({
         checkoutPayload,
@@ -411,50 +393,6 @@ export default function POSPaymentModal({ open, onClose, grandTotal, cart, order
                 </>
               ) : (
                 "Finalize Order"
-              )}
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (cardDeviceStep) {
-    return (
-      <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4" onClick={handleClose}>
-        <div
-          className="bg-white rounded-xl max-w-[400px] w-full p-6 shadow-xl"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="text-center mb-6">
-            <div className="text-4xl mb-3">💳</div>
-            <h3 className="font-semibold text-lg mb-2">Card reader</h3>
-            <p className="text-color-text-muted text-sm mb-4">
-              Present card to device (tap, insert, or swipe)
-            </p>
-            <div className="text-2xl font-bold text-primary">€{cardAmount.toFixed(2)}</div>
-          </div>
-          <div className="flex gap-3">
-            <button
-              type="button"
-              className="flex-1 py-2.5 rounded-lg font-medium border border-color-border bg-white"
-              onClick={() => setCardDeviceStep(false)}
-            >
-              Back
-            </button>
-            <button
-              type="button"
-              className="flex-1 py-2.5 rounded-lg font-medium bg-primary text-white"
-              onClick={handleSubmit}
-              disabled={loading}
-            >
-              {loading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <Spinner size="sm" className="text-white" />
-                  Processing…
-                </span>
-              ) : (
-                "Card payment complete"
               )}
             </button>
           </div>
@@ -604,8 +542,6 @@ export default function POSPaymentModal({ open, onClose, grandTotal, cart, order
                 <Spinner size="sm" className="text-white" />
                 Processing…
               </>
-            ) : hasCardPayment ? (
-              "Proceed to card reader"
             ) : (
               "Confirm Payment"
             )}
