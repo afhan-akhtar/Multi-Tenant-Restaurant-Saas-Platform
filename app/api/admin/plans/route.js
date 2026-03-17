@@ -1,6 +1,7 @@
 import { getToken } from "next-auth/jwt";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { parsePlanPayload } from "@/lib/subscriptionPlans";
 
 // POST /api/admin/plans - Create subscription plan (Super Admin only)
 export async function POST(req) {
@@ -14,7 +15,7 @@ export async function POST(req) {
     }
 
     const body = await req.json();
-    const { name, monthlyPrice, commissionPercent } = body;
+    const { name, monthlyPrice, commissionPercent, features } = parsePlanPayload(body);
 
     if (!name?.trim() || monthlyPrice == null || commissionPercent == null) {
       return NextResponse.json(
@@ -37,7 +38,7 @@ export async function POST(req) {
         name: name.trim(),
         monthlyPrice: price,
         commissionPercent: commission,
-        features: {},
+        features,
       },
     });
 
@@ -48,6 +49,7 @@ export async function POST(req) {
         name: plan.name,
         monthlyPrice: Number(plan.monthlyPrice),
         commissionPercent: Number(plan.commissionPercent),
+        features,
       },
     });
   } catch (err) {

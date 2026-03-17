@@ -45,15 +45,28 @@ export async function POST(req) {
     const endDate = new Date();
     endDate.setMonth(endDate.getMonth() + 1);
 
-    const sub = await prisma.tenantSubscription.create({
-      data: {
-        tenantId: tenant.id,
-        planId: plan.id,
-        status: "ACTIVE",
-        startDate,
-        endDate,
-      },
-      include: { tenant: true, plan: true },
+    const sub = await prisma.$transaction(async (tx) => {
+      await tx.tenantSubscription.updateMany({
+        where: {
+          tenantId: tenant.id,
+          status: "ACTIVE",
+        },
+        data: {
+          status: "CANCELLED",
+          endDate: startDate,
+        },
+      });
+
+      return tx.tenantSubscription.create({
+        data: {
+          tenantId: tenant.id,
+          planId: plan.id,
+          status: "ACTIVE",
+          startDate,
+          endDate,
+        },
+        include: { tenant: true, plan: true },
+      });
     });
 
     return NextResponse.json({
