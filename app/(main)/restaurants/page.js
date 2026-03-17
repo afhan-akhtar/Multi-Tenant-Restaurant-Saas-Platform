@@ -12,7 +12,7 @@ export default async function RestaurantsPage() {
 
   const tenants = await prisma.tenant.findMany({
     orderBy: [{ status: "asc" }, { name: "asc" }],
-    include: { _count: { select: { orders: true, staff: true } } },
+    include: { _count: { select: { orders: true, tenantAdmins: true } } },
   });
 
   return (

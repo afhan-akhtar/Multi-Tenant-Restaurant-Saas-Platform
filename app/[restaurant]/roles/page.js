@@ -11,7 +11,7 @@ export default async function RolesPage() {
 
   const roles = await prisma.role.findMany({
     where: { tenantId },
-    include: { _count: { select: { staff: true } } },
+    include: { _count: { select: { tenantAdmins: true } } },
     orderBy: { name: "asc" },
   });
 
@@ -31,7 +31,7 @@ export default async function RolesPage() {
               {roles.map((r) => (
                 <tr key={r.id} className="border-b border-slate-100 last:border-0">
                   <td className="py-3 px-4">{r.name}</td>
-                  <td className="py-3 px-4" data-align="right">{r._count.staff}</td>
+                  <td className="py-3 px-4" data-align="right">{r._count.tenantAdmins}</td>
                 </tr>
               ))}
             </tbody>

@@ -88,7 +88,7 @@ export async function POST(req) {
         },
       });
 
-      const staff = await tx.staff.create({
+      const tenantAdmin = await tx.tenantAdmin.create({
         data: {
           tenantId: tenant.id,
           branchId: branch.id,
@@ -100,7 +100,7 @@ export async function POST(req) {
         },
       });
 
-      return { tenant, branch, role, staff };
+      return { tenant, branch, role, tenantAdmin };
     });
 
     return NextResponse.json({

@@ -186,7 +186,7 @@ export default function RestaurantsManagement({ tenants: initialTenants, basePat
                     <td className="py-2 px-3">{t.name}</td>
                     <td className="py-2 px-3">{t.subdomain}</td>
                     <td className="py-2 px-3">{t.country || "—"}</td>
-                    <td className="py-2 px-3">{t._count?.staff ?? 0}</td>
+                    <td className="py-2 px-3">{t._count?.tenantAdmins ?? 0}</td>
                     <td className="py-2 px-3 text-right">
                       <button
                         type="button"
@@ -256,7 +256,7 @@ export default function RestaurantsManagement({ tenants: initialTenants, basePat
                       </span>
                     </td>
                     <td className="py-3 px-4" data-align="right">{t._count?.orders ?? 0}</td>
-                    <td className="py-3 px-4" data-align="right">{t._count?.staff ?? 0}</td>
+                    <td className="py-3 px-4" data-align="right">{t._count?.tenantAdmins ?? 0}</td>
                     <td className="py-3 px-4">
                       {t.status === "ACTIVE" && (
                         <button

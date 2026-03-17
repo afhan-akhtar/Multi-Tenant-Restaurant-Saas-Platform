@@ -9,7 +9,7 @@ export default async function AdminLogsPage() {
   if (!session || session.user?.type !== "super_admin") redirect("/admin");
 
   const logs = await prisma.auditLog.findMany({
-    include: { staff: true, tenant: true },
+    include: { tenantAdmin: true, tenant: true },
     orderBy: { createdAt: "desc" },
     take: 200,
   });
@@ -35,7 +35,7 @@ export default async function AdminLogsPage() {
                   <td className="py-3 px-4 text-color-text-muted">
                     {new Date(l.createdAt).toLocaleString()}
                   </td>
-                  <td className="py-3 px-4">{l.staff?.name || l.actorId}</td>
+                  <td className="py-3 px-4">{l.tenantAdmin?.name || l.actorId}</td>
                   <td className="py-3 px-4">{l.action}</td>
                   <td className="py-3 px-4">{l.tenant?.name || "—"}</td>
                   <td className="py-3 px-4">

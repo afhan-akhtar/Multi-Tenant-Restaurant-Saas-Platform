@@ -70,7 +70,7 @@ export async function POST(req) {
         data: { tenantId: tenant.id, name: "Owner" },
       });
 
-      const staff = await tx.staff.create({
+      const tenantAdmin = await tx.tenantAdmin.create({
         data: {
           tenantId: tenant.id,
           branchId: branch.id,
@@ -82,7 +82,7 @@ export async function POST(req) {
         },
       });
 
-      return { tenant, staff };
+      return { tenant, tenantAdmin };
     });
 
     return NextResponse.json({

@@ -98,7 +98,7 @@ model Tenant {
   fiskalyConfig TenantFiskalyConfig?
   branches      Branch[]
   roles         Role[]
-  staff         TenantAdmin[]
+  tenantAdmins  TenantAdmin[]
   subscription  TenantSubscription[]
   categories    Category[]
   products      Product[]
@@ -175,7 +175,7 @@ model Branch {
   country  String
 
   tenant       Tenant       @relation(fields: [tenantId], references: [id])
-  staff        TenantAdmin[]
+  tenantAdmins TenantAdmin[]
   diningTables DiningTable[]
   sessions     Session[]
   orders       Order[]
@@ -189,8 +189,8 @@ model Role {
   tenantId Int
   name     String
 
-  tenant   Tenant  @relation(fields: [tenantId], references: [id])
-  staff    TenantAdmin[]
+  tenant        Tenant        @relation(fields: [tenantId], references: [id])
+  tenantAdmins  TenantAdmin[]
   rolePermissions RolePermission[]
 
   @@index([tenantId])
@@ -489,6 +489,6 @@ model AuditLog {
   entityId  Int
   createdAt DateTime @default(now())
 
-  tenant    Tenant   @relation(fields: [tenantId], references: [id])
-  staff     TenantAdmin    @relation(fields: [actorId], references: [id])
+  tenant      Tenant      @relation(fields: [tenantId], references: [id])
+  tenantAdmin TenantAdmin @relation(fields: [actorId], references: [id])
 }
