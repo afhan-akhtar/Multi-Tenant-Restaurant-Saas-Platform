@@ -69,11 +69,11 @@ export default function ReportsClient({ report, defaultFrom, defaultTo }) {
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <div className="bg-color-card rounded-lg border border-color-border overflow-hidden shadow-sm">
+      <div className="grid gap-6 lg:grid-cols-2 items-stretch">
+        <div className="bg-color-card rounded-lg border border-color-border overflow-hidden shadow-sm h-full flex flex-col lg:h-[22rem]">
           <h3 className="py-3 px-4 m-0 text-base font-semibold text-color-text border-b border-color-border">Top Products</h3>
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-sm">
+          <div className="overflow-x-auto overflow-y-auto flex-1 min-h-0">
+            <table className="w-full min-h-full border-collapse text-sm">
               <thead>
                 <tr className="bg-color-bg border-b border-color-border">
                   <th className="py-2 px-4 text-left font-semibold text-color-text">Product</th>
@@ -93,14 +93,14 @@ export default function ReportsClient({ report, defaultFrom, defaultTo }) {
             </table>
           </div>
           {topProducts.length === 0 && (
-            <div className="py-8 text-center text-color-text-muted text-sm">No sales in this period</div>
+            <div className="py-8 text-center text-color-text-muted text-sm flex-1">No sales in this period</div>
           )}
         </div>
 
-        <div className="bg-color-card rounded-lg border border-color-border overflow-hidden shadow-sm">
+        <div className="bg-color-card rounded-lg border border-color-border overflow-hidden shadow-sm h-full flex flex-col lg:h-[22rem]">
           <h3 className="py-3 px-4 m-0 text-base font-semibold text-color-text border-b border-color-border">Sales by Day</h3>
-          <div className="overflow-x-auto max-h-64 overflow-y-auto">
-            <table className="w-full border-collapse text-sm">
+          <div className="overflow-x-auto overflow-y-auto flex-1 min-h-0">
+            <table className="w-full min-h-full border-collapse text-sm">
               <thead>
                 <tr className="bg-color-bg border-b border-color-border">
                   <th className="py-2 px-4 text-left font-semibold text-color-text">Date</th>
@@ -120,7 +120,7 @@ export default function ReportsClient({ report, defaultFrom, defaultTo }) {
             </table>
           </div>
           {salesByDay.length === 0 && (
-            <div className="py-8 text-center text-color-text-muted text-sm">No sales in this period</div>
+            <div className="py-8 text-center text-color-text-muted text-sm flex-1">No sales in this period</div>
           )}
         </div>
       </div>
