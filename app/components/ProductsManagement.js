@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import ConfirmModal from "@/app/components/ConfirmModal";
+import { formatEur } from "@/lib/currencyFormat";
 
 export default function ProductsManagement({ products: initial, categories }) {
   const router = useRouter();
@@ -156,7 +157,7 @@ export default function ProductsManagement({ products: initial, categories }) {
               <div className="font-semibold text-base text-color-text mb-1 md:text-[0.95rem] sm:text-sm">{p.name}</div>
               <div className="text-sm text-color-text-muted mb-2 sm:text-xs">{p.category?.name}</div>
               <div className="flex justify-between items-center flex-wrap gap-2">
-                <span className="font-bold text-primary">€{Number(p.basePrice).toLocaleString()}</span>
+                <span className="font-bold text-primary">{formatEur(p.basePrice)}</span>
                 <span
                   className="inline-block py-0.5 px-2 rounded-md text-xs font-medium"
                   style={{

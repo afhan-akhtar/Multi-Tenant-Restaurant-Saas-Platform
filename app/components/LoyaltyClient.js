@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-
-const Eur = (n) => `€${Number(n || 0).toLocaleString("de-DE", { minimumFractionDigits: 2 })}`;
+import { formatEur } from "@/lib/currencyFormat";
 
 const DEFAULT_CONFIG = {
   pointsPerEuro: 1,
@@ -78,7 +77,7 @@ export default function LoyaltyClient({ customers, totalPoints }) {
                   <tr key={c.id} className="border-b border-color-border last:border-0">
                     <td className="py-2 px-4">{c.name}</td>
                     <td className="py-2 px-4 text-right font-medium">{c.loyaltyPoints}</td>
-                    <td className="py-2 px-4 text-right">{Eur(c.totalSpent)}</td>
+                    <td className="py-2 px-4 text-right">{formatEur(c.totalSpent)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -107,7 +106,7 @@ export default function LoyaltyClient({ customers, totalPoints }) {
                   <tr key={c.id} className="border-b border-color-border last:border-0">
                     <td className="py-2 px-4">{c.name}</td>
                     <td className="py-2 px-4 text-right">{c.orderCount}</td>
-                    <td className="py-2 px-4 text-right font-medium">{Eur(c.totalSpent)}</td>
+                    <td className="py-2 px-4 text-right font-medium">{formatEur(c.totalSpent)}</td>
                   </tr>
                 ))}
               </tbody>

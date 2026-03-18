@@ -16,6 +16,7 @@ import {
   LineChart,
   Line,
 } from "recharts";
+import { formatEur } from "@/lib/currencyFormat";
 
 // Per Module B: Real-time revenue, tax, and waiter performance analytics
 const METRIC_CONFIG = [
@@ -204,7 +205,7 @@ export default function Dashboard({ data = defaultData }) {
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                 <XAxis dataKey="name" />
                 <YAxis tickFormatter={(v) => (v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v)} />
-                <Tooltip formatter={(v) => [`€${Number(v).toLocaleString()}`, "Sales"]} />
+                <Tooltip formatter={(v) => [formatEur(v), "Sales"]} />
                 <Bar dataKey="sales" fill="#e94560" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -221,7 +222,7 @@ export default function Dashboard({ data = defaultData }) {
               {topProducts.map((p, i) => (
                 <div key={i} className="flex justify-between items-center gap-2 py-2 text-sm border-b border-slate-100 last:border-0">
                   <span className="truncate min-w-0">{p.name}</span>
-                  <span className="shrink-0">€{Number(p.total).toLocaleString()}</span>
+                  <span className="shrink-0">{formatEur(p.total)}</span>
                 </div>
               ))}
             </div>
@@ -236,7 +237,7 @@ export default function Dashboard({ data = defaultData }) {
               {waiterPerformance.map((w, i) => (
                 <div key={i} className="flex justify-between items-center gap-2 py-2 text-sm border-b border-slate-100 last:border-0">
                   <span className="truncate min-w-0">{w.name}</span>
-                  <span className="shrink-0 text-right">€{Number(w.total).toLocaleString()} ({w.orders})</span>
+                  <span className="shrink-0 text-right">{formatEur(w.total)} ({w.orders})</span>
                 </div>
               ))}
             </div>
@@ -251,7 +252,7 @@ export default function Dashboard({ data = defaultData }) {
               {topCustomers.map((c, i) => (
                 <div key={i} className="flex justify-between items-center gap-2 py-2 text-sm border-b border-slate-100 last:border-0">
                   <span className="truncate min-w-0">{c.name}</span>
-                  <span className="shrink-0">€{Number(c.total).toLocaleString()}</span>
+                  <span className="shrink-0">{formatEur(c.total)}</span>
                 </div>
               ))}
             </div>
@@ -269,8 +270,8 @@ export default function Dashboard({ data = defaultData }) {
             <LineChart data={cashFlowData} margin={{ top: 20, right: 10, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={true} horizontal={true} />
               <XAxis dataKey="month" tick={{ fontSize: 12, fill: "#64748b" }} axisLine={{ stroke: "#e2e8f0" }} tickLine={{ stroke: "#e2e8f0" }} />
-              <YAxis tickFormatter={(v) => Number(v).toLocaleString()} tick={{ fontSize: 12, fill: "#64748b" }} axisLine={{ stroke: "#e2e8f0" }} tickLine={{ stroke: "#e2e8f0" }} width={70} />
-              <Tooltip formatter={(value) => [`€${Number(value || 0).toLocaleString()}`, ""]} contentStyle={{ borderRadius: 8, border: "1px solid #e2e8f0" }} />
+              <YAxis tickFormatter={(v) => Number(v || 0).toFixed(2)} tick={{ fontSize: 12, fill: "#64748b" }} axisLine={{ stroke: "#e2e8f0" }} tickLine={{ stroke: "#e2e8f0" }} width={70} />
+              <Tooltip formatter={(value) => [formatEur(value), ""]} contentStyle={{ borderRadius: 8, border: "1px solid #e2e8f0" }} />
               <Legend align="center" verticalAlign="top" wrapperStyle={{ paddingBottom: 8 }} />
               <Line type="monotone" dataKey="sent" name="Payment Sent" stroke="#f97316" strokeWidth={2} dot={{ r: 4 }} />
               <Line type="monotone" dataKey="received" name="Payment Received" stroke="#3b82f6" strokeWidth={2} dot={{ r: 4 }} />

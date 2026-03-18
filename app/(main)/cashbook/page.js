@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { formatEur } from "@/lib/currencyFormat";
 import { redirect } from "next/navigation";
 import CashbookClient from "@/app/components/CashbookClient";
 
@@ -90,7 +91,7 @@ export default async function CashbookPage() {
                     style={{ color: amountColor(e.type) }}
                   >
                     {(e.type || "").toLowerCase().includes("withdrawal") || (e.type || "").toLowerCase().includes("sent") || (e.type || "").toLowerCase().includes("expense") ? "-" : "+"}
-                    €{Math.abs(Number(e.amount)).toLocaleString()}
+                    {formatEur(Math.abs(Number(e.amount)))}
                   </td>
                 </tr>
               ))}

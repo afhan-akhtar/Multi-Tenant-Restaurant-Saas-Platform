@@ -2,8 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useCallback } from "react";
-
-const Eur = (n) => `€${Number(n || 0).toLocaleString("de-DE", { minimumFractionDigits: 2 })}`;
+import { formatEur } from "@/lib/currencyFormat";
 
 export default function ZReportsClient({ data, defaultDate }) {
   const router = useRouter();
@@ -26,16 +25,16 @@ export default function ZReportsClient({ data, defaultDate }) {
       "",
       "--- Summary ---",
       `Orders: ${data.summary.orderCount}`,
-      `Gross Revenue: ${Eur(data.summary.grossRevenue)}`,
-      `Net Subtotal: ${Eur(data.summary.netSubtotal)}`,
-      `Tax: ${Eur(data.summary.taxAmount)}`,
+      `Gross Revenue: ${formatEur(data.summary.grossRevenue)}`,
+      `Net Subtotal: ${formatEur(data.summary.netSubtotal)}`,
+      `Tax: ${formatEur(data.summary.taxAmount)}`,
       "",
       "--- Payment Methods ---",
-      ...data.paymentBreakdown.map((p) => `  ${p.method}: ${Eur(p.amount)}`),
+      ...data.paymentBreakdown.map((p) => `  ${p.method}: ${formatEur(p.amount)}`),
       "",
       "--- Cashbook ---",
       ...(data.cashbookEntries.length
-        ? data.cashbookEntries.map((e) => `  ${e.type}: ${Eur(e.amount)} (${new Date(e.createdAt).toLocaleString()})`)
+        ? data.cashbookEntries.map((e) => `  ${e.type}: ${formatEur(e.amount)} (${new Date(e.createdAt).toLocaleString()})`)
         : ["  No entries"]),
       "",
       "════════════════════════════════",
@@ -92,15 +91,15 @@ export default function ZReportsClient({ data, defaultDate }) {
         </div>
         <div className="p-4 rounded-lg bg-color-card border border-color-border">
           <p className="m-0 text-xs font-medium uppercase tracking-wider text-color-text-muted">Gross Revenue</p>
-          <p className="m-0 mt-1 text-xl font-semibold text-color-text">{Eur(summary.grossRevenue)}</p>
+          <p className="m-0 mt-1 text-xl font-semibold text-color-text">{formatEur(summary.grossRevenue)}</p>
         </div>
         <div className="p-4 rounded-lg bg-color-card border border-color-border">
           <p className="m-0 text-xs font-medium uppercase tracking-wider text-color-text-muted">Net Subtotal</p>
-          <p className="m-0 mt-1 text-xl font-semibold text-color-text">{Eur(summary.netSubtotal)}</p>
+          <p className="m-0 mt-1 text-xl font-semibold text-color-text">{formatEur(summary.netSubtotal)}</p>
         </div>
         <div className="p-4 rounded-lg bg-color-card border border-color-border">
           <p className="m-0 text-xs font-medium uppercase tracking-wider text-color-text-muted">Tax</p>
-          <p className="m-0 mt-1 text-xl font-semibold text-color-text">{Eur(summary.taxAmount)}</p>
+          <p className="m-0 mt-1 text-xl font-semibold text-color-text">{formatEur(summary.taxAmount)}</p>
         </div>
       </div>
 
@@ -113,7 +112,7 @@ export default function ZReportsClient({ data, defaultDate }) {
                 {paymentBreakdown.map((p, i) => (
                   <li key={i} className="flex justify-between py-2 border-b border-color-border last:border-0">
                     <span className="text-color-text-muted">{p.method}</span>
-                    <span className="font-medium">{Eur(p.amount)}</span>
+                    <span className="font-medium">{formatEur(p.amount)}</span>
                   </li>
                 ))}
               </ul>
@@ -139,7 +138,7 @@ export default function ZReportsClient({ data, defaultDate }) {
                   {cashbookEntries.map((e) => (
                     <tr key={e.id} className="border-b border-color-border last:border-0">
                       <td className="py-2 px-4">{e.type}</td>
-                      <td className="py-2 px-4 text-right">{Eur(e.amount)}</td>
+                      <td className="py-2 px-4 text-right">{formatEur(e.amount)}</td>
                       <td className="py-2 px-4 text-color-text-muted text-xs">
                         {new Date(e.createdAt).toLocaleTimeString()}
                       </td>
@@ -173,7 +172,7 @@ export default function ZReportsClient({ data, defaultDate }) {
                     <td className="py-2 px-4 text-color-text-muted">
                       {new Date(o.createdAt).toLocaleTimeString()}
                     </td>
-                    <td className="py-2 px-4 text-right">{Eur(o.grandTotal)}</td>
+                    <td className="py-2 px-4 text-right">{formatEur(o.grandTotal)}</td>
                   </tr>
                 ))}
               </tbody>

@@ -2,8 +2,7 @@
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useState } from "react";
-
-const Eur = (n) => `€${Number(n || 0).toLocaleString("de-DE", { minimumFractionDigits: 2 })}`;
+import { formatEur } from "@/lib/currencyFormat";
 
 export default function ReportsClient({ report, defaultFrom, defaultTo }) {
   const router = useRouter();
@@ -54,11 +53,11 @@ export default function ReportsClient({ report, defaultFrom, defaultTo }) {
       <div className="grid gap-4 mb-6 sm:grid-cols-2 lg:grid-cols-4">
         <div className="p-4 rounded-lg bg-color-card border border-color-border">
           <p className="m-0 text-xs font-medium uppercase tracking-wider text-color-text-muted">Revenue</p>
-          <p className="m-0 mt-1 text-xl font-semibold text-color-text">{Eur(summary.revenue)}</p>
+          <p className="m-0 mt-1 text-xl font-semibold text-color-text">{formatEur(summary.revenue)}</p>
         </div>
         <div className="p-4 rounded-lg bg-color-card border border-color-border">
           <p className="m-0 text-xs font-medium uppercase tracking-wider text-color-text-muted">Tax</p>
-          <p className="m-0 mt-1 text-xl font-semibold text-color-text">{Eur(summary.tax)}</p>
+          <p className="m-0 mt-1 text-xl font-semibold text-color-text">{formatEur(summary.tax)}</p>
         </div>
         <div className="p-4 rounded-lg bg-color-card border border-color-border">
           <p className="m-0 text-xs font-medium uppercase tracking-wider text-color-text-muted">Orders</p>
@@ -66,7 +65,7 @@ export default function ReportsClient({ report, defaultFrom, defaultTo }) {
         </div>
         <div className="p-4 rounded-lg bg-color-card border border-color-border">
           <p className="m-0 text-xs font-medium uppercase tracking-wider text-color-text-muted">Discounts</p>
-          <p className="m-0 mt-1 text-xl font-semibold text-color-text">{Eur(summary.discount)}</p>
+          <p className="m-0 mt-1 text-xl font-semibold text-color-text">{formatEur(summary.discount)}</p>
         </div>
       </div>
 
@@ -87,7 +86,7 @@ export default function ReportsClient({ report, defaultFrom, defaultTo }) {
                   <tr key={i} className="border-b border-color-border last:border-0">
                     <td className="py-2 px-4">{p.name}</td>
                     <td className="py-2 px-4 text-right">{p.quantity}</td>
-                    <td className="py-2 px-4 text-right">{Eur(p.revenue)}</td>
+                    <td className="py-2 px-4 text-right">{formatEur(p.revenue)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -114,7 +113,7 @@ export default function ReportsClient({ report, defaultFrom, defaultTo }) {
                   <tr key={i} className="border-b border-color-border last:border-0">
                     <td className="py-2 px-4">{d.date}</td>
                     <td className="py-2 px-4 text-right">{d.orders}</td>
-                    <td className="py-2 px-4 text-right">{Eur(d.revenue)}</td>
+                    <td className="py-2 px-4 text-right">{formatEur(d.revenue)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -133,7 +132,7 @@ export default function ReportsClient({ report, defaultFrom, defaultTo }) {
             {payments.map((p, i) => (
               <div key={i} className="flex items-center gap-2">
                 <span className="text-color-text-muted text-sm">{p.method}</span>
-                <span className="font-medium text-color-text">{Eur(p.amount)}</span>
+                <span className="font-medium text-color-text">{formatEur(p.amount)}</span>
                 {totalPayments > 0 && (
                   <span className="text-xs text-color-text-muted">
                     ({Math.round((p.amount / totalPayments) * 100)}%)

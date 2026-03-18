@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import POSPaymentModal from "./POSPaymentModal";
 import { printReceipt } from "./Receipt";
+import { formatEur } from "@/lib/currencyFormat";
 
 const CATEGORY_COLORS = ["#1a202c", "#3182ce", "#4299e1", "#48bb78", "#ed64a6"];
 
@@ -240,7 +241,7 @@ export default function POS({ data }) {
               <div className="font-bold text-[1.05rem] text-[#1a1d29] text-center leading-tight">{product.name}</div>
               <div className="text-xs text-slate-500 leading-snug line-clamp-2 text-center min-h-[2.4em]">{product.description}</div>
               <div className="font-bold text-lg text-primary mt-auto text-center">
-                €{Number(product.basePrice).toLocaleString()}
+                {formatEur(product.basePrice)}
               </div>
             </div>
           ))}
@@ -298,7 +299,7 @@ export default function POS({ data }) {
                     {item.quantity}× {item.productName}
                   </span>
                   <span className="font-semibold text-primary">
-                    €{(item.unitPrice * item.quantity).toLocaleString()}
+                    {formatEur(item.unitPrice * item.quantity)}
                   </span>
                 </div>
                 {item.modifierNames && (
@@ -321,12 +322,12 @@ export default function POS({ data }) {
         </div>
 
         <div className="py-4 px-4 bg-[#2d3748] text-white text-sm">
-          <div className="flex justify-between py-1.5"> <span>Total Order</span> <span>€{subtotal.toLocaleString()}</span> </div>
-          <div className="flex justify-between py-1.5"> <span>Tax (10%)</span> <span>€{taxAmount.toLocaleString()}</span> </div>
+          <div className="flex justify-between py-1.5"> <span>Total Order</span> <span>{formatEur(subtotal)}</span> </div>
+          <div className="flex justify-between py-1.5"> <span>Tax (10%)</span> <span>{formatEur(taxAmount)}</span> </div>
           <div className="flex justify-between py-1.5"> <span>Discount</span> <span>€0</span> </div>
           <div className="flex justify-between pt-2 mt-2 border-t border-white/30 font-bold text-[1.1rem]">
             <span>Total Payable</span>
-            <span>€{grandTotal.toLocaleString()}</span>
+            <span>{formatEur(grandTotal)}</span>
           </div>
         </div>
 
@@ -465,7 +466,7 @@ export default function POS({ data }) {
                             }`}
                             onClick={() => toggleAddon(group.id, item)}
                           >
-                            {item.name} (+€{Number(item.price).toLocaleString()})
+                            {item.name} (+{formatEur(item.price)})
                           </button>
                         );
                       })}

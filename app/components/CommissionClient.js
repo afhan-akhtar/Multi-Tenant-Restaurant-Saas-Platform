@@ -109,7 +109,7 @@ export default function CommissionClient({ data, totals }) {
                     <td className="py-2 px-4 text-color-text-muted">{formatDate(invoice.issuedAt)}</td>
                     <td className="py-2 px-4 text-color-text-muted">{formatDate(invoice.dueDate)}</td>
                     <td className="py-2 px-4 text-color-text">{formatEur(invoice.totalAmount)}</td>
-                    <td className="py-2 px-4 text-color-text">{Eur(paidAmount)}</td>
+                    <td className="py-2 px-4 text-color-text">{formatEur(paidAmount)}</td>
                     <td className="py-2 px-4"><span className="inline-block rounded-md px-2 py-0.5 text-xs font-medium" style={tone(invoice.status)}>{invoice.status}</span></td>
                   </tr>
                 );

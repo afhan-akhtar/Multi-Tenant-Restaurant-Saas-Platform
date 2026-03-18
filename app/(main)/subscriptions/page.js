@@ -1,4 +1,5 @@
 import { auth } from "@/lib/auth";
+import { formatEur } from "@/lib/currencyFormat";
 import { prisma } from "@/lib/db";
 import { formatDate } from "@/lib/dateFormat";
 import { redirect } from "next/navigation";
@@ -36,7 +37,7 @@ export default async function SubscriptionsPage() {
                 {plans.map((p) => (
                   <tr key={p.id} className="border-b border-slate-100 last:border-0">
                     <td className="py-3 px-4">{p.name}</td>
-                    <td className="py-3 px-4" data-align="right">€{Number(p.monthlyPrice).toLocaleString()}</td>
+                    <td className="py-3 px-4" data-align="right">{formatEur(p.monthlyPrice)}</td>
                     <td className="py-3 px-4" data-align="right">{Number(p.commissionPercent)}%</td>
                   </tr>
                 ))}
