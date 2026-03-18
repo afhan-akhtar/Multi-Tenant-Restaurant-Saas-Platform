@@ -42,8 +42,8 @@ export default function SubscriptionPlanRequestActions({
     <div className="space-y-4">
       {pendingRequest && (
         <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          Pending request for <strong>{pendingRequest.requestedPlan?.name}</strong>. Super Admin approval ke baad naya
-          plan activate ho jayega.
+          Pending request for <strong>{pendingRequest.requestedPlan?.name}</strong>. The new plan will activate after
+          Super Admin approval.
         </div>
       )}
 

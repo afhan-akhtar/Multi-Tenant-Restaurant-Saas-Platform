@@ -123,7 +123,7 @@ export default async function RestaurantSubscriptionPage() {
                 <div className="flex justify-between gap-4"><span className="text-color-text-muted">Latest invoice</span><span className="font-medium text-color-text">{normalizedSubscription.invoices?.[0]?.invoiceNumber || "—"}</span></div>
               </div>
               <div className="mt-4 rounded-lg border border-color-border bg-color-bg px-3 py-3 text-xs text-color-text-muted">
-                Plan change chahiye to neeche available plans me se request submit karein. Approval ke baad selected plan automatically active ho jayega.
+                To change plans, submit a request from the available plans below. The selected plan will activate automatically after approval.
               </div>
             </div>
           </div>
@@ -191,10 +191,10 @@ export default async function RestaurantSubscriptionPage() {
       ) : (
         <div className="bg-color-card rounded-lg border border-color-border p-6 max-w-lg">
           <p className="m-0 mb-4 text-color-text-muted">
-            You do not have an active subscription yet. New restaurants ko approval ke baad default onboarding plan automatically assign hota hai.
+            You do not have an active subscription yet. New restaurants receive a default onboarding plan automatically after approval.
           </p>
           <p className="m-0 text-sm text-color-text-muted">
-            Agar restaurant already approved hai aur phir bhi plan show nahin ho raha, to platform administrator se contact karein.
+            If your restaurant is already approved and no plan is showing yet, contact the platform administrator.
           </p>
         </div>
       )}
@@ -203,7 +203,7 @@ export default async function RestaurantSubscriptionPage() {
         <div className="mt-8">
           <h3 className="text-base font-semibold mb-4 text-color-text">Available Plans</h3>
           <p className="text-color-text-muted text-sm mb-4">
-            Aap apni restaurant needs ke mutabiq dusra plan request kar sakte hain. Super Admin approve kare ga to naya plan active ho jayega.
+            You can request a different plan based on your restaurant's needs. The new plan will become active after Super Admin approval.
           </p>
           <SubscriptionPlanRequestActions
             plans={normalizedPlans}
