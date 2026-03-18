@@ -2,6 +2,7 @@ import { getToken } from "next-auth/jwt";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { hashPassword } from "@/lib/password";
+import { ensureTenantOnboardingSubscription } from "@/lib/subscriptions";
 
 // POST /api/super-admin/tenants - Create tenant manually (Super Admin onboard)
 export async function POST(req) {
@@ -81,6 +82,8 @@ export async function POST(req) {
           status: "ACTIVE",
         },
       });
+
+      await ensureTenantOnboardingSubscription(tx, tenant.id);
 
       return { tenant, tenantAdmin };
     });

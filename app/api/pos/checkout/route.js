@@ -10,6 +10,7 @@ import { verifyCapturedPayPalOrder } from "@/lib/payments/paypal";
 import { roundMoney } from "@/lib/payments/config";
 import { encodeCashPaymentMeta } from "@/lib/receiptPayments";
 import { NextResponse } from "next/server";
+import { assertTenantFeatureAccess } from "@/lib/subscriptions";
 
 function toNum(d) {
   return d ? Number(d) : 0;
@@ -104,6 +105,11 @@ export async function POST(request) {
 
     if (!tenantId || !branchId) {
       return NextResponse.json({ error: "Restaurant context required" }, { status: 400 });
+    }
+
+    const posAccess = await assertTenantFeatureAccess(tenantId, "POS");
+    if (!posAccess.ok) {
+      return NextResponse.json({ error: posAccess.error }, { status: posAccess.status });
     }
 
     if (!items?.length) {
@@ -225,6 +231,20 @@ export async function POST(request) {
     const grandTotal = Math.max(0, subtotal + taxAmount - discount);
 
     const paymentSplits = resolveSplits(splits, grandTotal);
+    if (paymentSplits.length > 1) {
+      const splitAccess = await assertTenantFeatureAccess(tenantId, "SPLIT_PAYMENTS");
+      if (!splitAccess.ok) {
+        return NextResponse.json({ error: splitAccess.error }, { status: splitAccess.status });
+      }
+    }
+
+    if (paymentSplits.some((split) => split.method === "STRIPE" || split.method === "PAYPAL")) {
+      const paymentAccess = await assertTenantFeatureAccess(tenantId, "ONLINE_PAYMENTS");
+      if (!paymentAccess.ok) {
+        return NextResponse.json({ error: paymentAccess.error }, { status: paymentAccess.status });
+      }
+    }
+
     const splitTotal = paymentSplits.reduce((s, p) => s + p.amount, 0);
     if (Math.abs(splitTotal - grandTotal) > 0.02) {
       return NextResponse.json(

@@ -1,11 +1,24 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import Link from "next/link";
 import { redirect } from "next/navigation";
-import { normalizePlanFeatures } from "@/lib/subscriptionPlans";
+import { formatEur } from "@/lib/currencyFormat";
+import { buildPlanFeatures } from "@/lib/subscriptionPlans";
+import { formatDate } from "@/lib/dateFormat";
+import { getTenantSubscriptionAccess } from "@/lib/subscriptions";
+import SubscriptionStripePaymentCard from "@/app/components/SubscriptionStripePaymentCard";
+import SubscriptionPlanRequestActions from "@/app/components/SubscriptionPlanRequestActions";
 
 export const dynamic = "force-dynamic";
 
-const Eur = (n) => `€${Number(n || 0).toLocaleString("de-DE", { minimumFractionDigits: 2 })}`;
+function getStatusTone(status) {
+  if (status === "ACTIVE" || status === "PAID") return { background: "#dcfce7", color: "#166534" };
+  if (status === "TRIALING") return { background: "#dbeafe", color: "#1d4ed8" };
+  if (status === "GRACE_PERIOD" || status === "OPEN") return { background: "#fef3c7", color: "#b45309" };
+  if (status === "PAST_DUE" || status === "OVERDUE") return { background: "#fde68a", color: "#92400e" };
+  if (status === "EXPIRED") return { background: "#fee2e2", color: "#991b1b" };
+  return { background: "#e5e7eb", color: "#374151" };
+}
 
 export default async function RestaurantSubscriptionPage() {
   const session = await auth();
@@ -20,36 +33,41 @@ export default async function RestaurantSubscriptionPage() {
     );
   }
 
-  const [subscription, plans] = await Promise.all([
-    prisma.tenantSubscription.findFirst({
-      where: { tenantId, status: "ACTIVE" },
-      include: { plan: true },
-      orderBy: { startDate: "desc" },
-    }),
+  const [access, plans, planChangeRequests] = await Promise.all([
+    getTenantSubscriptionAccess(tenantId),
     prisma.subscriptionPlan.findMany({
-      orderBy: { monthlyPrice: "asc" },
+      orderBy: [{ sortOrder: "asc" }, { monthlyPrice: "asc" }],
+    }),
+    prisma.subscriptionPlanChangeRequest.findMany({
+      where: { tenantId },
+      include: {
+        requestedPlan: true,
+      },
+      orderBy: [{ createdAt: "desc" }],
     }),
   ]);
 
-  const normalizedSubscription = subscription
-    ? {
-        ...subscription,
-        plan: subscription.plan
-          ? {
-              ...subscription.plan,
-              monthlyPrice: Number(subscription.plan.monthlyPrice),
-              commissionPercent: Number(subscription.plan.commissionPercent),
-              features: normalizePlanFeatures(subscription.plan.features),
-            }
-          : null,
-      }
-    : null;
+  const normalizedSubscription = access.subscription;
   const normalizedPlans = plans.map((plan) => ({
     ...plan,
+    description: plan.description || "",
     monthlyPrice: Number(plan.monthlyPrice),
     commissionPercent: Number(plan.commissionPercent),
-    features: normalizePlanFeatures(plan.features),
+    trialDays: Number(plan.trialDays || 0),
+    graceDays: Number(plan.graceDays || 0),
+    features: buildPlanFeatures(plan.features),
   }));
+  const payments = normalizedSubscription?.invoices?.flatMap((invoice) =>
+    (invoice.payments || []).map((payment) => ({
+      ...payment,
+      invoiceNumber: invoice.invoiceNumber,
+    }))
+  ) || [];
+  const payableInvoice =
+    normalizedSubscription?.invoices?.find(
+      (invoice) => invoice.status === "OPEN" || invoice.status === "OVERDUE"
+    ) || null;
+  const pendingPlanRequest = planChangeRequests.find((request) => request.status === "PENDING") || null;
 
   return (
     <div className="py-4 w-full min-w-0">
@@ -57,59 +75,126 @@ export default async function RestaurantSubscriptionPage() {
 
       {normalizedSubscription ? (
         <div className="space-y-6">
-          <div className="bg-color-card rounded-lg border border-color-border p-6 max-w-lg">
-            <h3 className="m-0 mb-4 text-base font-semibold text-color-text">Current Plan</h3>
-            <div className="flex flex-col gap-3 text-sm">
-              <div className="flex justify-between">
-                <span className="text-color-text-muted">Plan</span>
-                <span className="font-medium text-color-text">{normalizedSubscription.plan?.name}</span>
+          {access.billingIssue && (
+            <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {access.billingIssue}
+            </div>
+          )}
+
+          {payableInvoice && (
+            <SubscriptionStripePaymentCard
+              invoiceId={payableInvoice.id}
+              invoiceNumber={payableInvoice.invoiceNumber}
+              amount={payableInvoice.totalAmount}
+            />
+          )}
+
+          <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+            <div className="bg-color-card rounded-lg border border-color-border p-6">
+              <h3 className="m-0 mb-4 text-base font-semibold text-color-text">Current Plan</h3>
+              <div className="grid gap-3 text-sm sm:grid-cols-2">
+                <div className="flex justify-between gap-4"><span className="text-color-text-muted">Plan</span><span className="font-medium text-color-text">{normalizedSubscription.plan?.name}</span></div>
+                <div className="flex justify-between gap-4"><span className="text-color-text-muted">Status</span><span className="inline-block rounded-md px-2 py-0.5 text-xs font-medium" style={getStatusTone(normalizedSubscription.status)}>{normalizedSubscription.status}</span></div>
+                <div className="flex justify-between gap-4"><span className="text-color-text-muted">Monthly fee</span><span className="font-medium text-color-text">{formatEur(normalizedSubscription.plan?.monthlyPrice)}</span></div>
+                <div className="flex justify-between gap-4"><span className="text-color-text-muted">Commission</span><span className="font-medium text-color-text">{Number(normalizedSubscription.plan?.commissionPercent)}%</span></div>
+                <div className="flex justify-between gap-4"><span className="text-color-text-muted">Trial ends</span><span className="font-medium text-color-text">{formatDate(normalizedSubscription.trialEndDate)}</span></div>
+                <div className="flex justify-between gap-4"><span className="text-color-text-muted">Grace ends</span><span className="font-medium text-color-text">{formatDate(normalizedSubscription.gracePeriodEndsAt)}</span></div>
+                <div className="sm:col-span-2 flex justify-between gap-4"><span className="text-color-text-muted">Billing period</span><span className="font-medium text-color-text">{formatDate(normalizedSubscription.startDate)} – {formatDate(normalizedSubscription.endDate)}</span></div>
               </div>
-              <div className="flex justify-between">
-                <span className="text-color-text-muted">Monthly price</span>
-                <span className="font-medium text-color-text">{Eur(normalizedSubscription.plan?.monthlyPrice)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-color-text-muted">Commission rate</span>
-                <span className="font-medium text-color-text">{Number(normalizedSubscription.plan?.commissionPercent)}%</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-color-text-muted">Status</span>
-                <span
-                  className="inline-block py-0.5 px-2 rounded-md text-xs font-medium"
-                  style={{ background: "#dcfce7", color: "#166534" }}
-                >
-                  {normalizedSubscription.status}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-color-text-muted">Billing period</span>
-                <span className="font-medium text-color-text">
-                  {new Date(normalizedSubscription.startDate).toLocaleDateString()} – {new Date(normalizedSubscription.endDate).toLocaleDateString()}
-                </span>
+              <div className="mt-5 border-t border-color-border pt-4">
+                <div className="mb-3 text-sm font-medium text-color-text">Enabled features</div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {(normalizedSubscription.plan?.featureMatrix || []).map((feature) => (
+                    <div key={feature.code} className={`rounded-lg border px-3 py-3 ${feature.enabled ? "border-emerald-200 bg-emerald-50" : "border-slate-200 bg-slate-50"}`}>
+                      <div className="font-medium text-color-text">{feature.label}</div>
+                      <div className="mt-1 text-xs text-color-text-muted">{feature.description}</div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
-            {normalizedSubscription.plan?.features?.length > 0 && (
-              <div className="mt-5 border-t border-color-border pt-4">
-                <div className="text-sm font-medium text-color-text mb-2">Included features</div>
-                <ul className="m-0 pl-5 text-sm text-color-text-muted space-y-1">
-                  {normalizedSubscription.plan.features.map((feature) => (
-                    <li key={feature}>{feature}</li>
-                  ))}
-                </ul>
+
+            <div className="bg-color-card rounded-lg border border-color-border p-6">
+              <h3 className="m-0 mb-4 text-base font-semibold text-color-text">Billing Snapshot</h3>
+              <div className="space-y-3 text-sm">
+                <div className="flex justify-between gap-4"><span className="text-color-text-muted">Invoices</span><span className="font-medium text-color-text">{normalizedSubscription.invoices?.length || 0}</span></div>
+                <div className="flex justify-between gap-4"><span className="text-color-text-muted">Payments</span><span className="font-medium text-color-text">{payments.length}</span></div>
+                <div className="flex justify-between gap-4"><span className="text-color-text-muted">Auto renew</span><span className="font-medium text-color-text">{normalizedSubscription.autoRenew ? "Enabled" : "Disabled"}</span></div>
+                <div className="flex justify-between gap-4"><span className="text-color-text-muted">Latest invoice</span><span className="font-medium text-color-text">{normalizedSubscription.invoices?.[0]?.invoiceNumber || "—"}</span></div>
               </div>
+              <div className="mt-4 rounded-lg border border-color-border bg-color-bg px-3 py-3 text-xs text-color-text-muted">
+                Plan change chahiye to neeche available plans me se request submit karein. Approval ke baad selected plan automatically active ho jayega.
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-color-card rounded-lg border border-color-border overflow-hidden">
+            <div className="border-b border-color-border px-4 py-3 text-base font-semibold text-color-text">Invoices</div>
+            <div className="w-full overflow-x-auto">
+              <table className="min-w-[760px] w-full border-collapse text-sm">
+                <thead>
+                  <tr className="border-b border-color-border bg-color-bg">
+                    <th className="px-4 py-3 text-left font-semibold text-color-text">Invoice</th>
+                    <th className="px-4 py-3 text-left font-semibold text-color-text">Period</th>
+                    <th className="px-4 py-3 text-left font-semibold text-color-text">Due</th>
+                    <th className="px-4 py-3 text-left font-semibold text-color-text">Amount</th>
+                    <th className="px-4 py-3 text-left font-semibold text-color-text">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(normalizedSubscription.invoices || []).map((invoice) => (
+                    <tr key={invoice.id} className="border-b border-slate-100 last:border-0">
+                      <td className="px-4 py-3"><Link href={`/invoice/${invoice.id}`} className="font-medium text-primary no-underline">{invoice.invoiceNumber}</Link></td>
+                      <td className="px-4 py-3 text-color-text-muted">{formatDate(invoice.periodStart)} – {formatDate(invoice.periodEnd)}</td>
+                      <td className="px-4 py-3 text-color-text-muted">{formatDate(invoice.dueDate)}</td>
+                      <td className="px-4 py-3 text-color-text">{formatEur(invoice.totalAmount)}</td>
+                      <td className="px-4 py-3"><span className="inline-block rounded-md px-2 py-0.5 text-xs font-medium" style={getStatusTone(invoice.status)}>{invoice.status}</span></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="bg-color-card rounded-lg border border-color-border overflow-hidden">
+            <div className="border-b border-color-border px-4 py-3 text-base font-semibold text-color-text">Payment History</div>
+            {payments.length > 0 ? (
+              <div className="w-full overflow-x-auto">
+                <table className="min-w-[720px] w-full border-collapse text-sm">
+                  <thead>
+                    <tr className="border-b border-color-border bg-color-bg">
+                      <th className="px-4 py-3 text-left font-semibold text-color-text">Paid At</th>
+                      <th className="px-4 py-3 text-left font-semibold text-color-text">Invoice</th>
+                      <th className="px-4 py-3 text-left font-semibold text-color-text">Method</th>
+                      <th className="px-4 py-3 text-left font-semibold text-color-text">Amount</th>
+                      <th className="px-4 py-3 text-left font-semibold text-color-text">Reference</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {payments.map((payment) => (
+                      <tr key={payment.id} className="border-b border-slate-100 last:border-0">
+                        <td className="px-4 py-3 text-color-text-muted">{formatDate(payment.paidAt)}</td>
+                        <td className="px-4 py-3 text-color-text">{payment.invoiceNumber}</td>
+                        <td className="px-4 py-3 text-color-text">{payment.method}</td>
+                        <td className="px-4 py-3 text-color-text">{formatEur(payment.amount)}</td>
+                        <td className="px-4 py-3 text-color-text-muted">{payment.reference || "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="px-4 py-6 text-sm text-color-text-muted">No payments have been recorded yet.</div>
             )}
-            <p className="mt-6 text-color-text-muted text-xs">
-              Commission is calculated from your completed orders. To change plans or for billing questions, contact the platform administrator.
-            </p>
           </div>
         </div>
       ) : (
         <div className="bg-color-card rounded-lg border border-color-border p-6 max-w-lg">
           <p className="m-0 mb-4 text-color-text-muted">
-            You do not have an active subscription yet. The platform administrator will assign a plan to your restaurant after approval.
+            You do not have an active subscription yet. New restaurants ko approval ke baad default onboarding plan automatically assign hota hai.
           </p>
           <p className="m-0 text-sm text-color-text-muted">
-            Contact support if your restaurant is already approved and you need a plan assigned.
+            Agar restaurant already approved hai aur phir bhi plan show nahin ho raha, to platform administrator se contact karein.
           </p>
         </div>
       )}
@@ -118,32 +203,13 @@ export default async function RestaurantSubscriptionPage() {
         <div className="mt-8">
           <h3 className="text-base font-semibold mb-4 text-color-text">Available Plans</h3>
           <p className="text-color-text-muted text-sm mb-4">
-            Plans and pricing are defined by the platform. Your current plan is assigned by the administrator.
+            Aap apni restaurant needs ke mutabiq dusra plan request kar sakte hain. Super Admin approve kare ga to naya plan active ho jayega.
           </p>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {normalizedPlans.map((p) => (
-              <div
-                key={p.id}
-                className={`p-4 rounded-lg border ${normalizedSubscription?.planId === p.id ? "border-primary bg-primary/5" : "border-color-border bg-color-card"}`}
-              >
-                <div className="font-semibold text-color-text">{p.name}</div>
-                <div className="mt-1 text-lg font-bold text-color-text">{Eur(p.monthlyPrice)}<span className="text-sm font-normal text-color-text-muted">/mo</span></div>
-                <div className="mt-1 text-sm text-color-text-muted">{Number(p.commissionPercent)}% commission on orders</div>
-                {p.features?.length > 0 && (
-                  <ul className="mt-3 pl-5 text-sm text-color-text-muted space-y-1">
-                    {p.features.map((feature) => (
-                      <li key={feature}>{feature}</li>
-                    ))}
-                  </ul>
-                )}
-                {normalizedSubscription?.planId === p.id && (
-                  <span className="inline-block mt-2 py-0.5 px-2 rounded text-xs font-medium bg-primary/20 text-primary">
-                    Your plan
-                  </span>
-                )}
-              </div>
-            ))}
-          </div>
+          <SubscriptionPlanRequestActions
+            plans={normalizedPlans}
+            currentPlanId={normalizedSubscription?.planId || null}
+            pendingRequest={pendingPlanRequest}
+          />
         </div>
       )}
     </div>

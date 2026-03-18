@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import DashboardLayout from "@/app/components/DashboardLayout";
+import { getTenantSubscriptionAccess } from "@/lib/subscriptions";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -34,8 +35,14 @@ export default async function RestaurantLayout({ children, params }) {
     redirect("/login");
   }
 
+  const subscriptionAccess = await getTenantSubscriptionAccess(session.user.tenantId);
+
   return (
-    <DashboardLayout user={session.user} basePath={`/${restaurant}`}>
+    <DashboardLayout
+      user={session.user}
+      basePath={`/${restaurant}`}
+      subscriptionAccess={subscriptionAccess}
+    >
       {children}
     </DashboardLayout>
   );

@@ -2,7 +2,8 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { redirect } from "next/navigation";
 import SubscriptionsManagement from "@/app/components/SubscriptionsManagement";
-import { normalizePlanFeatures } from "@/lib/subscriptionPlans";
+import { buildPlanFeatures } from "@/lib/subscriptionPlans";
+import { runSubscriptionBillingCycle, serializeSubscription } from "@/lib/subscriptions";
 
 export const dynamic = "force-dynamic";
 
@@ -10,19 +11,44 @@ export default async function AdminSubscriptionsPage() {
   const session = await auth();
   if (!session || session.user?.type !== "super_admin") redirect("/admin");
 
-  const [plans, subscriptions, tenants] = await Promise.all([
+  await runSubscriptionBillingCycle(prisma);
+
+  const [plans, subscriptions, tenants, planChangeRequests] = await Promise.all([
     prisma.subscriptionPlan.findMany({
-      orderBy: { monthlyPrice: "asc" },
+      orderBy: [{ sortOrder: "asc" }, { monthlyPrice: "asc" }],
       include: { _count: { select: { tenantSubscriptions: true } } },
     }),
     prisma.tenantSubscription.findMany({
-      include: { tenant: true, plan: true },
-      orderBy: { startDate: "desc" },
+      include: {
+        tenant: true,
+        plan: true,
+        invoices: {
+          include: {
+            payments: {
+              orderBy: { paidAt: "desc" },
+            },
+          },
+          orderBy: [{ periodEnd: "desc" }, { issuedAt: "desc" }],
+        },
+      },
+      orderBy: [{ endDate: "desc" }, { createdAt: "desc" }],
     }),
     prisma.tenant.findMany({
       where: { status: "ACTIVE" },
       orderBy: { name: "asc" },
       select: { id: true, name: true, subdomain: true },
+    }),
+    prisma.subscriptionPlanChangeRequest.findMany({
+      include: {
+        tenant: { select: { id: true, name: true, subdomain: true } },
+        requestedPlan: true,
+        currentSubscription: {
+          include: {
+            plan: true,
+          },
+        },
+      },
+      orderBy: [{ status: "asc" }, { createdAt: "desc" }],
     }),
   ]);
 
@@ -30,37 +56,39 @@ export default async function AdminSubscriptionsPage() {
     <SubscriptionsManagement
       plans={plans.map((plan) => ({
         id: plan.id,
+        code: plan.code,
         name: plan.name,
+        description: plan.description || "",
         monthlyPrice: Number(plan.monthlyPrice),
         commissionPercent: Number(plan.commissionPercent),
-        features: normalizePlanFeatures(plan.features),
+        trialDays: Number(plan.trialDays || 0),
+        graceDays: Number(plan.graceDays || 0),
+        sortOrder: Number(plan.sortOrder || 0),
+        features: buildPlanFeatures(plan.features),
         subscriptionCount: plan._count?.tenantSubscriptions ?? 0,
       }))}
-      subscriptions={subscriptions.map((subscription) => ({
-        id: subscription.id,
-        tenantId: subscription.tenantId,
-        planId: subscription.planId,
-        status: subscription.status,
-        startDate: subscription.startDate.toISOString(),
-        endDate: subscription.endDate.toISOString(),
-        tenant: subscription.tenant
+      subscriptions={subscriptions.map((subscription) => serializeSubscription(subscription))}
+      tenants={tenants}
+      planChangeRequests={planChangeRequests.map((request) => ({
+        id: request.id,
+        tenantId: request.tenantId,
+        status: request.status,
+        message: request.message || "",
+        reviewedNote: request.reviewedNote || "",
+        createdAt: request.createdAt,
+        reviewedAt: request.reviewedAt,
+        tenant: request.tenant,
+        requestedPlan: {
+          id: request.requestedPlan.id,
+          name: request.requestedPlan.name,
+        },
+        currentPlan: request.currentSubscription?.plan
           ? {
-              id: subscription.tenant.id,
-              name: subscription.tenant.name,
-              subdomain: subscription.tenant.subdomain,
-            }
-          : null,
-        plan: subscription.plan
-          ? {
-              id: subscription.plan.id,
-              name: subscription.plan.name,
-              monthlyPrice: Number(subscription.plan.monthlyPrice),
-              commissionPercent: Number(subscription.plan.commissionPercent),
-              features: normalizePlanFeatures(subscription.plan.features),
+              id: request.currentSubscription.plan.id,
+              name: request.currentSubscription.plan.name,
             }
           : null,
       }))}
-      tenants={tenants}
       basePath="/admin"
     />
   );

@@ -2,6 +2,7 @@ import { getToken } from "next-auth/jwt";
 import { NextResponse } from "next/server";
 import { createPosPaymentIntent } from "@/lib/payments/stripe";
 import { roundMoney } from "@/lib/payments/config";
+import { assertTenantFeatureAccess } from "@/lib/subscriptions";
 
 export async function POST(request) {
   try {
@@ -20,6 +21,11 @@ export async function POST(request) {
 
     if (!tenantId || !branchId || !staffId) {
       return NextResponse.json({ error: "Restaurant context required" }, { status: 400 });
+    }
+
+    const featureAccess = await assertTenantFeatureAccess(tenantId, "ONLINE_PAYMENTS");
+    if (!featureAccess.ok) {
+      return NextResponse.json({ error: featureAccess.error }, { status: featureAccess.status });
     }
 
     const body = await request.json();

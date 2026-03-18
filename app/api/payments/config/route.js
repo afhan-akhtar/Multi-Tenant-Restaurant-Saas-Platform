@@ -2,6 +2,8 @@ import { getToken } from "next-auth/jwt";
 import { NextResponse } from "next/server";
 import { getPublicPaymentConfig } from "@/lib/payments/config";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(request) {
   try {
     const token = await getToken({

@@ -1,112 +1,146 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { formatEur } from "@/lib/currencyFormat";
+import { formatDate } from "@/lib/dateFormat";
+import { SUBSCRIPTION_FEATURE_CATALOG } from "@/lib/subscriptionPlans";
 
-const Eur = (n) =>
-  `€${Number(n || 0).toLocaleString("de-DE", { minimumFractionDigits: 2 })}`;
-
-function formatDate(value) {
-  return value ? new Date(value).toLocaleDateString() : "—";
-}
+const PAYMENT_METHODS = ["MANUAL", "STRIPE", "CARD", "CASH"];
 
 function getStatusTone(status) {
-  if (status === "ACTIVE") {
-    return { background: "#dcfce7", color: "#166534" };
-  }
-
-  if (status === "EXPIRED") {
-    return { background: "#fee2e2", color: "#991b1b" };
-  }
-
+  if (status === "ACTIVE" || status === "PAID") return { background: "#dcfce7", color: "#166534" };
+  if (status === "TRIALING") return { background: "#dbeafe", color: "#1d4ed8" };
+  if (status === "GRACE_PERIOD" || status === "OPEN") return { background: "#fef3c7", color: "#b45309" };
+  if (status === "PAST_DUE" || status === "OVERDUE") return { background: "#fde68a", color: "#92400e" };
+  if (status === "EXPIRED") return { background: "#fee2e2", color: "#991b1b" };
+  if (status === "CANCELLED") return { background: "#e5e7eb", color: "#374151" };
   return { background: "#f1f5f9", color: "#64748b" };
 }
 
 function planToForm(plan) {
-  if (!plan) {
-    return {
-      name: "",
-      monthlyPrice: "",
-      commissionPercent: "",
-      features: "",
-    };
-  }
-
   return {
-    name: plan.name || "",
-    monthlyPrice: String(plan.monthlyPrice ?? ""),
-    commissionPercent: String(plan.commissionPercent ?? ""),
-    features: Array.isArray(plan.features) ? plan.features.join("\n") : "",
+    code: plan?.code || "",
+    name: plan?.name || "",
+    description: plan?.description || "",
+    monthlyPrice: String(plan?.monthlyPrice ?? ""),
+    commissionPercent: String(plan?.commissionPercent ?? ""),
+    trialDays: String(plan?.trialDays ?? 14),
+    graceDays: String(plan?.graceDays ?? 7),
+    sortOrder: String(plan?.sortOrder ?? 0),
+    featureCodes: Array.isArray(plan?.features?.codes) ? plan.features.codes : [],
   };
 }
 
-export default function SubscriptionsManagement({ plans, subscriptions, tenants, basePath = "" }) {
+function paymentToForm(invoice) {
+  return {
+    invoiceId: String(invoice?.id || ""),
+    amount: String(invoice?.totalAmount ?? ""),
+    method: "MANUAL",
+    reference: "",
+  };
+}
+
+export default function SubscriptionsManagement({ plans, subscriptions, tenants, planChangeRequests = [] }) {
   const router = useRouter();
   const [planModalOpen, setPlanModalOpen] = useState(false);
   const [subModalOpen, setSubModalOpen] = useState(false);
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [loading, setLoading] = useState(null);
   const [error, setError] = useState("");
   const [editingPlanId, setEditingPlanId] = useState(null);
+  const [editingPaymentSubId, setEditingPaymentSubId] = useState(null);
   const [planForm, setPlanForm] = useState(planToForm(null));
   const [subForm, setSubForm] = useState({ tenantId: "", planId: "" });
+  const [paymentForm, setPaymentForm] = useState(paymentToForm(null));
   const [rowPlanSelection, setRowPlanSelection] = useState({});
 
-  const activeSubscriptions = subscriptions.filter((subscription) => subscription.status === "ACTIVE");
+  const activeStatuses = ["TRIALING", "ACTIVE", "GRACE_PERIOD", "PAST_DUE"];
+  const activeSubscriptions = subscriptions.filter((subscription) => activeStatuses.includes(subscription.status));
   const tenantsWithoutSub = tenants.filter(
     (tenant) => !activeSubscriptions.some((subscription) => subscription.tenantId === tenant.id)
+  );
+
+  const recentInvoices = useMemo(
+    () =>
+      subscriptions
+        .flatMap((subscription) =>
+          (subscription.invoices || []).map((invoice) => ({
+            ...invoice,
+            subscriptionId: subscription.id,
+            tenantName: subscription.tenant?.name || "Restaurant",
+            planName: subscription.plan?.name || "",
+          }))
+        )
+        .sort((a, b) => new Date(b.issuedAt || 0) - new Date(a.issuedAt || 0))
+        .slice(0, 8),
+    [subscriptions]
   );
 
   async function handleRequest(url, options, failureMessage) {
     const res = await fetch(url, options);
     const data = await res.json().catch(() => ({}));
-
-    if (!res.ok) {
-      throw new Error(data.error || failureMessage);
-    }
-
+    if (!res.ok) throw new Error(data.error || failureMessage);
     return data;
   }
 
-  function openCreatePlanModal() {
-    setEditingPlanId(null);
-    setPlanForm(planToForm(null));
+  async function handleSubscriptionAction(subscriptionId, action, extra = {}) {
     setError("");
-    setPlanModalOpen(true);
+    setLoading(`sub-${subscriptionId}-${action}`);
+    try {
+      await handleRequest(
+        `/api/admin/subscriptions/${subscriptionId}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action, ...extra }),
+        },
+        "Failed to update subscription"
+      );
+      router.refresh();
+    } catch (err) {
+      setError(err.message || "Something went wrong");
+      throw err;
+    } finally {
+      setLoading(null);
+    }
   }
 
-  function openEditPlanModal(plan) {
-    setEditingPlanId(plan.id);
-    setPlanForm(planToForm(plan));
-    setError("");
-    setPlanModalOpen(true);
+  function toggleFeature(code) {
+    setPlanForm((form) => ({
+      ...form,
+      featureCodes: form.featureCodes.includes(code)
+        ? form.featureCodes.filter((value) => value !== code)
+        : [...form.featureCodes, code],
+    }));
   }
 
-  async function handleSavePlan(e) {
+  async function savePlan(e) {
     e.preventDefault();
     setError("");
     setLoading("plan");
-
     try {
-      const payload = {
-        name: planForm.name.trim(),
-        monthlyPrice: Number(planForm.monthlyPrice),
-        commissionPercent: Number(planForm.commissionPercent),
-        features: planForm.features,
-      };
-
       await handleRequest(
         editingPlanId ? `/api/admin/plans/${editingPlanId}` : "/api/admin/plans",
         {
           method: editingPlanId ? "PATCH" : "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
+          body: JSON.stringify({
+            code: planForm.code,
+            name: planForm.name,
+            description: planForm.description,
+            monthlyPrice: Number(planForm.monthlyPrice),
+            commissionPercent: Number(planForm.commissionPercent),
+            trialDays: Number(planForm.trialDays),
+            graceDays: Number(planForm.graceDays),
+            sortOrder: Number(planForm.sortOrder || 0),
+            featureCodes: planForm.featureCodes,
+          }),
         },
         editingPlanId ? "Failed to update plan" : "Failed to create plan"
       );
-
       setPlanModalOpen(false);
-      setEditingPlanId(null);
-      setPlanForm(planToForm(null));
       router.refresh();
     } catch (err) {
       setError(err.message || "Something went wrong");
@@ -115,20 +149,12 @@ export default function SubscriptionsManagement({ plans, subscriptions, tenants,
     }
   }
 
-  async function handleDeletePlan(plan) {
-    if (!window.confirm(`Delete "${plan.name}"?`)) {
-      return;
-    }
-
+  async function deletePlan(plan) {
+    if (!window.confirm(`Delete "${plan.name}"?`)) return;
     setError("");
     setLoading(`delete-plan-${plan.id}`);
-
     try {
-      await handleRequest(
-        `/api/admin/plans/${plan.id}`,
-        { method: "DELETE" },
-        "Failed to delete plan"
-      );
+      await handleRequest(`/api/admin/plans/${plan.id}`, { method: "DELETE" }, "Failed to delete plan");
       router.refresh();
     } catch (err) {
       setError(err.message || "Something went wrong");
@@ -137,16 +163,11 @@ export default function SubscriptionsManagement({ plans, subscriptions, tenants,
     }
   }
 
-  async function handleSeedDefaults() {
-    setError("");
+  async function seedPlans() {
     setLoading("seed");
-
+    setError("");
     try {
-      await handleRequest(
-        "/api/admin/plans/seed",
-        { method: "POST" },
-        "Failed to seed plans"
-      );
+      await handleRequest("/api/admin/plans/seed", { method: "POST" }, "Failed to seed plans");
       router.refresh();
     } catch (err) {
       setError(err.message || "Something went wrong");
@@ -155,11 +176,23 @@ export default function SubscriptionsManagement({ plans, subscriptions, tenants,
     }
   }
 
-  async function handleAssignSubscription(e) {
-    e.preventDefault();
+  async function runBillingCycle() {
+    setLoading("billing-cycle");
     setError("");
-    setLoading("sub");
+    try {
+      await handleRequest("/api/admin/subscriptions/billing", { method: "POST" }, "Failed to run billing cycle");
+      router.refresh();
+    } catch (err) {
+      setError(err.message || "Something went wrong");
+    } finally {
+      setLoading(null);
+    }
+  }
 
+  async function assignSubscription(e) {
+    e.preventDefault();
+    setLoading("sub");
+    setError("");
     try {
       await handleRequest(
         "/api/admin/subscriptions",
@@ -174,7 +207,6 @@ export default function SubscriptionsManagement({ plans, subscriptions, tenants,
         "Failed to assign subscription"
       );
       setSubModalOpen(false);
-      setSubForm({ tenantId: "", planId: "" });
       router.refresh();
     } catch (err) {
       setError(err.message || "Something went wrong");
@@ -183,19 +215,34 @@ export default function SubscriptionsManagement({ plans, subscriptions, tenants,
     }
   }
 
-  async function handleSubscriptionAction(subscriptionId, action, extra = {}) {
-    setError("");
-    setLoading(`sub-${subscriptionId}-${action}`);
+  async function recordPayment(e) {
+    e.preventDefault();
+    if (!editingPaymentSubId) return;
+    try {
+      await handleSubscriptionAction(editingPaymentSubId, "record_payment", {
+        invoiceId: Number(paymentForm.invoiceId),
+        amount: Number(paymentForm.amount),
+        method: paymentForm.method,
+        reference: paymentForm.reference,
+      });
+      setPaymentModalOpen(false);
+    } catch {
+      // Error handled centrally.
+    }
+  }
 
+  async function handlePlanChangeRequestAction(requestId, action) {
+    setError("");
+    setLoading(`request-${requestId}-${action}`);
     try {
       await handleRequest(
-        `/api/admin/subscriptions/${subscriptionId}`,
+        `/api/admin/subscription-requests/${requestId}`,
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action, ...extra }),
+          body: JSON.stringify({ action }),
         },
-        "Failed to update subscription"
+        "Failed to update plan change request"
       );
       router.refresh();
     } catch (err) {
@@ -207,43 +254,31 @@ export default function SubscriptionsManagement({ plans, subscriptions, tenants,
 
   return (
     <div className="py-4 w-full min-w-0">
-      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between mb-6">
+      <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div>
-          <h2 className="m-0 text-xl font-semibold text-color-text">
-            Subscriptions & Plans
-          </h2>
+          <h2 className="m-0 text-xl font-semibold text-color-text">Subscription & Feature Control</h2>
           <p className="m-0 mt-1 text-sm text-color-text-muted">
-            Manage platform pricing, assign restaurants to plans, and control subscription status.
+            Manage subscription plans, feature flags, invoices, and payment collection.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={handleSeedDefaults}
-            disabled={loading === "seed"}
-            className="py-2 px-4 border border-color-border rounded-lg text-sm font-medium bg-white text-color-text disabled:opacity-70"
-          >
-            {loading === "seed" ? "Adding defaults…" : "Add Default Plans"}
+          <button type="button" onClick={seedPlans} disabled={loading === "seed"} className="rounded-lg border border-color-border bg-white px-4 py-2 text-sm font-medium text-color-text disabled:opacity-70">
+            {loading === "seed" ? "Adding defaults…" : "Seed Defaults"}
           </button>
-          <button
-            type="button"
-            onClick={openCreatePlanModal}
-            className="py-2 px-4 bg-primary text-white rounded-lg text-sm font-medium border-0"
-          >
+          <button type="button" onClick={runBillingCycle} disabled={loading === "billing-cycle"} className="rounded-lg border border-color-border bg-white px-4 py-2 text-sm font-medium text-color-text disabled:opacity-70">
+            {loading === "billing-cycle" ? "Processing…" : "Run Billing Cycle"}
+          </button>
+          <button type="button" onClick={() => { setEditingPlanId(null); setPlanForm(planToForm(null)); setPlanModalOpen(true); }} className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white">
             Add Plan
           </button>
           {tenantsWithoutSub.length > 0 && plans.length > 0 && (
             <button
               type="button"
               onClick={() => {
+                setSubForm({ tenantId: String(tenantsWithoutSub[0]?.id || ""), planId: String(plans[0]?.id || "") });
                 setSubModalOpen(true);
-                setError("");
-                setSubForm({
-                  tenantId: String(tenantsWithoutSub[0]?.id || ""),
-                  planId: String(plans[0]?.id || ""),
-                });
               }}
-              className="py-2 px-4 bg-color-card border border-color-border rounded-lg text-sm font-medium text-color-text"
+              className="rounded-lg border border-color-border bg-color-card px-4 py-2 text-sm font-medium text-color-text"
             >
               Assign to Restaurant
             </button>
@@ -251,309 +286,237 @@ export default function SubscriptionsManagement({ plans, subscriptions, tenants,
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3 mb-8">
-        <div className="rounded-xl border border-color-border bg-color-card p-4">
-          <div className="text-sm text-color-text-muted">Total Plans</div>
-          <div className="mt-1 text-2xl font-semibold text-color-text">{plans.length}</div>
-        </div>
-        <div className="rounded-xl border border-color-border bg-color-card p-4">
-          <div className="text-sm text-color-text-muted">Active Subscriptions</div>
-          <div className="mt-1 text-2xl font-semibold text-color-text">{activeSubscriptions.length}</div>
-        </div>
-        <div className="rounded-xl border border-color-border bg-color-card p-4">
-          <div className="text-sm text-color-text-muted">Restaurants Without Plan</div>
-          <div className="mt-1 text-2xl font-semibold text-color-text">{tenantsWithoutSub.length}</div>
-        </div>
+      <div className="mb-8 grid gap-4 md:grid-cols-4">
+        <div className="rounded-xl border border-color-border bg-color-card p-4"><div className="text-sm text-color-text-muted">Total Plans</div><div className="mt-1 text-2xl font-semibold text-color-text">{plans.length}</div></div>
+        <div className="rounded-xl border border-color-border bg-color-card p-4"><div className="text-sm text-color-text-muted">Billable Subscriptions</div><div className="mt-1 text-2xl font-semibold text-color-text">{activeSubscriptions.length}</div></div>
+        <div className="rounded-xl border border-color-border bg-color-card p-4"><div className="text-sm text-color-text-muted">Recent Invoices</div><div className="mt-1 text-2xl font-semibold text-color-text">{recentInvoices.length}</div></div>
+        <div className="rounded-xl border border-color-border bg-color-card p-4"><div className="text-sm text-color-text-muted">Pending Plan Requests</div><div className="mt-1 text-2xl font-semibold text-color-text">{planChangeRequests.filter((request) => request.status === "PENDING").length}</div></div>
       </div>
 
-      {error && (
-        <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {error}
-        </div>
-      )}
+      {error && <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
 
       <div className="mb-8">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-base font-semibold m-0 text-color-text">Plans</h3>
-          <span className="text-sm text-color-text-muted">
-            {plans.length > 0 ? "Platform-defined pricing" : "No plans yet"}
-          </span>
+        <div className="mb-4 flex items-center justify-between">
+          <h3 className="m-0 text-base font-semibold text-color-text">Plans</h3>
+          <span className="text-sm text-color-text-muted">Commercial configuration and feature flags</span>
         </div>
-
-        {plans.length > 0 ? (
-          <div className="grid gap-4 lg:grid-cols-3">
-            {plans.map((plan) => (
-              <div
-                key={plan.id}
-                className="rounded-xl border border-color-border bg-color-card p-5 shadow-sm"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="text-lg font-semibold text-color-text">{plan.name}</div>
-                    <div className="mt-1 text-2xl font-bold text-color-text">
-                      {Eur(plan.monthlyPrice)}
-                      <span className="ml-1 text-sm font-normal text-color-text-muted">/month</span>
-                    </div>
-                  </div>
-                  <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
-                    {Number(plan.commissionPercent)}% commission
-                  </span>
-                </div>
-
-                <div className="mt-4 text-sm text-color-text-muted">
-                  {plan.subscriptionCount || 0} subscription(s) linked
-                </div>
-
-                {plan.features?.length > 0 && (
-                  <ul className="mt-4 pl-5 text-sm text-color-text-muted space-y-1">
-                    {plan.features.map((feature) => (
-                      <li key={feature}>{feature}</li>
-                    ))}
-                  </ul>
-                )}
-
-                <div className="mt-5 flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => openEditPlanModal(plan)}
-                    className="py-2 px-3 rounded-lg border border-color-border text-sm font-medium text-color-text bg-white"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleDeletePlan(plan)}
-                    disabled={loading === `delete-plan-${plan.id}`}
-                    className="py-2 px-3 rounded-lg border border-red-200 text-sm font-medium text-red-600 bg-white disabled:opacity-70"
-                  >
-                    {loading === `delete-plan-${plan.id}` ? "Deleting…" : "Delete"}
-                  </button>
-                </div>
+        <div className="grid gap-4 lg:grid-cols-3">
+          {plans.map((plan) => (
+            <div key={plan.id} className="rounded-xl border border-color-border bg-color-card p-5 shadow-sm">
+              <div className="text-xs font-semibold uppercase tracking-wide text-color-text-muted">{plan.code}</div>
+              <div className="mt-1 text-lg font-semibold text-color-text">{plan.name}</div>
+              {plan.description && <p className="mt-1 text-sm text-color-text-muted">{plan.description}</p>}
+              <div className="mt-3 text-2xl font-bold text-color-text">{formatEur(plan.monthlyPrice)}<span className="ml-1 text-sm font-normal text-color-text-muted">/month</span></div>
+              <div className="mt-2 text-sm text-color-text-muted">{Number(plan.commissionPercent)}% commission • trial {plan.trialDays}d • grace {plan.graceDays}d</div>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {(plan.features?.items || []).map((feature) => (
+                  <span key={`${plan.id}-${feature}`} className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">{feature}</span>
+                ))}
               </div>
-            ))}
-          </div>
-        ) : (
-          <div className="py-8 px-6 text-center text-color-text-muted text-[0.95rem] rounded-xl border border-color-border bg-color-card">
-            No plans defined yet. Use `Add Default Plans` to load recommended tiers.
-          </div>
-        )}
+              <div className="mt-5 flex flex-wrap gap-2">
+                <button type="button" onClick={() => { setEditingPlanId(plan.id); setPlanForm(planToForm(plan)); setPlanModalOpen(true); }} className="rounded-lg border border-color-border bg-white px-3 py-2 text-sm font-medium text-color-text">Edit</button>
+                <button type="button" onClick={() => deletePlan(plan)} disabled={loading === `delete-plan-${plan.id}`} className="rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-medium text-red-600 disabled:opacity-70">{loading === `delete-plan-${plan.id}` ? "Deleting…" : "Delete"}</button>
+              </div>
+            </div>
+          ))}
+          {plans.length === 0 && <div className="rounded-xl border border-color-border bg-color-card px-6 py-8 text-center text-color-text-muted">No plans defined yet.</div>}
+        </div>
       </div>
 
-      <div className="mb-8">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-base font-semibold m-0 text-color-text">Subscriptions</h3>
-          <span className="text-sm text-color-text-muted">
-            {subscriptions.length} total subscription record(s)
-          </span>
-        </div>
-        <div className="bg-color-card rounded-lg border border-color-border overflow-hidden shadow-sm">
-          <div className="w-full overflow-x-auto">
-            <table className="w-full border-collapse text-sm min-w-[900px]">
-              <thead>
-                <tr className="bg-color-bg border-b border-color-border">
-                  <th className="py-3 px-4 text-left font-semibold text-color-text">Restaurant</th>
-                  <th className="py-3 px-4 text-left font-semibold text-color-text">Current Plan</th>
-                  <th className="py-3 px-4 text-left font-semibold text-color-text">Billing</th>
-                  <th className="py-3 px-4 text-left font-semibold text-color-text">Status</th>
-                  <th className="py-3 px-4 text-left font-semibold text-color-text">Change Plan</th>
-                  <th className="py-3 px-4 text-left font-semibold text-color-text">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {subscriptions.map((subscription) => (
-                  <tr key={subscription.id} className="border-b border-slate-100 last:border-0 align-top">
-                    <td className="py-3 px-4">
-                      <div className="font-medium text-color-text">{subscription.tenant?.name}</div>
-                      <div className="text-xs text-color-text-muted">
-                        {subscription.tenant?.subdomain}
-                      </div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="font-medium text-color-text">{subscription.plan?.name}</div>
-                      <div className="text-xs text-color-text-muted">
-                        {Eur(subscription.plan?.monthlyPrice)} / {Number(subscription.plan?.commissionPercent || 0)}%
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 text-color-text-muted">
-                      {formatDate(subscription.startDate)} – {formatDate(subscription.endDate)}
-                    </td>
-                    <td className="py-3 px-4">
-                      <span
-                        className="inline-block py-0.5 px-2 rounded-md text-xs font-medium"
-                        style={getStatusTone(subscription.status)}
-                      >
-                        {subscription.status}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-2">
-                        <select
-                          className="min-w-[180px] py-2 px-3 border border-color-border rounded-lg bg-color-bg text-color-text"
-                          value={rowPlanSelection[subscription.id] ?? String(subscription.planId)}
-                          onChange={(e) =>
-                            setRowPlanSelection((prev) => ({
-                              ...prev,
-                              [subscription.id]: e.target.value,
-                            }))
-                          }
-                        >
-                          {plans.map((plan) => (
-                            <option key={plan.id} value={plan.id}>
-                              {plan.name} - {Eur(plan.monthlyPrice)}/mo
-                            </option>
-                          ))}
-                        </select>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            handleSubscriptionAction(subscription.id, "switch_plan", {
-                              planId: Number(rowPlanSelection[subscription.id] ?? subscription.planId),
-                            })
-                          }
-                          disabled={loading === `sub-${subscription.id}-switch_plan`}
-                          className="py-2 px-3 rounded-lg border border-color-border bg-white text-sm font-medium text-color-text disabled:opacity-70"
-                        >
-                          Change
-                        </button>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4">
+      <div className="mb-8 overflow-hidden rounded-lg border border-color-border bg-color-card shadow-sm">
+        <div className="border-b border-color-border bg-color-bg px-4 py-3 text-base font-semibold text-color-text">Plan Change Requests</div>
+        <div className="w-full overflow-x-auto">
+          <table className="min-w-[980px] w-full border-collapse text-sm">
+            <thead>
+              <tr className="border-b border-color-border bg-color-bg">
+                <th className="px-4 py-3 text-left font-semibold text-color-text">Restaurant</th>
+                <th className="px-4 py-3 text-left font-semibold text-color-text">Current Plan</th>
+                <th className="px-4 py-3 text-left font-semibold text-color-text">Requested Plan</th>
+                <th className="px-4 py-3 text-left font-semibold text-color-text">Message</th>
+                <th className="px-4 py-3 text-left font-semibold text-color-text">Status</th>
+                <th className="px-4 py-3 text-left font-semibold text-color-text">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {planChangeRequests.map((request) => (
+                <tr key={request.id} className="border-b border-slate-100 last:border-0">
+                  <td className="px-4 py-3">
+                    <div className="font-medium text-color-text">{request.tenant?.name}</div>
+                    <div className="text-xs text-color-text-muted">{request.tenant?.subdomain}</div>
+                  </td>
+                  <td className="px-4 py-3 text-color-text">{request.currentPlan?.name || "No active plan"}</td>
+                  <td className="px-4 py-3 text-color-text">{request.requestedPlan?.name}</td>
+                  <td className="px-4 py-3 text-color-text-muted">{request.message || "—"}</td>
+                  <td className="px-4 py-3">
+                    <span className="inline-block rounded-md px-2 py-0.5 text-xs font-medium" style={getStatusTone(request.status)}>
+                      {request.status}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    {request.status === "PENDING" ? (
                       <div className="flex flex-wrap gap-2">
                         <button
                           type="button"
-                          onClick={() => handleSubscriptionAction(subscription.id, "renew")}
-                          disabled={loading === `sub-${subscription.id}-renew`}
-                          className="py-2 px-3 rounded-lg bg-primary text-white text-sm font-medium disabled:opacity-70"
+                          onClick={() => handlePlanChangeRequestAction(request.id, "approve")}
+                          disabled={loading === `request-${request.id}-approve`}
+                          className="rounded-lg bg-primary px-3 py-2 text-sm font-medium text-white disabled:opacity-70"
                         >
-                          Renew
+                          Approve
                         </button>
                         <button
                           type="button"
-                          onClick={() => handleSubscriptionAction(subscription.id, "expire")}
-                          disabled={loading === `sub-${subscription.id}-expire`}
-                          className="py-2 px-3 rounded-lg border border-amber-200 text-amber-700 bg-white text-sm font-medium disabled:opacity-70"
+                          onClick={() => handlePlanChangeRequestAction(request.id, "reject")}
+                          disabled={loading === `request-${request.id}-reject`}
+                          className="rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-medium text-red-600 disabled:opacity-70"
                         >
-                          Mark Expired
+                          Reject
                         </button>
-                        <button
-                          type="button"
-                          onClick={() => handleSubscriptionAction(subscription.id, "cancel")}
-                          disabled={loading === `sub-${subscription.id}-cancel`}
-                          className="py-2 px-3 rounded-lg border border-red-200 text-red-600 bg-white text-sm font-medium disabled:opacity-70"
-                        >
-                          Cancel
-                        </button>
+                      </div>
+                    ) : (
+                      <span className="text-color-text-muted">Reviewed {formatDate(request.reviewedAt)}</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {planChangeRequests.length === 0 && (
+          <div className="px-6 py-8 text-center text-color-text-muted">No plan change requests yet.</div>
+        )}
+      </div>
+
+      <div className="mb-8 overflow-hidden rounded-lg border border-color-border bg-color-card shadow-sm">
+        <div className="border-b border-color-border bg-color-bg px-4 py-3 text-base font-semibold text-color-text">Subscriptions</div>
+        <div className="w-full overflow-x-auto">
+          <table className="min-w-[1100px] w-full border-collapse text-sm">
+            <thead>
+              <tr className="border-b border-color-border bg-color-bg">
+                <th className="px-4 py-3 text-left font-semibold text-color-text">Restaurant</th>
+                <th className="px-4 py-3 text-left font-semibold text-color-text">Plan</th>
+                <th className="px-4 py-3 text-left font-semibold text-color-text">Lifecycle</th>
+                <th className="px-4 py-3 text-left font-semibold text-color-text">Latest Invoice</th>
+                <th className="px-4 py-3 text-left font-semibold text-color-text">Change Plan</th>
+                <th className="px-4 py-3 text-left font-semibold text-color-text">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {subscriptions.map((subscription) => {
+                const latestInvoice = subscription.invoices?.[0] || null;
+                return (
+                  <tr key={subscription.id} className="align-top border-b border-slate-100 last:border-0">
+                    <td className="px-4 py-3"><div className="font-medium text-color-text">{subscription.tenant?.name}</div><div className="text-xs text-color-text-muted">{subscription.tenant?.subdomain}</div></td>
+                    <td className="px-4 py-3"><div className="font-medium text-color-text">{subscription.plan?.name}</div><div className="text-xs text-color-text-muted">{formatEur(subscription.plan?.monthlyPrice)} / {Number(subscription.plan?.commissionPercent || 0)}%</div></td>
+                    <td className="px-4 py-3 text-color-text-muted">
+                      <div className="mb-2"><span className="inline-block rounded-md px-2 py-0.5 text-xs font-medium" style={getStatusTone(subscription.status)}>{subscription.status}</span></div>
+                      <div>{formatDate(subscription.startDate)} - {formatDate(subscription.endDate)}</div>
+                      <div className="mt-1 text-xs">Trial ends: {formatDate(subscription.trialEndDate)} • Grace ends: {formatDate(subscription.gracePeriodEndsAt)}</div>
+                    </td>
+                    <td className="px-4 py-3">
+                      {latestInvoice ? (
+                        <div className="space-y-1 text-sm">
+                          <div className="font-medium text-color-text">{latestInvoice.invoiceNumber}</div>
+                          <div className="text-color-text-muted">{formatEur(latestInvoice.totalAmount)} due {formatDate(latestInvoice.dueDate)}</div>
+                          <span className="inline-block rounded-md px-2 py-0.5 text-xs font-medium" style={getStatusTone(latestInvoice.status)}>{latestInvoice.status}</span>
+                          <div className="flex flex-wrap gap-2 pt-1">
+                            <Link href={`/invoice/${latestInvoice.id}`} className="text-xs font-medium text-primary no-underline">View invoice</Link>
+                            {latestInvoice.status !== "PAID" && (
+                              <button type="button" onClick={() => { setEditingPaymentSubId(subscription.id); setPaymentForm(paymentToForm(latestInvoice)); setPaymentModalOpen(true); }} className="text-xs font-medium text-primary">Record payment</button>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="text-color-text-muted">No invoice yet</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <select className="min-w-[180px] rounded-lg border border-color-border bg-color-bg px-3 py-2 text-color-text" value={rowPlanSelection[subscription.id] ?? String(subscription.planId)} onChange={(e) => setRowPlanSelection((prev) => ({ ...prev, [subscription.id]: e.target.value }))}>
+                          {plans.map((plan) => <option key={plan.id} value={plan.id}>{plan.name} - {formatEur(plan.monthlyPrice)}/mo</option>)}
+                        </select>
+                        <button type="button" onClick={() => handleSubscriptionAction(subscription.id, "switch_plan", { planId: Number(rowPlanSelection[subscription.id] ?? subscription.planId) })} disabled={loading === `sub-${subscription.id}-switch_plan`} className="rounded-lg border border-color-border bg-white px-3 py-2 text-sm font-medium text-color-text disabled:opacity-70">Change</button>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex flex-wrap gap-2">
+                        <button type="button" onClick={() => handleSubscriptionAction(subscription.id, "renew")} disabled={loading === `sub-${subscription.id}-renew`} className="rounded-lg bg-primary px-3 py-2 text-sm font-medium text-white disabled:opacity-70">Renew</button>
+                        <button type="button" onClick={() => handleSubscriptionAction(subscription.id, "generate_invoice")} disabled={loading === `sub-${subscription.id}-generate_invoice`} className="rounded-lg border border-color-border bg-white px-3 py-2 text-sm font-medium text-color-text disabled:opacity-70">Invoice</button>
+                        <button type="button" onClick={() => handleSubscriptionAction(subscription.id, "cancel_at_period_end")} disabled={loading === `sub-${subscription.id}-cancel_at_period_end`} className="rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm font-medium text-amber-700 disabled:opacity-70">End of Period</button>
+                        <button type="button" onClick={() => handleSubscriptionAction(subscription.id, "expire")} disabled={loading === `sub-${subscription.id}-expire`} className="rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm font-medium text-amber-700 disabled:opacity-70">Expire</button>
+                        <button type="button" onClick={() => handleSubscriptionAction(subscription.id, "cancel")} disabled={loading === `sub-${subscription.id}-cancel`} className="rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-medium text-red-600 disabled:opacity-70">Cancel</button>
                       </div>
                     </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          {subscriptions.length === 0 && (
-            <div className="py-8 px-6 text-center text-color-text-muted text-[0.95rem]">
-              No subscriptions yet. Assign a plan to an active restaurant to get started.
-            </div>
-          )}
+                );
+              })}
+            </tbody>
+          </table>
         </div>
+        {subscriptions.length === 0 && <div className="px-6 py-8 text-center text-color-text-muted">No subscriptions yet.</div>}
+      </div>
+
+      <div className="mb-8 overflow-hidden rounded-lg border border-color-border bg-color-card shadow-sm">
+        <div className="border-b border-color-border bg-color-bg px-4 py-3 text-base font-semibold text-color-text">Recent Invoices</div>
+        <div className="w-full overflow-x-auto">
+          <table className="min-w-[800px] w-full border-collapse text-sm">
+            <thead>
+              <tr className="border-b border-color-border bg-color-bg">
+                <th className="px-4 py-3 text-left font-semibold text-color-text">Invoice</th>
+                <th className="px-4 py-3 text-left font-semibold text-color-text">Restaurant</th>
+                <th className="px-4 py-3 text-left font-semibold text-color-text">Plan</th>
+                <th className="px-4 py-3 text-left font-semibold text-color-text">Amount</th>
+                <th className="px-4 py-3 text-left font-semibold text-color-text">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {recentInvoices.map((invoice) => (
+                <tr key={invoice.id} className="border-b border-slate-100 last:border-0">
+                  <td className="px-4 py-3"><Link href={`/invoice/${invoice.id}`} className="font-medium text-primary no-underline">{invoice.invoiceNumber}</Link></td>
+                  <td className="px-4 py-3 text-color-text">{invoice.tenantName}</td>
+                  <td className="px-4 py-3 text-color-text">{invoice.planName}</td>
+                  <td className="px-4 py-3 text-color-text">{formatEur(invoice.totalAmount)}</td>
+                  <td className="px-4 py-3"><span className="inline-block rounded-md px-2 py-0.5 text-xs font-medium" style={getStatusTone(invoice.status)}>{invoice.status}</span></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {recentInvoices.length === 0 && <div className="px-6 py-8 text-center text-color-text-muted">No invoices generated yet.</div>}
       </div>
 
       {planModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50">
-          <div className="w-full max-w-lg bg-color-card rounded-xl shadow-xl border border-color-border p-6">
-            <h3 className="m-0 mb-4 text-lg font-semibold text-color-text">
-              {editingPlanId ? "Edit Subscription Plan" : "Add Subscription Plan"}
-            </h3>
-            <form onSubmit={handleSavePlan}>
-              <div className="mb-4">
-                <label className="block mb-1 text-sm font-medium text-color-text">Plan name</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Growth"
-                  className="w-full py-2 px-3 border border-color-border rounded-lg bg-color-bg text-color-text"
-                  value={planForm.name}
-                  onChange={(e) => setPlanForm((form) => ({ ...form, name: e.target.value }))}
-                />
-              </div>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4">
+          <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-xl border border-color-border bg-color-card p-6 shadow-xl">
+            <h3 className="m-0 mb-4 text-lg font-semibold text-color-text">{editingPlanId ? "Edit Subscription Plan" : "Add Subscription Plan"}</h3>
+            <form onSubmit={savePlan}>
               <div className="grid gap-4 sm:grid-cols-2">
-                <div className="mb-4 sm:mb-0">
-                  <label className="block mb-1 text-sm font-medium text-color-text">
-                    Monthly price (€)
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    min="0"
-                    step="0.01"
-                    placeholder="129"
-                    className="w-full py-2 px-3 border border-color-border rounded-lg bg-color-bg text-color-text"
-                    value={planForm.monthlyPrice}
-                    onChange={(e) =>
-                      setPlanForm((form) => ({ ...form, monthlyPrice: e.target.value }))
-                    }
-                  />
-                </div>
-                <div>
-                  <label className="block mb-1 text-sm font-medium text-color-text">
-                    Commission %
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    min="0"
-                    max="100"
-                    step="0.1"
-                    placeholder="4"
-                    className="w-full py-2 px-3 border border-color-border rounded-lg bg-color-bg text-color-text"
-                    value={planForm.commissionPercent}
-                    onChange={(e) =>
-                      setPlanForm((form) => ({
-                        ...form,
-                        commissionPercent: e.target.value,
-                      }))
-                    }
-                  />
+                <div><label className="mb-1 block text-sm font-medium text-color-text">Plan code</label><input type="text" required className="w-full rounded-lg border border-color-border bg-color-bg px-3 py-2 text-color-text" value={planForm.code} onChange={(e) => setPlanForm((form) => ({ ...form, code: e.target.value }))} /></div>
+                <div><label className="mb-1 block text-sm font-medium text-color-text">Plan name</label><input type="text" required className="w-full rounded-lg border border-color-border bg-color-bg px-3 py-2 text-color-text" value={planForm.name} onChange={(e) => setPlanForm((form) => ({ ...form, name: e.target.value }))} /></div>
+              </div>
+              <div className="mt-4"><label className="mb-1 block text-sm font-medium text-color-text">Description</label><textarea rows={3} className="w-full rounded-lg border border-color-border bg-color-bg px-3 py-2 text-color-text" value={planForm.description} onChange={(e) => setPlanForm((form) => ({ ...form, description: e.target.value }))} /></div>
+              <div className="mt-4 grid gap-4 sm:grid-cols-4">
+                <div><label className="mb-1 block text-sm font-medium text-color-text">Monthly price</label><input type="number" required min="0" step="0.01" className="w-full rounded-lg border border-color-border bg-color-bg px-3 py-2 text-color-text" value={planForm.monthlyPrice} onChange={(e) => setPlanForm((form) => ({ ...form, monthlyPrice: e.target.value }))} /></div>
+                <div><label className="mb-1 block text-sm font-medium text-color-text">Commission %</label><input type="number" required min="0" max="100" step="0.1" className="w-full rounded-lg border border-color-border bg-color-bg px-3 py-2 text-color-text" value={planForm.commissionPercent} onChange={(e) => setPlanForm((form) => ({ ...form, commissionPercent: e.target.value }))} /></div>
+                <div><label className="mb-1 block text-sm font-medium text-color-text">Trial days</label><input type="number" min="0" className="w-full rounded-lg border border-color-border bg-color-bg px-3 py-2 text-color-text" value={planForm.trialDays} onChange={(e) => setPlanForm((form) => ({ ...form, trialDays: e.target.value }))} /></div>
+                <div><label className="mb-1 block text-sm font-medium text-color-text">Grace days</label><input type="number" min="0" className="w-full rounded-lg border border-color-border bg-color-bg px-3 py-2 text-color-text" value={planForm.graceDays} onChange={(e) => setPlanForm((form) => ({ ...form, graceDays: e.target.value }))} /></div>
+              </div>
+              <div className="mt-4"><label className="mb-1 block text-sm font-medium text-color-text">Display order</label><input type="number" min="0" className="w-full rounded-lg border border-color-border bg-color-bg px-3 py-2 text-color-text" value={planForm.sortOrder} onChange={(e) => setPlanForm((form) => ({ ...form, sortOrder: e.target.value }))} /></div>
+              <div className="mt-5">
+                <label className="mb-2 block text-sm font-medium text-color-text">Feature flags</label>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {SUBSCRIPTION_FEATURE_CATALOG.map((feature) => (
+                    <label key={feature.code} className={`rounded-xl border p-3 ${planForm.featureCodes.includes(feature.code) ? "border-primary bg-primary/5" : "border-color-border bg-color-bg"}`}>
+                      <div className="flex items-start gap-3">
+                        <input type="checkbox" checked={planForm.featureCodes.includes(feature.code)} onChange={() => toggleFeature(feature.code)} className="mt-1" />
+                        <div><div className="font-medium text-color-text">{feature.label}</div><div className="text-xs text-color-text-muted">{feature.description}</div></div>
+                      </div>
+                    </label>
+                  ))}
                 </div>
               </div>
-              <div className="mt-4">
-                <label className="block mb-1 text-sm font-medium text-color-text">
-                  Features
-                </label>
-                <textarea
-                  rows={6}
-                  placeholder={`POS and split payments\nKDS\nAdvanced reports`}
-                  className="w-full py-2 px-3 border border-color-border rounded-lg bg-color-bg text-color-text"
-                  value={planForm.features}
-                  onChange={(e) =>
-                    setPlanForm((form) => ({ ...form, features: e.target.value }))
-                  }
-                />
-                <p className="mt-1 text-xs text-color-text-muted">
-                  Add one feature per line. These are shown on admin and restaurant subscription screens.
-                </p>
-              </div>
-              <div className="flex gap-3 justify-end mt-6">
-                <button
-                  type="button"
-                  onClick={() => setPlanModalOpen(false)}
-                  className="py-2 px-4 border border-color-border rounded-lg text-color-text bg-transparent"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={loading === "plan"}
-                  className="py-2 px-4 bg-primary text-white rounded-lg font-medium border-0 disabled:opacity-70"
-                >
-                  {loading === "plan"
-                    ? editingPlanId
-                      ? "Saving…"
-                      : "Creating…"
-                    : editingPlanId
-                      ? "Save Changes"
-                      : "Create Plan"}
-                </button>
+              <div className="mt-6 flex justify-end gap-3">
+                <button type="button" onClick={() => setPlanModalOpen(false)} className="rounded-lg border border-color-border bg-transparent px-4 py-2 text-color-text">Cancel</button>
+                <button type="submit" disabled={loading === "plan"} className="rounded-lg bg-primary px-4 py-2 font-medium text-white disabled:opacity-70">{loading === "plan" ? "Saving…" : editingPlanId ? "Save Changes" : "Create Plan"}</button>
               </div>
             </form>
           </div>
@@ -561,66 +524,27 @@ export default function SubscriptionsManagement({ plans, subscriptions, tenants,
       )}
 
       {subModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50">
-          <div className="w-full max-w-md bg-color-card rounded-xl shadow-xl border border-color-border p-6">
-            <h3 className="m-0 mb-4 text-lg font-semibold text-color-text">
-              Assign Plan to Restaurant
-            </h3>
-            <form onSubmit={handleAssignSubscription}>
-              <div className="mb-4">
-                <label className="block mb-1 text-sm font-medium text-color-text">
-                  Restaurant
-                </label>
-                <select
-                  required
-                  className="w-full py-2 px-3 border border-color-border rounded-lg bg-color-bg text-color-text"
-                  value={subForm.tenantId}
-                  onChange={(e) =>
-                    setSubForm((form) => ({ ...form, tenantId: e.target.value }))
-                  }
-                >
-                  <option value="">Select restaurant</option>
-                  {tenantsWithoutSub.map((tenant) => (
-                    <option key={tenant.id} value={tenant.id}>
-                      {tenant.name} ({tenant.subdomain})
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="mb-4">
-                <label className="block mb-1 text-sm font-medium text-color-text">Plan</label>
-                <select
-                  required
-                  className="w-full py-2 px-3 border border-color-border rounded-lg bg-color-bg text-color-text"
-                  value={subForm.planId}
-                  onChange={(e) =>
-                    setSubForm((form) => ({ ...form, planId: e.target.value }))
-                  }
-                >
-                  <option value="">Select plan</option>
-                  {plans.map((plan) => (
-                    <option key={plan.id} value={plan.id}>
-                      {plan.name} - {Eur(plan.monthlyPrice)}/mo
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="flex gap-3 justify-end">
-                <button
-                  type="button"
-                  onClick={() => setSubModalOpen(false)}
-                  className="py-2 px-4 border border-color-border rounded-lg text-color-text bg-transparent"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={loading === "sub"}
-                  className="py-2 px-4 bg-primary text-white rounded-lg font-medium border-0 disabled:opacity-70"
-                >
-                  {loading === "sub" ? "Assigning…" : "Assign"}
-                </button>
-              </div>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-xl border border-color-border bg-color-card p-6 shadow-xl">
+            <h3 className="m-0 mb-4 text-lg font-semibold text-color-text">Assign Plan to Restaurant</h3>
+            <form onSubmit={assignSubscription}>
+              <div className="mb-4"><label className="mb-1 block text-sm font-medium text-color-text">Restaurant</label><select required className="w-full rounded-lg border border-color-border bg-color-bg px-3 py-2 text-color-text" value={subForm.tenantId} onChange={(e) => setSubForm((form) => ({ ...form, tenantId: e.target.value }))}><option value="">Select restaurant</option>{tenantsWithoutSub.map((tenant) => <option key={tenant.id} value={tenant.id}>{tenant.name} ({tenant.subdomain})</option>)}</select></div>
+              <div className="mb-4"><label className="mb-1 block text-sm font-medium text-color-text">Plan</label><select required className="w-full rounded-lg border border-color-border bg-color-bg px-3 py-2 text-color-text" value={subForm.planId} onChange={(e) => setSubForm((form) => ({ ...form, planId: e.target.value }))}><option value="">Select plan</option>{plans.map((plan) => <option key={plan.id} value={plan.id}>{plan.name} - {formatEur(plan.monthlyPrice)}/mo</option>)}</select></div>
+              <div className="flex justify-end gap-3"><button type="button" onClick={() => setSubModalOpen(false)} className="rounded-lg border border-color-border bg-transparent px-4 py-2 text-color-text">Cancel</button><button type="submit" disabled={loading === "sub"} className="rounded-lg bg-primary px-4 py-2 font-medium text-white disabled:opacity-70">{loading === "sub" ? "Assigning…" : "Assign"}</button></div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {paymentModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-xl border border-color-border bg-color-card p-6 shadow-xl">
+            <h3 className="m-0 mb-4 text-lg font-semibold text-color-text">Record Invoice Payment</h3>
+            <form onSubmit={recordPayment}>
+              <div className="mb-4"><label className="mb-1 block text-sm font-medium text-color-text">Amount</label><input type="number" required min="0" step="0.01" className="w-full rounded-lg border border-color-border bg-color-bg px-3 py-2 text-color-text" value={paymentForm.amount} onChange={(e) => setPaymentForm((form) => ({ ...form, amount: e.target.value }))} /></div>
+              <div className="mb-4"><label className="mb-1 block text-sm font-medium text-color-text">Method</label><select className="w-full rounded-lg border border-color-border bg-color-bg px-3 py-2 text-color-text" value={paymentForm.method} onChange={(e) => setPaymentForm((form) => ({ ...form, method: e.target.value }))}>{PAYMENT_METHODS.map((method) => <option key={method} value={method}>{method}</option>)}</select></div>
+              <div className="mb-4"><label className="mb-1 block text-sm font-medium text-color-text">Reference</label><input type="text" className="w-full rounded-lg border border-color-border bg-color-bg px-3 py-2 text-color-text" value={paymentForm.reference} onChange={(e) => setPaymentForm((form) => ({ ...form, reference: e.target.value }))} /></div>
+              <div className="flex justify-end gap-3"><button type="button" onClick={() => setPaymentModalOpen(false)} className="rounded-lg border border-color-border bg-transparent px-4 py-2 text-color-text">Cancel</button><button type="submit" disabled={loading === `sub-${editingPaymentSubId}-record_payment`} className="rounded-lg bg-primary px-4 py-2 font-medium text-white disabled:opacity-70">{loading === `sub-${editingPaymentSubId}-record_payment` ? "Saving…" : "Record Payment"}</button></div>
             </form>
           </div>
         </div>

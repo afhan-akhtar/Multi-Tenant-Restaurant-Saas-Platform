@@ -26,17 +26,35 @@ export async function PATCH(req, { params }) {
       return NextResponse.json({ error: "Invalid plan." }, { status: 400 });
     }
 
-    const { name, monthlyPrice, commissionPercent, features } = parsePlanPayload(await req.json());
-    if (!name || Number.isNaN(monthlyPrice) || Number.isNaN(commissionPercent)) {
+    const {
+      code,
+      name,
+      description,
+      monthlyPrice,
+      commissionPercent,
+      trialDays,
+      graceDays,
+      sortOrder,
+      features,
+    } = parsePlanPayload(await req.json());
+    if (!code || !name || Number.isNaN(monthlyPrice) || Number.isNaN(commissionPercent)) {
       return NextResponse.json(
-        { error: "Name, monthly price, and commission percent are required." },
+        { error: "Plan code, name, monthly price, and commission percent are required." },
         { status: 400 }
       );
     }
 
-    if (monthlyPrice < 0 || commissionPercent < 0 || commissionPercent > 100) {
+    if (
+      monthlyPrice < 0 ||
+      commissionPercent < 0 ||
+      commissionPercent > 100 ||
+      Number.isNaN(trialDays) ||
+      trialDays < 0 ||
+      Number.isNaN(graceDays) ||
+      graceDays < 0
+    ) {
       return NextResponse.json(
-        { error: "Invalid price or commission percent." },
+        { error: "Invalid billing configuration." },
         { status: 400 }
       );
     }
@@ -44,9 +62,14 @@ export async function PATCH(req, { params }) {
     const plan = await prisma.subscriptionPlan.update({
       where: { id },
       data: {
+        code,
         name,
+        description: description || null,
         monthlyPrice,
         commissionPercent,
+        trialDays,
+        graceDays,
+        sortOrder,
         features,
       },
     });
@@ -55,10 +78,15 @@ export async function PATCH(req, { params }) {
       success: true,
       plan: {
         id: plan.id,
+        code: plan.code,
         name: plan.name,
+        description: plan.description,
         monthlyPrice: Number(plan.monthlyPrice),
         commissionPercent: Number(plan.commissionPercent),
-        features,
+        trialDays: plan.trialDays,
+        graceDays: plan.graceDays,
+        sortOrder: plan.sortOrder,
+        features: plan.features,
       },
     });
   } catch (error) {
@@ -78,7 +106,7 @@ export async function DELETE(req, { params }) {
     }
 
     const activeSubscriptions = await prisma.tenantSubscription.count({
-      where: { planId: id, status: "ACTIVE" },
+      where: { planId: id, status: { in: ["TRIALING", "ACTIVE", "GRACE_PERIOD", "PAST_DUE"] } },
     });
 
     if (activeSubscriptions > 0) {

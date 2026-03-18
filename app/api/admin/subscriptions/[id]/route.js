@@ -1,6 +1,14 @@
 import { getToken } from "next-auth/jwt";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import {
+  addDays,
+  addMonths,
+  createInvoiceForSubscription,
+  recordInvoicePayment,
+  serializeSubscription,
+  syncSubscriptionState,
+} from "@/lib/subscriptions";
 
 async function requireSuperAdmin(req) {
   const token = await getToken({
@@ -13,12 +21,6 @@ async function requireSuperAdmin(req) {
   }
 
   return null;
-}
-
-function addMonth(dateValue) {
-  const next = new Date(dateValue);
-  next.setMonth(next.getMonth() + 1);
-  return next;
 }
 
 export async function PATCH(req, { params }) {
@@ -34,27 +36,106 @@ export async function PATCH(req, { params }) {
     const body = await req.json();
     const action = String(body?.action || "").trim();
     const planId = body?.planId ? Number(body.planId) : null;
+    const invoiceId = body?.invoiceId ? Number(body.invoiceId) : null;
+    const amount = body?.amount ? Number(body.amount) : null;
+    const method = String(body?.method || "MANUAL").trim().toUpperCase();
+    const reference = String(body?.reference || "").trim();
+    const notes = String(body?.notes || "").trim();
 
     const existing = await prisma.tenantSubscription.findUnique({
       where: { id },
+      include: {
+        plan: true,
+        tenant: true,
+        invoices: {
+          include: { payments: true },
+          orderBy: [{ periodEnd: "desc" }, { issuedAt: "desc" }],
+        },
+      },
     });
 
     if (!existing) {
       return NextResponse.json({ error: "Subscription not found." }, { status: 404 });
     }
 
-    const data = {};
-
     if (action === "renew") {
-      data.status = "ACTIVE";
-      data.startDate = new Date();
-      data.endDate = addMonth(data.startDate);
+      const now = new Date();
+      const nextEndDate = addMonths(now, 1);
+      const updated = await prisma.tenantSubscription.update({
+        where: { id },
+        data: {
+          status: existing.plan?.trialDays ? "TRIALING" : "ACTIVE",
+          startDate: now,
+          endDate: nextEndDate,
+          trialStartDate: existing.plan?.trialDays ? now : null,
+          trialEndDate: existing.plan?.trialDays ? addDays(now, Number(existing.plan.trialDays || 0)) : null,
+          gracePeriodEndsAt: addDays(nextEndDate, Number(existing.plan?.graceDays || 0)),
+          nextBillingDate: nextEndDate,
+          autoRenew: true,
+          cancelAtPeriodEnd: false,
+        },
+        include: { plan: true },
+      });
+
+      await createInvoiceForSubscription(prisma, updated, {
+        periodStart: updated.startDate,
+        periodEnd: updated.endDate,
+        dueDate: updated.endDate,
+        notes: "Invoice created during manual subscription renewal.",
+      });
+
+      const subscription = await syncSubscriptionState(prisma, updated.id);
+      return NextResponse.json({
+        success: true,
+        subscription: serializeSubscription(subscription),
+      });
     } else if (action === "cancel") {
-      data.status = "CANCELLED";
-      data.endDate = new Date();
+      const subscription = await prisma.tenantSubscription.update({
+        where: { id },
+        data: {
+          status: "CANCELLED",
+          endDate: new Date(),
+          cancelAtPeriodEnd: false,
+          autoRenew: false,
+        },
+      });
+
+      return NextResponse.json({
+        success: true,
+        subscription: serializeSubscription(
+          await syncSubscriptionState(prisma, subscription.id)
+        ),
+      });
+    } else if (action === "cancel_at_period_end") {
+      const subscription = await prisma.tenantSubscription.update({
+        where: { id },
+        data: {
+          cancelAtPeriodEnd: true,
+          autoRenew: false,
+        },
+      });
+
+      return NextResponse.json({
+        success: true,
+        subscription: serializeSubscription(
+          await syncSubscriptionState(prisma, subscription.id)
+        ),
+      });
     } else if (action === "expire") {
-      data.status = "EXPIRED";
-      data.endDate = new Date();
+      const subscription = await prisma.tenantSubscription.update({
+        where: { id },
+        data: {
+          status: "EXPIRED",
+          endDate: new Date(),
+        },
+      });
+
+      return NextResponse.json({
+        success: true,
+        subscription: serializeSubscription(
+          await syncSubscriptionState(prisma, subscription.id)
+        ),
+      });
     } else if (action === "switch_plan") {
       if (!planId) {
         return NextResponse.json({ error: "Plan is required." }, { status: 400 });
@@ -68,35 +149,60 @@ export async function PATCH(req, { params }) {
         return NextResponse.json({ error: "Plan not found." }, { status: 404 });
       }
 
-      data.planId = planId;
-      if (existing.status !== "ACTIVE") {
-        data.status = "ACTIVE";
-        data.startDate = new Date();
-        data.endDate = addMonth(data.startDate);
+      const nextGraceEnd = addDays(existing.endDate, Number(plan.graceDays || 0));
+      const subscription = await prisma.tenantSubscription.update({
+        where: { id },
+        data: {
+          planId,
+          gracePeriodEndsAt: nextGraceEnd,
+          status:
+            existing.status === "EXPIRED" || existing.status === "CANCELLED"
+              ? plan.trialDays > 0
+                ? "TRIALING"
+                : "ACTIVE"
+              : existing.status,
+        },
+      });
+
+      return NextResponse.json({
+        success: true,
+        subscription: serializeSubscription(
+          await syncSubscriptionState(prisma, subscription.id)
+        ),
+      });
+    } else if (action === "generate_invoice") {
+      await createInvoiceForSubscription(prisma, existing, {
+        notes: notes || "Manual invoice generation from Super Admin.",
+      });
+
+      return NextResponse.json({
+        success: true,
+        subscription: serializeSubscription(
+          await syncSubscriptionState(prisma, existing.id)
+        ),
+      });
+    } else if (action === "record_payment") {
+      if (!invoiceId) {
+        return NextResponse.json({ error: "Invoice is required." }, { status: 400 });
       }
+
+      const subscription = await prisma.$transaction((tx) =>
+        recordInvoicePayment(tx, {
+          invoiceId,
+          amount,
+          method,
+          reference,
+          notes,
+        })
+      );
+
+      return NextResponse.json({
+        success: true,
+        subscription: serializeSubscription(subscription),
+      });
     } else {
       return NextResponse.json({ error: "Unsupported action." }, { status: 400 });
     }
-
-    const subscription = await prisma.tenantSubscription.update({
-      where: { id },
-      data,
-      include: { tenant: true, plan: true },
-    });
-
-    return NextResponse.json({
-      success: true,
-      subscription: {
-        id: subscription.id,
-        tenantId: subscription.tenantId,
-        planId: subscription.planId,
-        tenantName: subscription.tenant?.name,
-        planName: subscription.plan?.name,
-        status: subscription.status,
-        startDate: subscription.startDate,
-        endDate: subscription.endDate,
-      },
-    });
   } catch (error) {
     console.error("[admin subscriptions update]", error);
     return NextResponse.json({ error: "Failed to update subscription." }, { status: 500 });

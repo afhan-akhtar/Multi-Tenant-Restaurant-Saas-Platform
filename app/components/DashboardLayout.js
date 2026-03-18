@@ -218,14 +218,34 @@ const ICONS = {
   ),
 };
 
-function NavItem({ href, label, icon, isActive, collapsed, onNavigate, badge }) {
+function NavItem({ href, label, icon, isActive, collapsed, onNavigate, badge, locked = false, tag = "" }) {
+  const className = `flex items-center gap-3 py-2.5 px-4 text-slate-400 no-underline transition-all duration-200 border-l-[3px] border-transparent ml-0 hover:bg-sidebar-hover hover:text-white ${
+    isActive ? "bg-primary/15 text-white border-l-primary" : ""
+  } ${locked ? "cursor-not-allowed opacity-60" : ""}`;
+
+  if (locked) {
+    return (
+      <div className={className} title={tag || `${label} is not available on your current plan`}>
+        <span className="w-5 h-5 min-w-5 shrink-0 [&>svg]:w-full [&>svg]:h-full relative">
+          {ICONS[icon] || ICONS.dashboard}
+        </span>
+        <span className={`whitespace-nowrap text-sm overflow-hidden transition-opacity duration-200 ${collapsed ? "opacity-0 invisible w-0" : ""}`}>
+          {label}
+        </span>
+        {tag && !collapsed && (
+          <span className="ml-auto rounded-full bg-amber-500/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-300">
+            {tag}
+          </span>
+        )}
+      </div>
+    );
+  }
+
   return (
     <Link
       href={href || "#"}
       onClick={onNavigate}
-      className={`flex items-center gap-3 py-2.5 px-4 text-slate-400 no-underline transition-all duration-200 border-l-[3px] border-transparent ml-0 hover:bg-sidebar-hover hover:text-white ${
-        isActive ? "bg-primary/15 text-white border-l-primary" : ""
-      }`}
+      className={className}
     >
       <span className="w-5 h-5 min-w-5 shrink-0 [&>svg]:w-full [&>svg]:h-full relative">
         {ICONS[icon] || ICONS.dashboard}
@@ -275,6 +295,19 @@ const PAGE_TITLES = {
   "/kds": "Kitchen Display (KDS)",
 };
 
+const RESTAURANT_ITEM_FEATURES = {
+  "/pos": "POS",
+  "/kds": "KDS",
+  "/users": "TEAM_MANAGEMENT",
+  "/roles": "TEAM_MANAGEMENT",
+  "/reports": "REPORTS",
+  "/z-reports": "Z_REPORTS",
+  "/cashbook": "CASHBOOK",
+  "/segments": "CUSTOMER_SEGMENTS",
+  "/loyalty": "LOYALTY",
+  "/campaigns": "EMAIL_CAMPAIGNS",
+};
+
 function withBasePath(basePath, href) {
   if (!basePath) return href;
   const base = basePath.replace(/\/$/, "");
@@ -282,7 +315,13 @@ function withBasePath(basePath, href) {
   return `${base}${href}`;
 }
 
-export default function DashboardLayout({ children, user, pendingTenantCount = 0, basePath = "" }) {
+export default function DashboardLayout({
+  children,
+  user,
+  pendingTenantCount = 0,
+  basePath = "",
+  subscriptionAccess = null,
+}) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [isMobileLayout, setIsMobileLayout] = useState(false);
@@ -290,7 +329,27 @@ export default function DashboardLayout({ children, user, pendingTenantCount = 0
   const pathname = usePathname();
   const isSuperAdmin = user?.type === "super_admin";
 
-  const sidebarItems = isSuperAdmin ? SUPER_ADMIN_ITEMS : RESTAURANT_ITEMS;
+  const enabledFeatures = new Set(subscriptionAccess?.featureCodes || []);
+  const sidebarItems = isSuperAdmin
+    ? SUPER_ADMIN_ITEMS
+    : RESTAURANT_ITEMS.map((item) => {
+        if (!item.section) {
+          const requiredFeature = RESTAURANT_ITEM_FEATURES[item.href];
+          return requiredFeature && !enabledFeatures.has(requiredFeature)
+            ? { ...item, locked: true, tag: "Upgrade" }
+            : item;
+        }
+
+        return {
+          ...item,
+          items: item.items.map((sub) => {
+            const requiredFeature = RESTAURANT_ITEM_FEATURES[sub.href];
+            return requiredFeature && !enabledFeatures.has(requiredFeature)
+              ? { ...sub, locked: true, tag: "Upgrade" }
+              : sub;
+          }),
+        };
+      });
 
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 1023px)");
@@ -369,6 +428,8 @@ export default function DashboardLayout({ children, user, pendingTenantCount = 0
                       collapsed={!sidebarOpen}
                       onNavigate={closeSidebarOnNavigate}
                       badge={sub.href === "/restaurants" ? pendingTenantCount : undefined}
+                      locked={sub.locked}
+                      tag={sub.tag}
                     />
                   ))}
                 </div>
@@ -383,6 +444,8 @@ export default function DashboardLayout({ children, user, pendingTenantCount = 0
                 isActive={isActive(item.href)}
                 collapsed={!sidebarOpen}
                 onNavigate={closeSidebarOnNavigate}
+                locked={item.locked}
+                tag={item.tag}
               />
             );
           })}
@@ -404,7 +467,7 @@ export default function DashboardLayout({ children, user, pendingTenantCount = 0
             <h1 className="text-base sm:text-xl font-semibold text-color-text m-0 truncate min-w-0">{pageTitle}</h1>
           </div>
           <div className="flex items-center gap-2 sm:gap-4 shrink-0">
-            {!isSuperAdmin && (
+            {!isSuperAdmin && enabledFeatures.has("POS") && (
               <Link href={withBasePath(basePath, "/pos")} className="py-1.5 px-3 sm:py-2 sm:px-4 bg-primary text-white no-underline rounded-md font-medium text-xs sm:text-sm transition-colors hover:bg-primary-hover shrink-0">
                 POS
               </Link>
@@ -443,7 +506,19 @@ export default function DashboardLayout({ children, user, pendingTenantCount = 0
           </div>
         </header>
 
-        <main className="flex-1 p-4 sm:p-6 overflow-x-hidden">{children}</main>
+        <main className="flex-1 p-4 sm:p-6 overflow-x-hidden">
+          {!isSuperAdmin && subscriptionAccess && !subscriptionAccess.hasSubscription && (
+            <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              No subscription is assigned to this restaurant. Open `My Subscription` to review plans and billing.
+            </div>
+          )}
+          {!isSuperAdmin && subscriptionAccess?.billingIssue && (
+            <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {subscriptionAccess.billingIssue}
+            </div>
+          )}
+          {children}
+        </main>
 
         <footer className="py-3 px-4 sm:py-4 sm:px-6 text-xs text-color-text-muted border-t border-color-border bg-color-card shrink-0">
           Copyright © {new Date().getFullYear()} Multi-Tenant Restaurant SaaS. All Rights Reserved.

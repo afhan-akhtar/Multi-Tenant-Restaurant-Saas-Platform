@@ -15,11 +15,22 @@ export async function POST(req) {
     }
 
     const existingPlans = await prisma.subscriptionPlan.findMany({
-      select: { name: true },
+      select: { name: true, code: true },
     });
-    const existingNames = new Set(existingPlans.map((plan) => plan.name.toLowerCase()));
+    const legacyNameMap = {
+      starter: "basic",
+      growth: "premium",
+      scale: "enterprise",
+    };
+    const existingPlanKeys = new Set(
+      existingPlans.flatMap((plan) => [
+        String(plan.name || "").toLowerCase(),
+        String(plan.code || "").toLowerCase(),
+        legacyNameMap[String(plan.name || "").toLowerCase()],
+      ].filter(Boolean))
+    );
     const plansToCreate = DEFAULT_SUBSCRIPTION_PLANS.filter(
-      (plan) => !existingNames.has(plan.name.toLowerCase())
+      (plan) => !existingPlanKeys.has(plan.name.toLowerCase()) && !existingPlanKeys.has(plan.code.toLowerCase())
     );
 
     if (plansToCreate.length === 0) {
@@ -32,9 +43,14 @@ export async function POST(req) {
 
     await prisma.subscriptionPlan.createMany({
       data: plansToCreate.map((plan) => ({
+        code: plan.code,
         name: plan.name,
+        description: plan.description,
         monthlyPrice: plan.monthlyPrice,
         commissionPercent: plan.commissionPercent,
+        trialDays: plan.trialDays,
+        graceDays: plan.graceDays,
+        sortOrder: plan.sortOrder,
         features: plan.features,
       })),
     });

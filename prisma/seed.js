@@ -365,6 +365,252 @@ async function main() {
     });
   }
 
+  const defaultPlans = [
+    {
+      code: "basic",
+      name: "Basic",
+      description: "Essential operations for a single restaurant location.",
+      monthlyPrice: 49,
+      commissionPercent: 6,
+      trialDays: 14,
+      graceDays: 5,
+      sortOrder: 1,
+      features: {
+        codes: ["POS", "REPORTS", "CASHBOOK", "TEAM_MANAGEMENT"],
+        items: ["POS system", "Reports", "Cashbook", "Team management"],
+      },
+    },
+    {
+      code: "premium",
+      name: "Premium",
+      description: "Advanced operational tooling for growing restaurants.",
+      monthlyPrice: 129,
+      commissionPercent: 4,
+      trialDays: 14,
+      graceDays: 7,
+      sortOrder: 2,
+      features: {
+        codes: ["POS", "ONLINE_PAYMENTS", "SPLIT_PAYMENTS", "KDS", "REPORTS", "Z_REPORTS", "CASHBOOK", "TEAM_MANAGEMENT", "LOYALTY"],
+        items: ["POS system", "Online payments", "Split payments", "Kitchen display system", "Reports", "Z-reports", "Cashbook", "Team management", "Loyalty program"],
+      },
+    },
+    {
+      code: "enterprise",
+      name: "Enterprise",
+      description: "Full commercial feature set for multi-branch operators.",
+      monthlyPrice: 249,
+      commissionPercent: 2.5,
+      trialDays: 21,
+      graceDays: 10,
+      sortOrder: 3,
+      features: {
+        codes: ["POS", "ONLINE_PAYMENTS", "SPLIT_PAYMENTS", "KDS", "REPORTS", "Z_REPORTS", "CASHBOOK", "TEAM_MANAGEMENT", "LOYALTY", "CUSTOMER_SEGMENTS", "EMAIL_CAMPAIGNS", "MULTI_BRANCH"],
+        items: ["POS system", "Online payments", "Split payments", "Kitchen display system", "Reports", "Z-reports", "Cashbook", "Team management", "Loyalty program", "Customer segments", "Email campaigns", "Multi-branch operations"],
+      },
+    },
+  ];
+
+  const legacyPlanNameMap = {
+    Starter: "basic",
+    Growth: "premium",
+    Scale: "enterprise",
+  };
+
+  for (const [legacyName, targetCode] of Object.entries(legacyPlanNameMap)) {
+    const targetPlan = defaultPlans.find((plan) => plan.code === targetCode);
+    const legacyPlan = await prisma.subscriptionPlan.findFirst({
+      where: { name: legacyName, code: null },
+    });
+
+    if (legacyPlan && targetPlan) {
+      await prisma.subscriptionPlan.update({
+        where: { id: legacyPlan.id },
+        data: {
+          code: targetPlan.code,
+          name: targetPlan.name,
+          description: targetPlan.description,
+          monthlyPrice: targetPlan.monthlyPrice,
+          commissionPercent: targetPlan.commissionPercent,
+          trialDays: targetPlan.trialDays,
+          graceDays: targetPlan.graceDays,
+          sortOrder: targetPlan.sortOrder,
+          features: targetPlan.features,
+        },
+      });
+    }
+  }
+
+  for (const plan of defaultPlans) {
+    await prisma.subscriptionPlan.upsert({
+      where: { code: plan.code },
+      update: {
+        name: plan.name,
+        description: plan.description,
+        monthlyPrice: plan.monthlyPrice,
+        commissionPercent: plan.commissionPercent,
+        trialDays: plan.trialDays,
+        graceDays: plan.graceDays,
+        sortOrder: plan.sortOrder,
+        features: plan.features,
+      },
+      create: plan,
+    });
+  }
+
+  const premiumPlan = await prisma.subscriptionPlan.findUnique({
+    where: { code: "premium" },
+  });
+
+  const currentPeriodStart = new Date();
+  currentPeriodStart.setDate(currentPeriodStart.getDate() - 15);
+  const currentPeriodEnd = new Date();
+  currentPeriodEnd.setDate(currentPeriodEnd.getDate() + 15);
+  const previousPeriodStart = new Date(currentPeriodStart);
+  previousPeriodStart.setMonth(previousPeriodStart.getMonth() - 1);
+  const previousPeriodEnd = new Date(currentPeriodStart);
+
+  let demoSubscription = await prisma.tenantSubscription.findFirst({
+    where: { tenantId: tenant.id },
+    orderBy: { endDate: "desc" },
+  });
+
+  if (!demoSubscription) {
+    demoSubscription = await prisma.tenantSubscription.create({
+      data: {
+        tenantId: tenant.id,
+        planId: premiumPlan.id,
+        status: "ACTIVE",
+        startDate: currentPeriodStart,
+        endDate: currentPeriodEnd,
+        gracePeriodEndsAt: new Date(currentPeriodEnd.getTime() + premiumPlan.graceDays * 24 * 60 * 60 * 1000),
+        nextBillingDate: currentPeriodEnd,
+        autoRenew: true,
+        cancelAtPeriodEnd: false,
+      },
+    });
+  } else {
+    demoSubscription = await prisma.tenantSubscription.update({
+      where: { id: demoSubscription.id },
+      data: {
+        planId: premiumPlan.id,
+        status: "ACTIVE",
+        startDate: currentPeriodStart,
+        endDate: currentPeriodEnd,
+        gracePeriodEndsAt: new Date(currentPeriodEnd.getTime() + premiumPlan.graceDays * 24 * 60 * 60 * 1000),
+        nextBillingDate: currentPeriodEnd,
+        autoRenew: true,
+        cancelAtPeriodEnd: false,
+      },
+    });
+  }
+
+  const previousInvoice = await prisma.billingInvoice.upsert({
+    where: { invoiceNumber: "INV-DEMO-2026-01" },
+    update: {
+      tenantId: tenant.id,
+      subscriptionId: demoSubscription.id,
+      planId: premiumPlan.id,
+      status: "PAID",
+      issuedAt: previousPeriodEnd,
+      dueDate: previousPeriodEnd,
+      periodStart: previousPeriodStart,
+      periodEnd: previousPeriodEnd,
+      subtotal: 161,
+      taxAmount: 0,
+      totalAmount: 161,
+      lineItems: [
+        { code: "subscription_fee", label: "Premium platform subscription", description: "Monthly platform fee", amount: 129 },
+        { code: "commission", label: "Order commission", description: "4% commission on completed orders", amount: 32 },
+      ],
+      notes: "Seeded paid invoice for demo restaurant.",
+    },
+    create: {
+      tenantId: tenant.id,
+      subscriptionId: demoSubscription.id,
+      planId: premiumPlan.id,
+      invoiceNumber: "INV-DEMO-2026-01",
+      status: "PAID",
+      issuedAt: previousPeriodEnd,
+      dueDate: previousPeriodEnd,
+      periodStart: previousPeriodStart,
+      periodEnd: previousPeriodEnd,
+      subtotal: 161,
+      taxAmount: 0,
+      totalAmount: 161,
+      lineItems: [
+        { code: "subscription_fee", label: "Premium platform subscription", description: "Monthly platform fee", amount: 129 },
+        { code: "commission", label: "Order commission", description: "4% commission on completed orders", amount: 32 },
+      ],
+      notes: "Seeded paid invoice for demo restaurant.",
+    },
+  });
+
+  await prisma.billingInvoice.upsert({
+    where: { invoiceNumber: "INV-DEMO-2026-02" },
+    update: {
+      tenantId: tenant.id,
+      subscriptionId: demoSubscription.id,
+      planId: premiumPlan.id,
+      status: "OPEN",
+      issuedAt: currentPeriodStart,
+      dueDate: currentPeriodEnd,
+      periodStart: currentPeriodStart,
+      periodEnd: currentPeriodEnd,
+      subtotal: 173,
+      taxAmount: 0,
+      totalAmount: 173,
+      lineItems: [
+        { code: "subscription_fee", label: "Premium platform subscription", description: "Monthly platform fee", amount: 129 },
+        { code: "commission", label: "Order commission", description: "4% commission on completed orders", amount: 44 },
+      ],
+      notes: "Seeded open invoice for demo restaurant.",
+    },
+    create: {
+      tenantId: tenant.id,
+      subscriptionId: demoSubscription.id,
+      planId: premiumPlan.id,
+      invoiceNumber: "INV-DEMO-2026-02",
+      status: "OPEN",
+      issuedAt: currentPeriodStart,
+      dueDate: currentPeriodEnd,
+      periodStart: currentPeriodStart,
+      periodEnd: currentPeriodEnd,
+      subtotal: 173,
+      taxAmount: 0,
+      totalAmount: 173,
+      lineItems: [
+        { code: "subscription_fee", label: "Premium platform subscription", description: "Monthly platform fee", amount: 129 },
+        { code: "commission", label: "Order commission", description: "4% commission on completed orders", amount: 44 },
+      ],
+      notes: "Seeded open invoice for demo restaurant.",
+    },
+  });
+
+  const existingSeedPayment = await prisma.billingPayment.findFirst({
+    where: { invoiceId: previousInvoice.id, reference: "SEED-DEMO-PAYMENT" },
+  });
+  if (!existingSeedPayment) {
+    await prisma.billingPayment.create({
+      data: {
+        invoiceId: previousInvoice.id,
+        tenantId: tenant.id,
+        amount: 161,
+        method: "STRIPE",
+        status: "SUCCEEDED",
+        paidAt: previousPeriodEnd,
+        reference: "SEED-DEMO-PAYMENT",
+        notes: "Seeded demo payment.",
+      },
+    });
+  } else {
+    await prisma.billingPayment.update({
+      where: { id: existingSeedPayment.id },
+      data: {
+        method: "STRIPE",
+      },
+    });
+  }
+
   console.log("Seed completed:");
   console.log("  SuperAdmin:", admin.email, "/ admin123");
   console.log("  Tenant admin: tenant@demo.com / tenant123 (subdomain: demo)");

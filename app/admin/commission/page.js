@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { redirect } from "next/navigation";
 import CommissionClient from "@/app/components/CommissionClient";
+import { runSubscriptionBillingCycle, serializeSubscription } from "@/lib/subscriptions";
 
 export const dynamic = "force-dynamic";
 
@@ -9,70 +10,86 @@ export default async function AdminCommissionPage() {
   const session = await auth();
   if (!session || session.user?.type !== "super_admin") redirect("/admin");
 
-  const [plans, subscriptions, tenantRevenue] = await Promise.all([
+  await runSubscriptionBillingCycle(prisma);
+
+  const [plans, subscriptions, invoices] = await Promise.all([
     prisma.subscriptionPlan.findMany({
-      orderBy: { name: "asc" },
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
       include: { _count: { select: { tenantSubscriptions: true } } },
     }),
     prisma.tenantSubscription.findMany({
-      where: { status: "ACTIVE" },
-      include: { tenant: true, plan: true },
-      orderBy: { startDate: "desc" },
+      include: {
+        tenant: true,
+        plan: true,
+        invoices: {
+          include: {
+            payments: {
+              orderBy: { paidAt: "desc" },
+            },
+          },
+          orderBy: [{ periodEnd: "desc" }, { issuedAt: "desc" }],
+        },
+      },
+      orderBy: [{ endDate: "desc" }, { createdAt: "desc" }],
     }),
-    prisma.order.groupBy({
-      by: ["tenantId"],
-      where: { status: "COMPLETED" },
-      _sum: { grandTotal: true },
-      _count: true,
+    prisma.billingInvoice.findMany({
+      include: {
+        tenant: true,
+        plan: true,
+        payments: {
+          orderBy: { paidAt: "desc" },
+        },
+      },
+      orderBy: [{ issuedAt: "desc" }],
     }),
   ]);
-
-  const revenueByTenant = {};
-  tenantRevenue.forEach((r) => {
-    revenueByTenant[r.tenantId] = {
-      revenue: Number(r._sum.grandTotal || 0),
-      orderCount: r._count,
-    };
-  });
-
-  const tenantIds = [...new Set(subscriptions.map((s) => s.tenantId))];
-  const tenants = await prisma.tenant.findMany({
-    where: { id: { in: tenantIds } },
-    select: { id: true, name: true, subdomain: true },
-  });
-  const tenantMap = Object.fromEntries(tenants.map((t) => [t.id, t]));
 
   const data = {
     plans: plans.map((p) => ({
       id: p.id,
+      code: p.code,
       name: p.name,
+      description: p.description || "",
       monthlyPrice: Number(p.monthlyPrice),
       commissionPercent: Number(p.commissionPercent),
+      trialDays: Number(p.trialDays || 0),
+      graceDays: Number(p.graceDays || 0),
       subscriptionCount: p._count.tenantSubscriptions,
     })),
-    subscriptions: subscriptions.map((s) => ({
-      id: s.id,
-      tenantId: s.tenantId,
-      tenantName: s.tenant?.name,
-      subdomain: s.tenant?.subdomain,
-      planName: s.plan?.name,
-      commissionPercent: Number(s.plan?.commissionPercent || 0),
-      startDate: s.startDate,
-      endDate: s.endDate,
-      revenue: revenueByTenant[s.tenantId]?.revenue ?? 0,
-      orderCount: revenueByTenant[s.tenantId]?.orderCount ?? 0,
+    subscriptions: subscriptions.map((subscription) => serializeSubscription(subscription)),
+    invoices: invoices.map((invoice) => ({
+      id: invoice.id,
+      invoiceNumber: invoice.invoiceNumber,
+      tenantName: invoice.tenant?.name || "",
+      subdomain: invoice.tenant?.subdomain || "",
+      planName: invoice.plan?.name || "",
+      status: invoice.status,
+      totalAmount: Number(invoice.totalAmount || 0),
+      dueDate: invoice.dueDate?.toISOString?.() || null,
+      issuedAt: invoice.issuedAt?.toISOString?.() || null,
+      payments: (invoice.payments || []).map((payment) => ({
+        id: payment.id,
+        amount: Number(payment.amount || 0),
+        method: payment.method,
+        reference: payment.reference || "",
+        paidAt: payment.paidAt?.toISOString?.() || null,
+      })),
     })),
   };
 
-  const totalRevenue = Object.values(revenueByTenant).reduce((s, r) => s + r.revenue, 0);
-  const totalCommission = data.subscriptions.reduce((s, sub) => {
-    return s + (sub.revenue * sub.commissionPercent) / 100;
-  }, 0);
+  const totalRevenue = data.invoices.reduce((sum, invoice) => sum + invoice.totalAmount, 0);
+  const totalPaid = data.invoices.reduce(
+    (sum, invoice) => sum + invoice.payments.reduce((invoiceSum, payment) => invoiceSum + payment.amount, 0),
+    0
+  );
+  const totalOutstanding = data.invoices
+    .filter((invoice) => invoice.status === "OPEN" || invoice.status === "OVERDUE")
+    .reduce((sum, invoice) => sum + invoice.totalAmount, 0);
 
   return (
     <CommissionClient
       data={data}
-      totals={{ revenue: totalRevenue, commission: totalCommission }}
+      totals={{ revenue: totalRevenue, paid: totalPaid, outstanding: totalOutstanding }}
     />
   );
 }

@@ -1,6 +1,7 @@
 import { getToken } from "next-auth/jwt";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { assignSubscriptionToTenant, serializeSubscription } from "@/lib/subscriptions";
 
 // POST /api/admin/subscriptions - Assign plan to tenant (Super Admin only)
 export async function POST(req) {
@@ -14,7 +15,8 @@ export async function POST(req) {
     }
 
     const body = await req.json();
-    const { tenantId, planId } = body;
+    const tenantId = Number(body?.tenantId);
+    const planId = Number(body?.planId);
 
     if (!tenantId || !planId) {
       return NextResponse.json(
@@ -23,16 +25,10 @@ export async function POST(req) {
       );
     }
 
-    const [tenant, plan] = await Promise.all([
-      prisma.tenant.findUnique({ where: { id: Number(tenantId) } }),
-      prisma.subscriptionPlan.findUnique({ where: { id: Number(planId) } }),
-    ]);
+    const tenant = await prisma.tenant.findUnique({ where: { id: tenantId } });
 
     if (!tenant) {
       return NextResponse.json({ error: "Tenant not found." }, { status: 404 });
-    }
-    if (!plan) {
-      return NextResponse.json({ error: "Plan not found." }, { status: 404 });
     }
     if (tenant.status !== "ACTIVE") {
       return NextResponse.json(
@@ -41,46 +37,17 @@ export async function POST(req) {
       );
     }
 
-    const startDate = new Date();
-    const endDate = new Date();
-    endDate.setMonth(endDate.getMonth() + 1);
-
-    const sub = await prisma.$transaction(async (tx) => {
-      await tx.tenantSubscription.updateMany({
-        where: {
-          tenantId: tenant.id,
-          status: "ACTIVE",
-        },
-        data: {
-          status: "CANCELLED",
-          endDate: startDate,
-        },
-      });
-
-      return tx.tenantSubscription.create({
-        data: {
-          tenantId: tenant.id,
-          planId: plan.id,
-          status: "ACTIVE",
-          startDate,
-          endDate,
-        },
-        include: { tenant: true, plan: true },
-      });
-    });
+    const sub = await prisma.$transaction((tx) =>
+      assignSubscriptionToTenant(tx, {
+        tenantId: tenant.id,
+        planId,
+      })
+    );
+    const serialized = serializeSubscription(sub);
 
     return NextResponse.json({
       success: true,
-      subscription: {
-        id: sub.id,
-        tenantId: sub.tenantId,
-        planId: sub.planId,
-        tenantName: sub.tenant?.name,
-        planName: sub.plan?.name,
-        status: sub.status,
-        startDate: sub.startDate,
-        endDate: sub.endDate,
-      },
+      subscription: serialized,
     });
   } catch (err) {
     console.error("[admin subscriptions create]", err);

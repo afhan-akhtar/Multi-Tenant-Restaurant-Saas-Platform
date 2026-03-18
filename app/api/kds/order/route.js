@@ -2,6 +2,7 @@ import { getToken } from "next-auth/jwt";
 import { prisma } from "@/lib/db";
 import { signAndStoreOrder, getOrderSignature } from "@/lib/tse/db";
 import { NextResponse } from "next/server";
+import { assertTenantFeatureAccess } from "@/lib/subscriptions";
 
 const ALLOWED_STATUSES = ["CONFIRMED", "PREPARING", "READY", "PACK", "COMPLETED"];
 
@@ -18,6 +19,11 @@ export async function PATCH(request) {
     const tenantId = token.tenantId ?? null;
     if (!tenantId) {
       return NextResponse.json({ error: "Restaurant context required" }, { status: 400 });
+    }
+
+    const featureAccess = await assertTenantFeatureAccess(tenantId, "KDS");
+    if (!featureAccess.ok) {
+      return NextResponse.json({ error: featureAccess.error }, { status: featureAccess.status });
     }
 
     const { searchParams } = new URL(request.url);

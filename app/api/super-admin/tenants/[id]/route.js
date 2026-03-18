@@ -1,6 +1,7 @@
 import { getToken } from "next-auth/jwt";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { ensureTenantOnboardingSubscription } from "@/lib/subscriptions";
 
 // PATCH /api/super-admin/tenants/[id] - Update tenant status (approve, block, unblock)
 export async function PATCH(req, { params }) {
@@ -49,9 +50,15 @@ export async function PATCH(req, { params }) {
       newStatus = "ACTIVE";
     }
 
-    await prisma.tenant.update({
-      where: { id },
-      data: { status: newStatus },
+    await prisma.$transaction(async (tx) => {
+      await tx.tenant.update({
+        where: { id },
+        data: { status: newStatus },
+      });
+
+      if (action === "approve" || action === "unblock") {
+        await ensureTenantOnboardingSubscription(tx, id);
+      }
     });
 
     return NextResponse.json({

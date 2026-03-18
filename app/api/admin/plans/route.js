@@ -15,29 +15,54 @@ export async function POST(req) {
     }
 
     const body = await req.json();
-    const { name, monthlyPrice, commissionPercent, features } = parsePlanPayload(body);
+    const {
+      code,
+      name,
+      description,
+      monthlyPrice,
+      commissionPercent,
+      trialDays,
+      graceDays,
+      sortOrder,
+      features,
+    } = parsePlanPayload(body);
 
-    if (!name?.trim() || monthlyPrice == null || commissionPercent == null) {
+    if (!name?.trim() || !code || monthlyPrice == null || commissionPercent == null) {
       return NextResponse.json(
-        { error: "Name, monthly price, and commission percent are required." },
+        { error: "Plan code, name, monthly price, and commission percent are required." },
         { status: 400 }
       );
     }
 
     const price = Number(monthlyPrice);
     const commission = Number(commissionPercent);
-    if (isNaN(price) || price < 0 || isNaN(commission) || commission < 0 || commission > 100) {
+    if (
+      isNaN(price) ||
+      price < 0 ||
+      isNaN(commission) ||
+      commission < 0 ||
+      commission > 100 ||
+      Number.isNaN(trialDays) ||
+      trialDays < 0 ||
+      Number.isNaN(graceDays) ||
+      graceDays < 0
+    ) {
       return NextResponse.json(
-        { error: "Invalid price or commission percent." },
+        { error: "Invalid billing configuration." },
         { status: 400 }
       );
     }
 
     const plan = await prisma.subscriptionPlan.create({
       data: {
+        code,
         name: name.trim(),
+        description: description || null,
         monthlyPrice: price,
         commissionPercent: commission,
+        trialDays,
+        graceDays,
+        sortOrder,
         features,
       },
     });
@@ -46,10 +71,15 @@ export async function POST(req) {
       success: true,
       plan: {
         id: plan.id,
+        code: plan.code,
         name: plan.name,
+        description: plan.description,
         monthlyPrice: Number(plan.monthlyPrice),
         commissionPercent: Number(plan.commissionPercent),
-        features,
+        trialDays: plan.trialDays,
+        graceDays: plan.graceDays,
+        sortOrder: plan.sortOrder,
+        features: plan.features,
       },
     });
   } catch (err) {

@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { formatDate } from "@/lib/dateFormat";
 import { redirect } from "next/navigation";
 
 export default async function SubscriptionsPage() {
@@ -78,7 +79,7 @@ export default async function SubscriptionsPage() {
                       </span>
                     </td>
                     <td className="py-3 px-4 text-color-text-muted">
-                      {new Date(s.startDate).toLocaleDateString()} – {new Date(s.endDate).toLocaleDateString()}
+                      {formatDate(s.startDate)} – {formatDate(s.endDate)}
                     </td>
                   </tr>
                 ))}

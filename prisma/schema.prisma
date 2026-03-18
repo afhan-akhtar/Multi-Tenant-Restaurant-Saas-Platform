@@ -9,12 +9,10 @@ datasource db {
   provider = "postgresql"
 }
 
-
-
 //////////////////// ENUMS ////////////////////
 
 enum TenantStatus {
-  PENDING   // Awaiting Super Admin approval (self-registration)
+  PENDING // Awaiting Super Admin approval (self-registration)
   ACTIVE
   INACTIVE
   BLOCKED
@@ -71,64 +69,104 @@ enum KDSStatus {
 }
 
 enum SubscriptionStatus {
+  TRIALING
   ACTIVE
+  GRACE_PERIOD
+  PAST_DUE
   EXPIRED
+  CANCELLED
+}
+
+enum BillingInterval {
+  MONTHLY
+  YEARLY
+}
+
+enum BillingInvoiceStatus {
+  OPEN
+  PAID
+  VOID
+  OVERDUE
+}
+
+enum BillingPaymentStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+}
+
+enum BillingPaymentMethod {
+  MANUAL
+  STRIPE
+  CARD
+  BANK_TRANSFER
+  CASH
+}
+
+enum PlanChangeRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
   CANCELLED
 }
 
 //////////////////// TABLES ////////////////////
 
 model SuperAdmin {
-  id          Int      @id @default(autoincrement())
-  name        String
-  email       String   @unique
+  id           Int      @id @default(autoincrement())
+  name         String
+  email        String   @unique
   passwordHash String
-  createdAt   DateTime @default(now())
+  createdAt    DateTime @default(now())
 }
 
 model Tenant {
-  id          Int                  @id @default(autoincrement())
-  name        String
-  subdomain   String               @unique
-  country     String               @default("")  // Primary country (multi-country tenants)
-  logoUrl     String?              // Optional logo for receipts and branding
-  status      TenantStatus         @default(ACTIVE)
-  createdAt   DateTime             @default(now())
+  id        Int          @id @default(autoincrement())
+  name      String
+  subdomain String       @unique
+  country   String       @default("") // Primary country (multi-country tenants)
+  logoUrl   String? // Optional logo for receipts and branding
+  status    TenantStatus @default(ACTIVE)
+  createdAt DateTime     @default(now())
 
-  fiskalyConfig TenantFiskalyConfig?
-  branches      Branch[]
-  roles         Role[]
-  tenantAdmins  TenantAdmin[]
-  subscription  TenantSubscription[]
-  categories    Category[]
-  products      Product[]
-  addonGroups   AddonGroup[]
-  diningTables  DiningTable[]
-  sessions      Session[]
-  customers     Customer[]
-  segments      Segment[]
-  emailCampaigns EmailCampaign[]
-  orders        Order[]
-  cashbookEntries CashbookEntry[]
-  tseQueues     TSEQueue[]
-  auditLogs     AuditLog[]
+  fiskalyConfig      TenantFiskalyConfig?
+  branches           Branch[]
+  roles              Role[]
+  tenantAdmins       TenantAdmin[]
+  subscription       TenantSubscription[]
+  categories         Category[]
+  products           Product[]
+  addonGroups        AddonGroup[]
+  diningTables       DiningTable[]
+  sessions           Session[]
+  customers          Customer[]
+  segments           Segment[]
+  emailCampaigns     EmailCampaign[]
+  orders             Order[]
+  billingInvoices    BillingInvoice[]
+  billingPayments    BillingPayment[]
+  planChangeRequests SubscriptionPlanChangeRequest[]
+  cashbookEntries    CashbookEntry[]
+  tseQueues          TSEQueue[]
+  auditLogs          AuditLog[]
 }
 
 model TenantFiskalyConfig {
-  id           Int      @id @default(autoincrement())
-  tenantId     Int      @unique
-  apiKey       String
-  apiSecret    String
-  tssId        String?
-  clientId     String?
-  adminPuk     String?   // Store for PIN recovery; keep secure
-  vatId        String?   // Optional: cached VAT ID for receipts
-  taxNumber    String?   // Optional: cached Tax Number for receipts
-  wIdNr        String?   // Optional: cached W-IdNr. for receipts
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id        Int      @id @default(autoincrement())
+  tenantId  Int      @unique
+  apiKey    String
+  apiSecret String
+  tssId     String?
+  clientId  String?
+  adminPuk  String? // Store for PIN recovery; keep secure
+  vatId     String? // Optional: cached VAT ID for receipts
+  taxNumber String? // Optional: cached Tax Number for receipts
+  wIdNr     String? // Optional: cached W-IdNr. for receipts
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
 }
@@ -136,7 +174,7 @@ model TenantFiskalyConfig {
 // Platform default: TSS+client for env credentials (created via POST /api/tse/setup)
 model FiskalyPlatformConfig {
   id        Int      @id @default(autoincrement())
-  apiKey    String   @unique  // matches FISKALY_API_KEY
+  apiKey    String   @unique // matches FISKALY_API_KEY
   tssId     String
   clientId  String
   adminPuk  String?
@@ -144,37 +182,123 @@ model FiskalyPlatformConfig {
 }
 
 model SubscriptionPlan {
-  id                Int                  @id @default(autoincrement())
-  name              String
-  monthlyPrice      Decimal
-  commissionPercent Decimal
-  features          Json
+  id                  Int                             @id @default(autoincrement())
+  code                String?                         @unique
+  name                String
+  description         String?
+  billingInterval     BillingInterval                 @default(MONTHLY)
+  monthlyPrice        Decimal
+  commissionPercent   Decimal
+  trialDays           Int                             @default(0)
+  graceDays           Int                             @default(0)
+  sortOrder           Int                             @default(0)
+  features            Json
   tenantSubscriptions TenantSubscription[]
+  invoices            BillingInvoice[]
+  requestedChanges    SubscriptionPlanChangeRequest[]
 }
 
 model TenantSubscription {
-  id        Int                @id @default(autoincrement())
-  tenantId  Int
-  planId    Int
-  status    SubscriptionStatus
-  startDate DateTime
-  endDate   DateTime
+  id                Int                @id @default(autoincrement())
+  tenantId          Int
+  planId            Int
+  status            SubscriptionStatus
+  startDate         DateTime
+  endDate           DateTime
+  trialStartDate    DateTime?
+  trialEndDate      DateTime?
+  gracePeriodEndsAt DateTime?
+  nextBillingDate   DateTime?
+  autoRenew         Boolean            @default(true)
+  cancelAtPeriodEnd Boolean            @default(false)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
 
-  tenant    Tenant             @relation(fields: [tenantId], references: [id])
-  plan      SubscriptionPlan   @relation(fields: [planId], references: [id])
+  tenant             Tenant                          @relation(fields: [tenantId], references: [id])
+  plan               SubscriptionPlan                @relation(fields: [planId], references: [id])
+  invoices           BillingInvoice[]
+  planChangeRequests SubscriptionPlanChangeRequest[]
 
   @@index([tenantId])
 }
 
+model BillingInvoice {
+  id             Int                  @id @default(autoincrement())
+  tenantId       Int
+  subscriptionId Int
+  planId         Int
+  invoiceNumber  String               @unique
+  status         BillingInvoiceStatus @default(OPEN)
+  issuedAt       DateTime             @default(now())
+  dueDate        DateTime
+  periodStart    DateTime
+  periodEnd      DateTime
+  subtotal       Decimal
+  taxAmount      Decimal              @default(0)
+  totalAmount    Decimal
+  currency       String               @default("EUR")
+  lineItems      Json
+  notes          String?
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  tenant       Tenant             @relation(fields: [tenantId], references: [id])
+  subscription TenantSubscription @relation(fields: [subscriptionId], references: [id])
+  plan         SubscriptionPlan   @relation(fields: [planId], references: [id])
+  payments     BillingPayment[]
+
+  @@index([tenantId, status])
+  @@index([subscriptionId, periodStart, periodEnd])
+}
+
+model BillingPayment {
+  id        Int                  @id @default(autoincrement())
+  invoiceId Int
+  tenantId  Int
+  amount    Decimal
+  method    BillingPaymentMethod @default(MANUAL)
+  status    BillingPaymentStatus @default(SUCCEEDED)
+  paidAt    DateTime             @default(now())
+  reference String?
+  notes     String?
+  createdAt DateTime             @default(now())
+
+  invoice BillingInvoice @relation(fields: [invoiceId], references: [id])
+  tenant  Tenant         @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId, paidAt])
+  @@index([invoiceId, status])
+}
+
+model SubscriptionPlanChangeRequest {
+  id                    Int                     @id @default(autoincrement())
+  tenantId              Int
+  currentSubscriptionId Int?
+  requestedPlanId       Int
+  status                PlanChangeRequestStatus @default(PENDING)
+  message               String?
+  reviewedNote          String?
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime                @updatedAt
+  reviewedAt            DateTime?
+
+  tenant              Tenant              @relation(fields: [tenantId], references: [id])
+  currentSubscription TenantSubscription? @relation(fields: [currentSubscriptionId], references: [id])
+  requestedPlan       SubscriptionPlan    @relation(fields: [requestedPlanId], references: [id])
+
+  @@index([tenantId, status])
+  @@index([requestedPlanId, status])
+}
+
 model Branch {
-  id       Int     @id @default(autoincrement())
+  id       Int    @id @default(autoincrement())
   tenantId Int
   name     String
   address  String
   city     String
   country  String
 
-  tenant       Tenant       @relation(fields: [tenantId], references: [id])
+  tenant       Tenant        @relation(fields: [tenantId], references: [id])
   tenantAdmins TenantAdmin[]
   diningTables DiningTable[]
   sessions     Session[]
@@ -185,64 +309,64 @@ model Branch {
 }
 
 model Role {
-  id       Int     @id @default(autoincrement())
+  id       Int    @id @default(autoincrement())
   tenantId Int
   name     String
 
-  tenant        Tenant        @relation(fields: [tenantId], references: [id])
-  tenantAdmins  TenantAdmin[]
+  tenant          Tenant           @relation(fields: [tenantId], references: [id])
+  tenantAdmins    TenantAdmin[]
   rolePermissions RolePermission[]
 
   @@index([tenantId])
 }
 
 model Permission {
-  id   Int    @id @default(autoincrement())
-  code String @unique
+  id              Int              @id @default(autoincrement())
+  code            String           @unique
   rolePermissions RolePermission[]
 }
 
 model RolePermission {
-  id           Int        @id @default(autoincrement())
+  id           Int @id @default(autoincrement())
   roleId       Int
   permissionId Int
 
-  role        Role       @relation(fields: [roleId], references: [id])
-  permission  Permission @relation(fields: [permissionId], references: [id])
+  role       Role       @relation(fields: [roleId], references: [id])
+  permission Permission @relation(fields: [permissionId], references: [id])
 
   @@unique([roleId, permissionId])
 }
 
 // Tenant admin / user accounts for each restaurant (per-tenant admins)
 model TenantAdmin {
-  id         Int         @id @default(autoincrement())
-  tenantId   Int
-  branchId   Int
-  roleId     Int
-  name       String
-  email      String
+  id           Int               @id @default(autoincrement())
+  tenantId     Int
+  branchId     Int
+  roleId       Int
+  name         String
+  email        String
   passwordHash String
-  status     TenantAdminStatus @default(ACTIVE)
-  createdAt  DateTime    @default(now())
+  status       TenantAdminStatus @default(ACTIVE)
+  createdAt    DateTime          @default(now())
 
-  tenant     Tenant      @relation(fields: [tenantId], references: [id])
-  branch     Branch      @relation(fields: [branchId], references: [id])
-  role       Role        @relation(fields: [roleId], references: [id])
-  sessions   Session[]   @relation("WaiterSessions")
-  auditLogs  AuditLog[]
+  tenant    Tenant     @relation(fields: [tenantId], references: [id])
+  branch    Branch     @relation(fields: [branchId], references: [id])
+  role      Role       @relation(fields: [roleId], references: [id])
+  sessions  Session[]  @relation("WaiterSessions")
+  auditLogs AuditLog[]
 
   @@index([tenantId])
   @@map("Staff")
 }
 
 model Category {
-  id       Int      @id @default(autoincrement())
+  id       Int    @id @default(autoincrement())
   tenantId Int
   name     String
   parentId Int?
 
-  tenant   Tenant   @relation(fields: [tenantId], references: [id])
-  parent   Category? @relation("CategoryToCategory", fields: [parentId], references: [id])
+  tenant   Tenant     @relation(fields: [tenantId], references: [id])
+  parent   Category?  @relation("CategoryToCategory", fields: [parentId], references: [id])
   children Category[] @relation("CategoryToCategory")
 
   products Product[]
@@ -251,21 +375,21 @@ model Category {
 }
 
 model Product {
-  id          Int           @id @default(autoincrement())
-  tenantId    Int
-  categoryId  Int
-  name        String
-  description String
-  plu         String
-  basePrice   Decimal
-  taxRate     Decimal
-  imageUrl    String?
-  allergens   Json?
+  id           Int     @id @default(autoincrement())
+  tenantId     Int
+  categoryId   Int
+  name         String
+  description  String
+  plu          String
+  basePrice    Decimal
+  taxRate      Decimal
+  imageUrl     String?
+  allergens    Json?
   dietaryFlags Json?
-  isActive    Boolean      @default(true)
+  isActive     Boolean @default(true)
 
-  tenant     Tenant        @relation(fields: [tenantId], references: [id])
-  category   Category      @relation(fields: [categoryId], references: [id])
+  tenant     Tenant           @relation(fields: [tenantId], references: [id])
+  category   Category         @relation(fields: [categoryId], references: [id])
   variants   ProductVariant[]
   orderItems OrderItem[]
 
@@ -278,119 +402,119 @@ model ProductVariant {
   name      String
   price     Decimal
 
-  product   Product @relation(fields: [productId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
 }
 
 model AddonGroup {
-  id        Int     @id @default(autoincrement())
+  id        Int    @id @default(autoincrement())
   tenantId  Int
   name      String
   minSelect Int
   maxSelect Int
 
-  tenant    Tenant      @relation(fields: [tenantId], references: [id])
+  tenant     Tenant      @relation(fields: [tenantId], references: [id])
   addonItems AddonItem[]
 }
 
 model AddonItem {
-  id      Int        @id @default(autoincrement())
+  id      Int     @id @default(autoincrement())
   groupId Int
   name    String
   price   Decimal
 
-  group   AddonGroup @relation(fields: [groupId], references: [id])
+  group AddonGroup @relation(fields: [groupId], references: [id])
 }
 
 model DiningTable {
-  id        Int         @id @default(autoincrement())
-  tenantId  Int
-  branchId  Int
-  name      String
-  seats     Int
-  status    TableStatus
+  id       Int         @id @default(autoincrement())
+  tenantId Int
+  branchId Int
+  name     String
+  seats    Int
+  status   TableStatus
 
-  tenant    Tenant      @relation(fields: [tenantId], references: [id])
-  branch    Branch      @relation(fields: [branchId], references: [id])
-  sessions  Session[]
-  orders    Order[]
+  tenant   Tenant    @relation(fields: [tenantId], references: [id])
+  branch   Branch    @relation(fields: [branchId], references: [id])
+  sessions Session[]
+  orders   Order[]
 }
 
 model Session {
-  id        Int        @id @default(autoincrement())
-  tenantId  Int
-  branchId  Int
-  tableId   Int
-  waiterId  Int
-  openedAt  DateTime
-  closedAt  DateTime?
+  id       Int       @id @default(autoincrement())
+  tenantId Int
+  branchId Int
+  tableId  Int
+  waiterId Int
+  openedAt DateTime
+  closedAt DateTime?
 
-  tenant    Tenant     @relation(fields: [tenantId], references: [id])
-  branch    Branch     @relation(fields: [branchId], references: [id])
-  table     DiningTable @relation(fields: [tableId], references: [id])
-  waiter    TenantAdmin       @relation("WaiterSessions", fields: [waiterId], references: [id])
-  orders    Order[]
+  tenant Tenant      @relation(fields: [tenantId], references: [id])
+  branch Branch      @relation(fields: [branchId], references: [id])
+  table  DiningTable @relation(fields: [tableId], references: [id])
+  waiter TenantAdmin @relation("WaiterSessions", fields: [waiterId], references: [id])
+  orders Order[]
 }
 
 model Customer {
-  id          Int       @id @default(autoincrement())
-  tenantId    Int
-  name        String
-  phone       String
-  email       String
-  loyaltyPoints Int     @default(0)
+  id            Int    @id @default(autoincrement())
+  tenantId      Int
+  name          String
+  phone         String
+  email         String
+  loyaltyPoints Int    @default(0)
 
-  tenant      Tenant    @relation(fields: [tenantId], references: [id])
-  orders      Order[]
+  tenant Tenant  @relation(fields: [tenantId], references: [id])
+  orders Order[]
 }
 
 model Segment {
-  id        Int      @id @default(autoincrement())
-  tenantId  Int
-  name      String
-  rules     Json
+  id       Int    @id @default(autoincrement())
+  tenantId Int
+  name     String
+  rules    Json
 
-  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  tenant Tenant @relation(fields: [tenantId], references: [id])
 }
 
 model EmailCampaign {
-  id         Int      @id @default(autoincrement())
-  tenantId   Int
-  subject    String
-  content    Json
+  id          Int      @id @default(autoincrement())
+  tenantId    Int
+  subject     String
+  content     Json
   scheduledAt DateTime
 
-  tenant     Tenant   @relation(fields: [tenantId], references: [id])
+  tenant Tenant @relation(fields: [tenantId], references: [id])
 }
 
 model Order {
-  id           Int       @id @default(autoincrement())
-  tenantId     Int
-  branchId     Int
-  sessionId    Int
-  tableId      Int
-  customerId   Int
-  orderNumber  String
-  orderType    OrderType
-  status       OrderStatus
-  subtotal     Decimal
-  taxAmount    Decimal
+  id             Int         @id @default(autoincrement())
+  tenantId       Int
+  branchId       Int
+  sessionId      Int
+  tableId        Int
+  customerId     Int
+  orderNumber    String
+  orderType      OrderType
+  status         OrderStatus
+  subtotal       Decimal
+  taxAmount      Decimal
   discountAmount Decimal
-  tipAmount    Decimal
-  grandTotal   Decimal
-  createdAt    DateTime @default(now())
+  tipAmount      Decimal
+  grandTotal     Decimal
+  createdAt      DateTime    @default(now())
 
-  tenant       Tenant    @relation(fields: [tenantId], references: [id])
-  branch       Branch    @relation(fields: [branchId], references: [id])
-  session      Session   @relation(fields: [sessionId], references: [id])
-  table        DiningTable @relation(fields: [tableId], references: [id])
-  customer     Customer  @relation(fields: [customerId], references: [id])
-  orderItems   OrderItem[]
-  payments     Payment[]
+  tenant          Tenant           @relation(fields: [tenantId], references: [id])
+  branch          Branch           @relation(fields: [branchId], references: [id])
+  session         Session          @relation(fields: [sessionId], references: [id])
+  table           DiningTable      @relation(fields: [tableId], references: [id])
+  customer        Customer         @relation(fields: [customerId], references: [id])
+  orderItems      OrderItem[]
+  payments        Payment[]
   tseTransactions TSETransaction[]
 }
 
 model OrderItem {
-  id          Int       @id @default(autoincrement())
+  id          Int         @id @default(autoincrement())
   orderId     Int
   productId   Int
   productName String
@@ -400,32 +524,32 @@ model OrderItem {
   totalAmount Decimal
   status      OrderStatus
 
-  order       Order     @relation(fields: [orderId], references: [id])
-  product     Product   @relation(fields: [productId], references: [id])
-  kdsItems    KDSItem[]
+  order    Order     @relation(fields: [orderId], references: [id])
+  product  Product   @relation(fields: [productId], references: [id])
+  kdsItems KDSItem[]
 }
 
 model Payment {
-  id          Int       @id @default(autoincrement())
+  id          Int           @id @default(autoincrement())
   orderId     Int
   method      PaymentMethod
   status      PaymentStatus
   amount      Decimal
   providerRef String?
-  createdAt   DateTime @default(now())
+  createdAt   DateTime      @default(now())
 
-  order       Order     @relation(fields: [orderId], references: [id])
+  order Order @relation(fields: [orderId], references: [id])
 }
 
 model TSETransaction {
-  id              Int       @id @default(autoincrement())
+  id              Int      @id @default(autoincrement())
   orderId         Int?
-  cashbookEntryId Int?  @unique
-  transactionType String    @default("ORDER") // ORDER, CANCELLATION, PAYMENT, CASH_DEPOSIT, CASH_WITHDRAWAL
+  cashbookEntryId Int?     @unique
+  transactionType String   @default("ORDER") // ORDER, CANCELLATION, PAYMENT, CASH_DEPOSIT, CASH_WITHDRAWAL
   signature       String
   fiskalyTxId     String
   signedAt        DateTime
-  rawPayload      Json?     // Audit trail
+  rawPayload      Json? // Audit trail
 
   order         Order?         @relation(fields: [orderId], references: [id])
   cashbookEntry CashbookEntry? @relation(fields: [cashbookEntryId], references: [id])
@@ -435,17 +559,18 @@ model TSETransaction {
 }
 
 model TSEQueue {
-  id          Int       @id @default(autoincrement())
-  tenantId    Int
-  entityType  String    // ORDER, CASH_DEPOSIT, CASH_WITHDRAWAL
-  entityId    Int
-  payload     Json
-  status      String    @default("PENDING") // PENDING, MIGRATED, FAILED
-  errorMsg    String?
-  createdAt   DateTime  @default(now())
+  id         Int       @id @default(autoincrement())
+  tenantId   Int
+  entityType String // ORDER, CASH_DEPOSIT, CASH_WITHDRAWAL
+  entityId   Int
+  payload    Json
+  status     String    @default("PENDING") // PENDING, MIGRATED, FAILED
+  errorMsg   String?
+  createdAt  DateTime  @default(now())
   migratedAt DateTime?
 
-  tenant      Tenant    @relation(fields: [tenantId], references: [id])
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
   @@index([tenantId, status])
 }
 
@@ -457,37 +582,37 @@ model CashbookEntry {
   referenceId Int?
   createdAt   DateTime @default(now())
 
-  tenant         Tenant         @relation(fields: [tenantId], references: [id])
+  tenant         Tenant          @relation(fields: [tenantId], references: [id])
   tseTransaction TSETransaction?
 }
 
 model KDSScreen {
-  id       Int      @id @default(autoincrement())
+  id       Int    @id @default(autoincrement())
   branchId Int
   name     String
 
-  branch   Branch   @relation(fields: [branchId], references: [id])
+  branch   Branch    @relation(fields: [branchId], references: [id])
   kdsItems KDSItem[]
 }
 
 model KDSItem {
-  id          Int      @id @default(autoincrement())
+  id          Int       @id @default(autoincrement())
   orderItemId Int
   screenId    Int
   status      KDSStatus
 
-  orderItem   OrderItem @relation(fields: [orderItemId], references: [id])
-  screen      KDSScreen @relation(fields: [screenId], references: [id])
+  orderItem OrderItem @relation(fields: [orderItemId], references: [id])
+  screen    KDSScreen @relation(fields: [screenId], references: [id])
 }
 
 model AuditLog {
-  id        Int      @id @default(autoincrement())
-  tenantId  Int
-  actorId   Int
-  action    String
+  id         Int      @id @default(autoincrement())
+  tenantId   Int
+  actorId    Int
+  action     String
   entityType String
-  entityId  Int
-  createdAt DateTime @default(now())
+  entityId   Int
+  createdAt  DateTime @default(now())
 
   tenant      Tenant      @relation(fields: [tenantId], references: [id])
   tenantAdmin TenantAdmin @relation(fields: [actorId], references: [id])

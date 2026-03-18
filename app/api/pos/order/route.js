@@ -2,6 +2,7 @@ import { getToken } from "next-auth/jwt";
 import { prisma } from "@/lib/db";
 import { getNextOrderNumber } from "@/lib/pos";
 import { NextResponse } from "next/server";
+import { assertTenantFeatureAccess } from "@/lib/subscriptions";
 
 function toNum(d) {
   return d ? Number(d) : 0;
@@ -24,6 +25,11 @@ export async function POST(request) {
 
     if (!tenantId || !branchId) {
       return NextResponse.json({ error: "Restaurant context required" }, { status: 400 });
+    }
+
+    const featureAccess = await assertTenantFeatureAccess(tenantId, "POS");
+    if (!featureAccess.ok) {
+      return NextResponse.json({ error: featureAccess.error }, { status: featureAccess.status });
     }
 
     if (!items?.length) {
