@@ -499,7 +499,7 @@ export default function DashboardLayout({
                   )}
                   <Link href={withBasePath(basePath, "/profile")} onClick={() => setUserMenuOpen(false)} className="block w-full py-2.5 px-4 text-left bg-transparent border-0 text-color-text no-underline cursor-pointer text-sm hover:bg-color-bg transition-colors">Profile</Link>
                   <Link href={withBasePath(basePath, "/settings")} onClick={() => setUserMenuOpen(false)} className="block w-full py-2.5 px-4 text-left bg-transparent border-0 text-color-text no-underline cursor-pointer text-sm hover:bg-color-bg transition-colors">Settings</Link>
-                  <button onClick={() => signOut({ callbackUrl: "/login" })} className="block w-full py-2.5 px-4 text-left bg-transparent border-0 text-color-text no-underline cursor-pointer text-sm hover:bg-color-bg transition-colors">Sign out</button>
+                  <button onClick={() => signOut({ callbackUrl: isSuperAdmin ? "/admin" : "/login" })} className="block w-full py-2.5 px-4 text-left bg-transparent border-0 text-color-text no-underline cursor-pointer text-sm hover:bg-color-bg transition-colors">Sign out</button>
                 </div>
               )}
             </div>

@@ -1,19 +1,18 @@
 "use client";
 
-import { Suspense, useState } from "react";
-import { signIn } from "next-auth/react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { COUNTRIES } from "@/lib/countries";
 import Spinner, { PageLoader } from "@/app/components/Spinner";
+import { buildTenantUrl } from "@/lib/tenant-url";
 
 function LoginFormInner() {
-  const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") || "/go";
+  const callbackUrl = searchParams.get("callbackUrl") || "/";
+  const showSignUpByDefault = searchParams.get("signup") === "1";
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [subdomain, setSubdomain] = useState("");
   const [signUpOpen, setSignUpOpen] = useState(false);
 
   const [signUpLoading, setSignUpLoading] = useState(false);
@@ -26,31 +25,44 @@ function LoginFormInner() {
   const [signUpEmail, setSignUpEmail] = useState("");
   const [signUpPassword, setSignUpPassword] = useState("");
 
+  useEffect(() => {
+    if (showSignUpByDefault) {
+      setSignUpOpen(true);
+    }
+  }, [showSignUpByDefault]);
+
   async function handleSubmit(e) {
     e.preventDefault();
     setError("");
-    setLoading(true);
-    try {
-      const res = await signIn("credentials", {
-        redirect: false,
-        email: email.trim(),
-        password,
-        subdomain: "",
-      });
-      if (res?.error) {
-        setError("Invalid email or password.");
-        setLoading(false);
-        return;
-      }
-      if (res?.ok) {
-        router.push(callbackUrl);
-        router.refresh();
-      }
-    } catch (err) {
-      setError("Something went wrong. Please try again.");
-    } finally {
-      setLoading(false);
+    const cleanedSubdomain = subdomain.trim().toLowerCase();
+
+    if (!cleanedSubdomain) {
+      setError("Enter your restaurant subdomain.");
+      return;
     }
+
+    if (!/^[a-z0-9-]+$/.test(cleanedSubdomain)) {
+      setError("Subdomain can only contain letters, numbers, and hyphens.");
+      return;
+    }
+
+    setLoading(true);
+
+    const tenantLoginUrl = new URL(
+      buildTenantUrl({
+        host: window.location.host,
+        protocol: window.location.protocol.replace(":", ""),
+        subdomain: cleanedSubdomain,
+        pathname: "/login",
+      })
+    );
+
+    if (callbackUrl) {
+      tenantLoginUrl.searchParams.set("callbackUrl", callbackUrl);
+    }
+    tenantLoginUrl.searchParams.set("forceLogin", "1");
+
+    window.location.assign(tenantLoginUrl.toString());
   }
 
   async function handleSignUp(e) {
@@ -99,36 +111,23 @@ function LoginFormInner() {
     <main className="min-h-screen min-h-[100dvh] flex items-center justify-center p-4 sm:p-6 bg-gradient-to-br from-[#1a1a2e] to-[#16213e] box-border">
       <div className="w-full max-w-[400px] bg-white/5 rounded-xl p-6 sm:p-8 border border-white/10">
         <h1 className="m-0 mb-2 text-2xl text-white">Restaurant Admin</h1>
-        <p className="m-0 mb-6 text-sm text-white/60">Sign in to your restaurant</p>
+        <p className="m-0 mb-6 text-sm text-white/60">Enter your restaurant subdomain to continue</p>
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
-            <label htmlFor="email" className="block mb-1 text-sm text-white/80">
-              Email
+            <label htmlFor="subdomain" className="block mb-1 text-sm text-white/80">
+              Restaurant subdomain
             </label>
             <input
-              id="email"
-              type="email"
-              placeholder="you@example.com"
+              id="subdomain"
+              type="text"
+              placeholder="demo"
               className="w-full py-3 px-4 border border-white/20 rounded-lg bg-black/20 text-white text-base box-border placeholder:text-white/40"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              value={subdomain}
+              onChange={(e) => setSubdomain(e.target.value)}
               required
-              autoComplete="email"
-            />
-          </div>
-          <div className="mb-4">
-            <label htmlFor="password" className="block mb-1 text-sm text-white/80">
-              Password
-            </label>
-            <input
-              id="password"
-              type="password"
-              className="w-full py-3 px-4 border border-white/20 rounded-lg bg-black/20 text-white text-base box-border placeholder:text-white/40"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your password"
-              required
-              autoComplete="current-password"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
             />
           </div>
           {error && <p className="text-primary text-sm mt-2 mb-0">{error}</p>}
@@ -156,10 +155,10 @@ function LoginFormInner() {
             {loading ? (
               <span className="flex items-center gap-2">
                 <Spinner size="sm" className="text-white" />
-                <span>Signing in…</span>
+                <span>Opening workspace…</span>
               </span>
             ) : (
-              "Sign in"
+              "Continue"
             )}
           </button>
         </form>

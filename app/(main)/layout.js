@@ -1,13 +1,18 @@
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import DashboardLayout from "@/app/components/DashboardLayout";
+import { buildTenantUrl } from "@/lib/tenant-url";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function MainLayout({ children }) {
   const session = await auth();
+  const headersList = await headers();
+  const host = headersList.get("x-forwarded-host") || headersList.get("host") || "localhost:3000";
+  const protocol = headersList.get("x-forwarded-proto") || "http";
 
   if (!session) {
     redirect("/login");
@@ -20,7 +25,7 @@ export default async function MainLayout({ children }) {
   // Restaurant staff: dashboard lives at /{subdomain}, redirect there
   const subdomain = session.user?.subdomain;
   if (subdomain) {
-    redirect(`/${subdomain}`);
+    redirect(buildTenantUrl({ host, protocol, subdomain, pathname: "/" }));
   }
 
   let pendingTenantCount = 0;

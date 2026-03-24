@@ -2,6 +2,7 @@ import { getToken } from "next-auth/jwt";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import crypto from "crypto";
+import { buildTenantUrl } from "@/lib/tenant-url";
 
 // POST /api/admin/impersonate - Generate impersonation token (Super Admin only)
 export async function POST(req) {
@@ -40,11 +41,22 @@ export async function POST(req) {
       .update(payload)
       .digest("base64url");
     const impersonateToken = payloadB64 + "." + sig;
+    const host = req.headers.get("x-forwarded-host") || req.headers.get("host") || "localhost:3000";
+    const protocol = req.headers.get("x-forwarded-proto") || "http";
+    const redirectUrl = new URL(
+      buildTenantUrl({
+        host,
+        protocol,
+        subdomain: staff.tenant?.subdomain || "demo",
+        pathname: "/login",
+      })
+    );
+    redirectUrl.searchParams.set("impersonateToken", impersonateToken);
 
     return NextResponse.json({
       success: true,
       token: impersonateToken,
-      redirectUrl: `/${staff.tenant?.subdomain || "demo"}`,
+      redirectUrl: redirectUrl.toString(),
     });
   } catch (err) {
     console.error("[admin impersonate]", err);

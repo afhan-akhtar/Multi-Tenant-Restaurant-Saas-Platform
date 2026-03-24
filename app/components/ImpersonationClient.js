@@ -1,11 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { signIn } from "next-auth/react";
 
 export default function ImpersonationClient({ staff }) {
-  const router = useRouter();
   const [loading, setLoading] = useState(null);
   const [error, setError] = useState("");
 
@@ -25,19 +22,7 @@ export default function ImpersonationClient({ staff }) {
         return;
       }
 
-      const signInRes = await signIn("impersonate", {
-        redirect: false,
-        token: data.token,
-      });
-
-      if (signInRes?.error) {
-        setError("Could not switch session");
-        setLoading(null);
-        return;
-      }
-
-      router.push(data.redirectUrl || "/");
-      router.refresh();
+      window.location.assign(data.redirectUrl || "/");
     } catch (err) {
       setError("Something went wrong");
       setLoading(null);

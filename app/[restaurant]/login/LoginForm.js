@@ -1,22 +1,65 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams, useParams } from "next/navigation";
-import Link from "next/link";
 import Spinner, { PageLoader } from "@/app/components/Spinner";
+import { buildRootUrl } from "@/lib/tenant-url";
 
 function LoginFormInner() {
   const router = useRouter();
   const params = useParams();
   const searchParams = useSearchParams();
   const restaurant = params?.restaurant || "";
-  const callbackUrl = searchParams.get("callbackUrl") || `/${restaurant}`;
+  const callbackUrl = searchParams.get("callbackUrl") || "/";
+  const impersonateToken = searchParams.get("impersonateToken") || "";
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
+  useEffect(() => {
+    if (!impersonateToken) return;
+
+    let cancelled = false;
+
+    async function completeImpersonation() {
+      setError("");
+      setLoading(true);
+
+      try {
+        const res = await signIn("impersonate", {
+          redirect: false,
+          token: impersonateToken,
+        });
+
+        if (cancelled) return;
+
+        if (res?.error) {
+          setError("Could not complete impersonation login.");
+          return;
+        }
+
+        router.push(callbackUrl);
+        router.refresh();
+      } catch (err) {
+        if (!cancelled) {
+          setError("Could not complete impersonation login.");
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    completeImpersonation();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [callbackUrl, impersonateToken, router]);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -45,6 +88,26 @@ function LoginFormInner() {
     } finally {
       setLoading(false);
     }
+  }
+
+  function handleSuperAdminClick() {
+    window.location.assign(
+      buildRootUrl({
+        host: window.location.host,
+        protocol: window.location.protocol.replace(":", ""),
+        pathname: "/admin",
+      })
+    );
+  }
+
+  function handleSignUpClick() {
+    window.location.assign(
+      buildRootUrl({
+        host: window.location.host,
+        protocol: window.location.protocol.replace(":", ""),
+        pathname: "/register",
+      })
+    );
   }
 
   return (
@@ -85,23 +148,33 @@ function LoginFormInner() {
           </div>
           {error && <p className="text-primary text-sm mt-2 mb-0">{error}</p>}
           <p className="mt-4 text-center text-sm text-white/60">
-            <a href="/admin" className="text-primary hover:underline">Super Admin</a>
+            <button
+              type="button"
+              onClick={handleSuperAdminClick}
+              className="bg-transparent border-0 p-0 text-primary cursor-pointer hover:underline font-inherit text-inherit"
+            >
+              Super Admin
+            </button>
           </p>
           <p className="mt-2 text-center text-sm text-white/60">
             New restaurant?{" "}
-            <Link href="/register" className="text-primary hover:underline">
+            <button
+              type="button"
+              onClick={handleSignUpClick}
+              className="bg-transparent border-0 p-0 text-primary cursor-pointer hover:underline font-inherit text-inherit"
+            >
               Sign Up
-            </Link>
+            </button>
           </p>
           <button
             type="submit"
             className="w-full py-3 mt-2 bg-primary text-white border-none rounded-lg text-base font-semibold cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center"
-            disabled={loading}
+            disabled={loading || Boolean(impersonateToken)}
           >
             {loading ? (
               <span className="flex items-center gap-2">
                 <Spinner size="sm" className="text-white" />
-                <span>Signing in…</span>
+                <span>{impersonateToken ? "Switching account…" : "Signing in…"}</span>
               </span>
             ) : (
               "Sign in"
