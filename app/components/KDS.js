@@ -16,6 +16,7 @@ export default function KDS({ data, deviceAuth = null, mode = "dashboard" }) {
   const [cancelModal, setCancelModal] = useState({ open: false, orderId: null, orderNumber: "" });
   const [cancelLoading, setCancelLoading] = useState(false);
   const [cancelError, setCancelError] = useState("");
+  const [liveConnected, setLiveConnected] = useState(false);
 
   useEffect(() => {
     setOrders(initialOrders);
@@ -26,11 +27,14 @@ export default function KDS({ data, deviceAuth = null, mode = "dashboard" }) {
       return undefined;
     }
 
-    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const socketUrl = `${protocol}//${window.location.host}/ws?ticket=${encodeURIComponent(deviceAuth.wsTicket)}`;
-    const socket = new WebSocket(socketUrl);
+    const streamUrl = `/api/kds/stream?ticket=${encodeURIComponent(deviceAuth.wsTicket)}`;
+    const source = new EventSource(streamUrl);
 
-    socket.onmessage = (event) => {
+    source.onopen = () => {
+      setLiveConnected(true);
+    };
+
+    source.onmessage = (event) => {
       try {
         const message = JSON.parse(event.data);
         if (!message?.event) return;
@@ -39,18 +43,65 @@ export default function KDS({ data, deviceAuth = null, mode = "dashboard" }) {
           setOrders((current) => mergeKdsOrder(current, message.payload?.order));
         }
       } catch (error) {
-        console.error("KDS websocket parse failed", error);
+        console.error("KDS stream parse failed", error);
       }
     };
 
-    socket.onerror = (error) => {
-      console.error("KDS websocket error", error);
+    source.onerror = (error) => {
+      setLiveConnected(false);
+      console.error("KDS live stream error", error);
     };
 
     return () => {
-      socket.close();
+      setLiveConnected(false);
+      source.close();
     };
   }, [deviceAuth?.wsTicket]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const syncOrders = async () => {
+      try {
+        const response = await fetch("/api/kds/live", {
+          cache: "no-store",
+          headers: getDeviceHeaders(deviceAuth),
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok || !Array.isArray(payload?.orders)) {
+          return;
+        }
+
+        if (!cancelled) {
+          setOrders(payload.orders);
+        }
+      } catch (error) {
+        console.error("KDS live sync failed", error);
+      }
+    };
+
+    syncOrders();
+    const handleWindowFocus = () => {
+      syncOrders();
+    };
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        syncOrders();
+      }
+    };
+
+    window.addEventListener("focus", handleWindowFocus);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    const intervalId = window.setInterval(syncOrders, liveConnected ? 4000 : 1000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", handleWindowFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [deviceAuth, liveConnected]);
 
   const createdCount = orders.filter((o) => ["OPEN", "CONFIRMED"].includes(o.status)).length;
   const cookingCount = orders.filter((o) => o.status === "PREPARING").length;
