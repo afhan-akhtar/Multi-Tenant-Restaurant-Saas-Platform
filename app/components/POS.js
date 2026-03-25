@@ -5,10 +5,11 @@ import { useRouter } from "next/navigation";
 import POSPaymentModal from "./POSPaymentModal";
 import { printReceipt } from "./Receipt";
 import { formatEur } from "@/lib/currencyFormat";
+import { getDeviceHeaders } from "@/lib/device-client";
 
 const CATEGORY_COLORS = ["#1a202c", "#3182ce", "#4299e1", "#48bb78", "#ed64a6"];
 
-export default function POS({ data }) {
+export default function POS({ data, deviceAuth = null }) {
   const router = useRouter();
   const { categories = [], products = [], addonGroups = [], customers: initialCustomers = [], nextOrderNumber = 1 } = data || {};
 
@@ -45,7 +46,10 @@ export default function POS({ data }) {
     try {
       const res = await fetch("/api/customers", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...getDeviceHeaders(deviceAuth),
+        },
         body: JSON.stringify({
           name: quickAddForm.name.trim(),
           phone: quickAddForm.phone.trim(),
@@ -503,6 +507,7 @@ export default function POS({ data }) {
         orderNumber={orderNumber}
         orderType={orderType}
         customerId={selectedCustomerId}
+        deviceAuth={deviceAuth}
         onSuccess={handlePaymentSuccess}
       />
 

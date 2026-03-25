@@ -5,6 +5,7 @@ import { CardElement, Elements, useElements, useStripe } from "@stripe/react-str
 import { loadStripe } from "@stripe/stripe-js";
 import Spinner from "./Spinner";
 import StripeTerminalSection from "./StripeTerminalSection";
+import { getDeviceHeaders } from "@/lib/device-client";
 
 const stripePromiseCache = new Map();
 
@@ -31,7 +32,7 @@ const cardElementOptions = {
   },
 };
 
-function StripeCardForm({ amount, currency, checkoutSessionId, completedPayment, onSuccess }) {
+function StripeCardForm({ amount, currency, checkoutSessionId, completedPayment, deviceAuth, onSuccess }) {
   const stripe = useStripe();
   const elements = useElements();
   const [intent, setIntent] = useState(null);
@@ -51,7 +52,10 @@ function StripeCardForm({ amount, currency, checkoutSessionId, completedPayment,
       try {
         const response = await fetch("/api/payments/stripe/create-intent", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            ...getDeviceHeaders(deviceAuth),
+          },
           body: JSON.stringify({ amount, checkoutSessionId }),
         });
         const data = await response.json().catch(() => ({}));
@@ -80,7 +84,7 @@ function StripeCardForm({ amount, currency, checkoutSessionId, completedPayment,
     return () => {
       cancelled = true;
     };
-  }, [amount, checkoutSessionId, completedPayment]);
+  }, [amount, checkoutSessionId, completedPayment, deviceAuth]);
 
   const handleCharge = async () => {
     if (!stripe || !elements || !intent?.clientSecret) return;
@@ -173,6 +177,7 @@ function StripeBrowserSection({
   checkoutSessionId,
   publishableKey,
   completedPayment,
+  deviceAuth,
   onSuccess,
 }) {
   const stripePromise = useMemo(
@@ -195,6 +200,7 @@ function StripeBrowserSection({
         currency={currency}
         checkoutSessionId={checkoutSessionId}
         completedPayment={completedPayment}
+        deviceAuth={deviceAuth}
         onSuccess={onSuccess}
       />
     </Elements>
@@ -208,6 +214,7 @@ export default function StripePaymentSection({
   publishableKey,
   terminalConfig,
   completedPayment,
+  deviceAuth,
   onSuccess,
 }) {
   const [mode, setMode] = useState("browser");
@@ -261,6 +268,7 @@ export default function StripePaymentSection({
           checkoutSessionId={checkoutSessionId}
           publishableKey={publishableKey}
           completedPayment={completedPayment}
+          deviceAuth={deviceAuth}
           onSuccess={onSuccess}
         />
       ) : (
@@ -270,6 +278,7 @@ export default function StripePaymentSection({
           terminalConfig={terminalConfig}
           checkoutSessionId={checkoutSessionId}
           completedPayment={completedPayment}
+          deviceAuth={deviceAuth}
           onSuccess={onSuccess}
         />
       )}

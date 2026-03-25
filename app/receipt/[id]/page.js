@@ -5,14 +5,21 @@ import { auth } from "@/lib/auth";
 import { Receipt } from "@/app/components/Receipt";
 import { getTenantTaxInfo } from "@/lib/tse/org";
 import { decodeCashPaymentMeta } from "@/lib/receiptPayments";
+import { verifyReceiptAccessToken } from "@/lib/receipt-access";
 
-export default async function ReceiptPage({ params }) {
+export default async function ReceiptPage({ params, searchParams }) {
   const id = parseInt(params.id, 10);
   if (!id) notFound();
 
   const session = await auth();
   const tenantId = session?.user?.tenantId ?? null;
-  if (!tenantId) notFound();
+  const access = String(searchParams?.access || "").trim();
+  const receiptAccess = access ? verifyReceiptAccessToken(access) : null;
+  const allowedTenantId = tenantId ?? receiptAccess?.tenantId ?? null;
+
+  if (!allowedTenantId) notFound();
+
+  if (receiptAccess?.orderId && receiptAccess.orderId !== id) notFound();
 
   const order = await prisma.order.findUnique({
     where: { id },
@@ -30,7 +37,7 @@ export default async function ReceiptPage({ params }) {
     },
   });
 
-  if (!order || order.tenantId !== tenantId) notFound();
+  if (!order || order.tenantId !== allowedTenantId) notFound();
 
   const tseTx = order.tseTransactions?.[0];
   const rawPayload = (tseTx?.rawPayload && typeof tseTx.rawPayload === "object") ? tseTx.rawPayload : {};
@@ -43,7 +50,7 @@ export default async function ReceiptPage({ params }) {
   const proto = h.get("x-forwarded-proto") || "http";
   const receiptUrl = `${proto}://${host}/receipt/${id}`;
 
-  const orgTaxInfo = await getTenantTaxInfo(tenantId);
+  const orgTaxInfo = await getTenantTaxInfo(allowedTenantId);
   const cashPayment = (order.payments || []).find((payment) => payment.method === "CASH");
   const cashMeta = decodeCashPaymentMeta(cashPayment?.providerRef);
 

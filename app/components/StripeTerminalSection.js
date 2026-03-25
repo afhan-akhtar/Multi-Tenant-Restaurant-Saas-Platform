@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { loadStripeTerminal } from "@stripe/terminal-js";
 import Spinner from "./Spinner";
+import { getDeviceHeaders } from "@/lib/device-client";
 
 function formatTerminalStatus(status, fallback) {
   if (typeof status === "string" && status.trim()) {
@@ -18,6 +19,7 @@ export default function StripeTerminalSection({
   terminalConfig,
   checkoutSessionId,
   completedPayment,
+  deviceAuth,
   onSuccess,
 }) {
   const terminalRef = useRef(null);
@@ -53,6 +55,7 @@ export default function StripeTerminalSection({
           onFetchConnectionToken: async () => {
             const response = await fetch("/api/payments/stripe/connection-token", {
               method: "POST",
+              headers: getDeviceHeaders(deviceAuth),
             });
             const data = await response.json().catch(() => ({}));
 
@@ -94,7 +97,7 @@ export default function StripeTerminalSection({
     return () => {
       cancelled = true;
     };
-  }, [amount, completedPayment, terminalConfig?.enabled]);
+  }, [amount, completedPayment, deviceAuth, terminalConfig?.enabled]);
 
   const handleDiscoverReaders = async () => {
     const terminal = terminalRef.current;
@@ -167,7 +170,10 @@ export default function StripeTerminalSection({
     try {
       const intentResponse = await fetch("/api/payments/stripe/create-terminal-intent", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...getDeviceHeaders(deviceAuth),
+        },
         body: JSON.stringify({ amount, checkoutSessionId }),
       });
       const intentData = await intentResponse.json().catch(() => ({}));

@@ -1,24 +1,22 @@
-import { getToken } from "next-auth/jwt";
 import { prisma } from "@/lib/db";
 import { signAndStoreCancellation } from "@/lib/tse/db";
 import { refundPosPaymentIntent } from "@/lib/payments/stripe";
 import { refundPayPalCapture } from "@/lib/payments/paypal";
 import { NextResponse } from "next/server";
+import { getRequestActor } from "@/lib/device-auth";
+import { broadcastTenantKdsEvent } from "@/lib/realtime";
 
 /**
  * Cancel an order.
  */
 export async function POST(request) {
   try {
-    const token = await getToken({
-      req: request,
-      secret: process.env.NEXTAUTH_SECRET,
-    });
-    if (!token) {
+    const actor = await getRequestActor(request, { allowedDeviceTypes: ["KDS", "POS"] });
+    if (!actor?.tenantId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const tenantId = token.tenantId ?? null;
+    const tenantId = actor.tenantId ?? null;
     if (!tenantId) {
       return NextResponse.json({ error: "Restaurant context required" }, { status: 400 });
     }
@@ -62,6 +60,10 @@ export async function POST(request) {
     await prisma.payment.updateMany({
       where: { orderId: id },
       data: { status: "REFUNDED" },
+    });
+
+    broadcastTenantKdsEvent(tenantId, "order.cancelled", {
+      order: { id, status: "CANCELLED" },
     });
 
     return NextResponse.json({ ok: true, orderId: id });

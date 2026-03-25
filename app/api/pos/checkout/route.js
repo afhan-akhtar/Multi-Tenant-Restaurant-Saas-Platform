@@ -1,4 +1,3 @@
-import { getToken } from "next-auth/jwt";
 import { prisma } from "@/lib/db";
 import { getNextOrderNumber } from "@/lib/pos";
 import { recordCashSale } from "@/lib/cashbook";
@@ -11,6 +10,9 @@ import { roundMoney } from "@/lib/payments/config";
 import { encodeCashPaymentMeta } from "@/lib/receiptPayments";
 import { NextResponse } from "next/server";
 import { assertTenantFeatureAccess } from "@/lib/subscriptions";
+import { getRequestActor } from "@/lib/device-auth";
+import { getKDSOrderById } from "@/lib/kds";
+import { broadcastTenantKdsEvent } from "@/lib/realtime";
 
 function toNum(d) {
   return d ? Number(d) : 0;
@@ -77,11 +79,8 @@ function resolveSplits(splits, grandTotal) {
 
 export async function POST(request) {
   try {
-    const token = await getToken({
-      req: request,
-      secret: process.env.NEXTAUTH_SECRET,
-    });
-    if (!token) {
+    const actor = await getRequestActor(request, { allowedDeviceTypes: ["POS"] });
+    if (!actor?.tenantId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -99,12 +98,16 @@ export async function POST(request) {
       changeGiven = 0,
     } = body;
 
-    const tenantId = token.tenantId ?? null;
-    const branchId = token.branchId ?? null;
-    const staffId = parseInt(token.id, 10);
+    const tenantId = actor.tenantId ?? null;
+    const branchId = actor.branchId ?? null;
+    const staffId = actor.staffId ?? null;
 
     if (!tenantId || !branchId) {
       return NextResponse.json({ error: "Restaurant context required" }, { status: 400 });
+    }
+
+    if (!staffId) {
+      return NextResponse.json({ error: "No active staff member is linked to this POS device." }, { status: 400 });
     }
 
     const posAccess = await assertTenantFeatureAccess(tenantId, "POS");
@@ -449,6 +452,11 @@ export async function POST(request) {
 
     if (process.env.FISCAL_PRINTER_ENABLED === "1") {
       sendToFiscalPrinter(receipt).catch((e) => console.warn("[Fiscal printer]", e));
+    }
+
+    const kdsOrder = await getKDSOrderById(tenantId, order.id);
+    if (kdsOrder) {
+      broadcastTenantKdsEvent(tenantId, "order.created", { order: kdsOrder });
     }
 
     return NextResponse.json({

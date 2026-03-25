@@ -88,7 +88,11 @@ export async function middleware(request) {
     pathname === "/go" ||
     pathname === "/admin" ||
     pathname === "/register" ||
+    pathname.startsWith("/receipt/") ||
+    pathname === "/ws" ||
     pathname === "/api/register" ||
+    pathname.startsWith("/pos/") ||
+    pathname.startsWith("/kds/") ||
     pathname.startsWith("/api/auth") ||
     pathname.startsWith("/_next") ||
     pathname.match(/\.(ico|png|svg|jpg|jpeg|gif|webp)$/);

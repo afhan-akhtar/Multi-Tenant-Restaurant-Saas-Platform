@@ -1,12 +1,12 @@
-import { getToken } from "next-auth/jwt";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { getRequestActor } from "@/lib/device-auth";
 
 export async function POST(req) {
   try {
-    const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
-    if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    const tenantId = token.tenantId ?? null;
+    const actor = await getRequestActor(req, { allowedDeviceTypes: ["POS"] });
+    if (!actor?.tenantId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const tenantId = actor.tenantId ?? null;
     if (!tenantId) return NextResponse.json({ error: "Restaurant context required" }, { status: 400 });
 
     const body = await req.json();
@@ -31,9 +31,9 @@ export async function POST(req) {
 
 export async function DELETE(req) {
   try {
-    const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
-    if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    const tenantId = token.tenantId ?? null;
+    const actor = await getRequestActor(req, { allowedDeviceTypes: ["POS"] });
+    if (!actor?.tenantId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const tenantId = actor.tenantId ?? null;
     if (!tenantId) return NextResponse.json({ error: "Restaurant context required" }, { status: 400 });
 
     const { searchParams } = new URL(req.url);

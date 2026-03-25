@@ -2,11 +2,16 @@ require("dotenv").config();
 const { PrismaClient } = require("@prisma/client");
 const { PrismaPg } = require("@prisma/adapter-pg");
 const bcrypt = require("bcrypt");
+const crypto = require("crypto");
 
 const adapter = new PrismaPg({
   connectionString: process.env.DATABASE_URL,
 });
 const prisma = new PrismaClient({ adapter });
+
+function hashDeviceToken(token) {
+  return crypto.createHash("sha256").update(String(token || "")).digest("hex");
+}
 
 async function main() {
   const hashedPassword = await bcrypt.hash("admin123", 12);
@@ -87,6 +92,51 @@ async function main() {
       },
     });
   }
+
+  const demoPosToken = "demo-pos-device-token";
+  const demoKdsToken = "demo-kds-device-token";
+
+  await prisma.deviceToken.upsert({
+    where: {
+      tenantId_name: {
+        tenantId: tenant.id,
+        name: "Demo POS Device",
+      },
+    },
+    update: {
+      branchId: branch.id,
+      deviceType: "POS",
+      tokenHash: hashDeviceToken(demoPosToken),
+    },
+    create: {
+      tenantId: tenant.id,
+      branchId: branch.id,
+      name: "Demo POS Device",
+      deviceType: "POS",
+      tokenHash: hashDeviceToken(demoPosToken),
+    },
+  });
+
+  await prisma.deviceToken.upsert({
+    where: {
+      tenantId_name: {
+        tenantId: tenant.id,
+        name: "Demo KDS Device",
+      },
+    },
+    update: {
+      branchId: branch.id,
+      deviceType: "KDS",
+      tokenHash: hashDeviceToken(demoKdsToken),
+    },
+    create: {
+      tenantId: tenant.id,
+      branchId: branch.id,
+      name: "Demo KDS Device",
+      deviceType: "KDS",
+      tokenHash: hashDeviceToken(demoKdsToken),
+    },
+  });
 
   const productCount = await prisma.product.count({ where: { tenantId: tenant.id } });
   const addonCount = await prisma.addonGroup.count({ where: { tenantId: tenant.id } });
@@ -614,6 +664,8 @@ async function main() {
   console.log("Seed completed:");
   console.log("  SuperAdmin:", admin.email, "/ admin123");
   console.log("  Tenant admin: tenant@demo.com / tenant123 (subdomain: demo)");
+  console.log(`  Device POS: /pos/${tenant.id}?token=${demoPosToken}`);
+  console.log(`  Device KDS: /kds/${tenant.id}?token=${demoKdsToken}`);
 }
 
 main()

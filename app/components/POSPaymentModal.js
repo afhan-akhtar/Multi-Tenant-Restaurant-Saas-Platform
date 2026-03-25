@@ -5,6 +5,7 @@ import Spinner from "./Spinner";
 import StripePaymentSection from "./StripePaymentSection";
 import PayPalButtonsSection from "./PayPalButtonsSection";
 import { isOnline, queueOrder } from "@/lib/offline";
+import { getDeviceHeaders } from "@/lib/device-client";
 
 const METHODS = [
   { id: "CASH", label: "Cash", color: "#22c55e" },
@@ -30,7 +31,17 @@ function createCheckoutSessionId() {
   return `checkout_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
 }
 
-export default function POSPaymentModal({ open, onClose, grandTotal, cart, orderNumber, orderType, customerId, onSuccess }) {
+export default function POSPaymentModal({
+  open,
+  onClose,
+  grandTotal,
+  cart,
+  orderNumber,
+  orderType,
+  customerId,
+  deviceAuth = null,
+  onSuccess,
+}) {
   const [splits, setSplits] = useState([]);
   const [discount, setDiscount] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -76,7 +87,10 @@ export default function POSPaymentModal({ open, onClose, grandTotal, cart, order
     async function loadPaymentConfig() {
       setConfigLoading(true);
       try {
-        const res = await fetch("/api/payments/config", { cache: "no-store" });
+        const res = await fetch("/api/payments/config", {
+          cache: "no-store",
+          headers: getDeviceHeaders(deviceAuth),
+        });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
           throw new Error(data.error || "Failed to load payment settings.");
@@ -112,7 +126,7 @@ export default function POSPaymentModal({ open, onClose, grandTotal, cart, order
     return () => {
       cancelled = true;
     };
-  }, [open]);
+  }, [deviceAuth, open]);
 
   useEffect(() => {
     if (!paymentConfig?.providers) return;
@@ -262,7 +276,10 @@ export default function POSPaymentModal({ open, onClose, grandTotal, cart, order
       } else {
         const res = await fetch("/api/pos/checkout", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            ...getDeviceHeaders(deviceAuth),
+          },
           body: JSON.stringify({
             ...checkoutPayload,
             providerPayments: providerPaymentList,
@@ -389,6 +406,7 @@ export default function POSPaymentModal({ open, onClose, grandTotal, cart, order
                 publishableKey={paymentConfig?.providers?.stripe?.publishableKey}
                 terminalConfig={paymentConfig?.providers?.stripe?.terminal}
                 completedPayment={providerPayments.STRIPE}
+                deviceAuth={deviceAuth}
                 onSuccess={registerProviderPayment}
               />
             ) : null}
@@ -400,6 +418,7 @@ export default function POSPaymentModal({ open, onClose, grandTotal, cart, order
                 currency={paymentConfig?.currency || "EUR"}
                 checkoutSessionId={providerContext.paypalCheckoutSessionId}
                 completedPayment={providerPayments.PAYPAL}
+                deviceAuth={deviceAuth}
                 onSuccess={registerProviderPayment}
               />
             ) : null}

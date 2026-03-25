@@ -1,17 +1,13 @@
-import { getToken } from "next-auth/jwt";
 import { NextResponse } from "next/server";
+import { getRequestActor } from "@/lib/device-auth";
 import { getPublicPaymentConfig } from "@/lib/payments/config";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request) {
   try {
-    const token = await getToken({
-      req: request,
-      secret: process.env.NEXTAUTH_SECRET,
-    });
-
-    if (!token) {
+    const actor = await getRequestActor(request, { allowedDeviceTypes: ["POS"] });
+    if (!actor?.tenantId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 

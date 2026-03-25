@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth";
 import { getKDSOrders } from "@/lib/kds";
+import { createDeviceSocketTicket } from "@/lib/device-auth";
 import { redirect } from "next/navigation";
 import KDS from "@/app/components/KDS";
 
@@ -19,6 +20,11 @@ export default async function KDSPage() {
   }
 
   const orders = await getKDSOrders(tenantId, branchId);
+  const wsTicket = createDeviceSocketTicket({
+    tenantId,
+    branchId,
+    deviceType: "KDS",
+  });
 
-  return <KDS data={{ orders }} />;
+  return <KDS data={{ orders }} mode="dashboard" deviceAuth={{ tenantId, branchId, wsTicket }} />;
 }

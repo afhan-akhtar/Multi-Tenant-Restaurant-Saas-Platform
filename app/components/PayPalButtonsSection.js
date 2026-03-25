@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Spinner from "./Spinner";
+import { getDeviceHeaders } from "@/lib/device-client";
 
 const sdkPromiseCache = new Map();
 
@@ -46,6 +47,7 @@ export default function PayPalButtonsSection({
   currency,
   checkoutSessionId,
   completedPayment,
+  deviceAuth,
   onSuccess,
 }) {
   const containerRef = useRef(null);
@@ -81,7 +83,10 @@ export default function PayPalButtonsSection({
             createOrder: async () => {
               const response = await fetch("/api/payments/paypal/create-order", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                  "Content-Type": "application/json",
+                  ...getDeviceHeaders(deviceAuth),
+                },
                 body: JSON.stringify({ amount, checkoutSessionId }),
               });
               const data = await response.json().catch(() => ({}));
@@ -95,7 +100,10 @@ export default function PayPalButtonsSection({
             onApprove: async (data) => {
               const response = await fetch("/api/payments/paypal/capture-order", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                  "Content-Type": "application/json",
+                  ...getDeviceHeaders(deviceAuth),
+                },
                 body: JSON.stringify({ orderId: data.orderID, amount }),
               });
               const result = await response.json().catch(() => ({}));
@@ -133,7 +141,7 @@ export default function PayPalButtonsSection({
       cancelled = true;
       container.innerHTML = "";
     };
-  }, [amount, clientId, completedPayment, currency, checkoutSessionId, onSuccess]);
+  }, [amount, clientId, completedPayment, currency, checkoutSessionId, deviceAuth, onSuccess]);
 
   if (amount <= 0) {
     return null;

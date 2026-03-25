@@ -1,22 +1,18 @@
-import { getToken } from "next-auth/jwt";
 import { NextResponse } from "next/server";
 import { capturePosPayPalOrder } from "@/lib/payments/paypal";
 import { roundMoney } from "@/lib/payments/config";
+import { getRequestActor } from "@/lib/device-auth";
 
 export async function POST(request) {
   try {
-    const token = await getToken({
-      req: request,
-      secret: process.env.NEXTAUTH_SECRET,
-    });
-
-    if (!token) {
+    const actor = await getRequestActor(request, { allowedDeviceTypes: ["POS"] });
+    if (!actor?.tenantId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const tenantId = token.tenantId ?? null;
-    const branchId = token.branchId ?? null;
-    const staffId = Number.parseInt(token.id, 10);
+    const tenantId = actor.tenantId ?? null;
+    const branchId = actor.branchId ?? null;
+    const staffId = actor.staffId ?? null;
 
     if (!tenantId || !branchId || !staffId) {
       return NextResponse.json({ error: "Restaurant context required" }, { status: 400 });

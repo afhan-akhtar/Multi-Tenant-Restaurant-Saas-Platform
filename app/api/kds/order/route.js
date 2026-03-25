@@ -1,22 +1,21 @@
-import { getToken } from "next-auth/jwt";
 import { prisma } from "@/lib/db";
 import { signAndStoreOrder, getOrderSignature } from "@/lib/tse/db";
 import { NextResponse } from "next/server";
 import { assertTenantFeatureAccess } from "@/lib/subscriptions";
+import { getRequestActor } from "@/lib/device-auth";
+import { getKDSOrderById } from "@/lib/kds";
+import { broadcastTenantKdsEvent } from "@/lib/realtime";
 
 const ALLOWED_STATUSES = ["CONFIRMED", "PREPARING", "READY", "PACK", "COMPLETED"];
 
 export async function PATCH(request) {
   try {
-    const token = await getToken({
-      req: request,
-      secret: process.env.NEXTAUTH_SECRET,
-    });
-    if (!token) {
+    const actor = await getRequestActor(request, { allowedDeviceTypes: ["KDS"] });
+    if (!actor?.tenantId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const tenantId = token.tenantId ?? null;
+    const tenantId = actor.tenantId ?? null;
     if (!tenantId) {
       return NextResponse.json({ error: "Restaurant context required" }, { status: 400 });
     }
@@ -57,7 +56,14 @@ export async function PATCH(request) {
       data: { status },
     });
 
-    return NextResponse.json({ ok: true });
+    const updatedOrder = await getKDSOrderById(tenantId, orderId);
+    if (updatedOrder) {
+      broadcastTenantKdsEvent(tenantId, "order.updated", { order: updatedOrder });
+    } else {
+      broadcastTenantKdsEvent(tenantId, "order.updated", { order: { id: orderId, status } });
+    }
+
+    return NextResponse.json({ ok: true, order: updatedOrder ?? { id: orderId, status } });
   } catch (err) {
     console.error("[KDS order update error]", err);
     return NextResponse.json({ error: err.message || "Failed to update" }, { status: 500 });
