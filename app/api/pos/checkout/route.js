@@ -12,6 +12,7 @@ import { NextResponse } from "next/server";
 import { assertTenantFeatureAccess } from "@/lib/subscriptions";
 import { getRequestActor } from "@/lib/device-auth";
 import { getKDSOrderById } from "@/lib/kds";
+import { syncKdsItemsForOrder } from "@/lib/kds-routing";
 import { broadcastTenantKdsEvent } from "@/lib/realtime";
 
 function toNum(d) {
@@ -123,9 +124,10 @@ export async function POST(request) {
     const productIds = [...new Set(items.map((i) => Number(i.productId)).filter(Boolean))];
     const products = await prisma.product.findMany({
       where: { tenantId, id: { in: productIds }, isActive: true },
-      select: { id: true, name: true, basePrice: true, taxRate: true },
+      select: { id: true, name: true, basePrice: true, taxRate: true, kdsStation: true },
     });
     const productById = new Map(products.map((p) => [p.id, p]));
+    const productStationsByProductId = new Map(products.map((p) => [p.id, p.kdsStation || "MAIN"]));
     if (productById.size !== productIds.length) {
       return NextResponse.json({ error: "One or more products are unavailable" }, { status: 400 });
     }
@@ -348,6 +350,14 @@ export async function POST(request) {
         },
       },
       include: { orderItems: true },
+    });
+
+    await syncKdsItemsForOrder({
+      orderId: order.id,
+      branchId,
+      orderStatus: order.status,
+      orderItems: order.orderItems,
+      productStationsByProductId,
     });
 
     for (const split of paymentSplits) {

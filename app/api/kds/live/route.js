@@ -11,7 +11,7 @@ export async function GET(request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const orders = await getKDSOrders(actor.tenantId, actor.branchId);
+    const orders = await getKDSOrders(actor.tenantId, actor.branchId, actor.screenId ?? null);
     return NextResponse.json({ orders });
   } catch (error) {
     console.error("[kds live]", error);

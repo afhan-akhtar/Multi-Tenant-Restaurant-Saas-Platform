@@ -57,6 +57,52 @@ async function main() {
     });
   }
 
+  const mainKdsScreen = await prisma.kDSScreen.upsert({
+    where: {
+      branchId_name: {
+        branchId: branch.id,
+        name: "Kitchen Main Screen",
+      },
+    },
+    update: {
+      code: "MAIN",
+      stationType: "MAIN",
+      isActive: true,
+      isDefault: true,
+    },
+    create: {
+      branchId: branch.id,
+      name: "Kitchen Main Screen",
+      code: "MAIN",
+      stationType: "MAIN",
+      isActive: true,
+      isDefault: true,
+    },
+  });
+
+  await prisma.kDSScreen.upsert({
+    where: {
+      branchId_name: {
+        branchId: branch.id,
+        name: "Drinks Station",
+      },
+    },
+    update: {
+      code: "DRINKS",
+      stationType: "DRINKS",
+      isActive: true,
+      isDefault: false,
+    },
+    create: {
+      branchId: branch.id,
+      name: "Drinks Station",
+      code: "DRINKS",
+      stationType: "DRINKS",
+      isActive: true,
+      isDefault: false,
+    },
+  });
+
   let role = await prisma.role.findFirst({ where: { tenantId: tenant.id } });
   if (!role) {
     role = await prisma.role.create({
@@ -105,14 +151,18 @@ async function main() {
     },
     update: {
       branchId: branch.id,
+      screenId: null,
       deviceType: "POS",
+      status: "ACTIVE",
       tokenHash: hashDeviceToken(demoPosToken),
     },
     create: {
       tenantId: tenant.id,
       branchId: branch.id,
+      screenId: null,
       name: "Demo POS Device",
       deviceType: "POS",
+      status: "ACTIVE",
       tokenHash: hashDeviceToken(demoPosToken),
     },
   });
@@ -126,14 +176,18 @@ async function main() {
     },
     update: {
       branchId: branch.id,
+      screenId: mainKdsScreen.id,
       deviceType: "KDS",
+      status: "ACTIVE",
       tokenHash: hashDeviceToken(demoKdsToken),
     },
     create: {
       tenantId: tenant.id,
       branchId: branch.id,
+      screenId: mainKdsScreen.id,
       name: "Demo KDS Device",
       deviceType: "KDS",
+      status: "ACTIVE",
       tokenHash: hashDeviceToken(demoKdsToken),
     },
   });
@@ -208,12 +262,12 @@ async function main() {
       { cat: catDips, name: "Garlic Mayo Dip", desc: "Creamy garlic mayonnaise", plu: "DIP001", price: 1.5, img: "https://images.unsplash.com/photo-1605516606192-4d0182ef16b2?w=600&q=90" },
       { cat: catDips, name: "BBQ Sauce", desc: "Smoky BBQ sauce", plu: "DIP002", price: 1.0, img: "https://images.unsplash.com/photo-1599487488170-d11ec9c172f0?w=600&q=90" },
       { cat: catDips, name: "Sour Cream", desc: "Cool sour cream dip", plu: "DIP003", price: 1.5, img: "https://images.unsplash.com/photo-1556909212-d5b604d0c90d?w=600&q=90" },
-      { cat: catDrinks, name: "Coca Cola", desc: "Classic Coca Cola 330ml", plu: "DRK001", price: 2.5, img: "https://images.unsplash.com/photo-1554866585-cd94860890b7?w=600&q=90" },
-      { cat: catDrinks, name: "Coke Zero", desc: "Coca Cola Zero Sugar 330ml", plu: "DRK002", price: 2.5, img: "https://images.unsplash.com/photo-1554866585-cd94860890b7?w=600&q=90" },
-      { cat: catDrinks, name: "Fresh Orange Juice", desc: "Freshly squeezed orange juice", plu: "DRK003", price: 5.0, img: "https://images.unsplash.com/photo-1600271886742-f049cd451bba?w=600&q=90" },
-      { cat: catDrinks, name: "Chocolate Milkshake", desc: "Creamy chocolate milkshake", plu: "DRK004", price: 6.0, img: "https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=600&q=90" },
-      { cat: catDesserts, name: "Ice Cream Sundae", desc: "Vanilla ice cream, chocolate syrup", plu: "DES001", price: 7.0, img: "https://images.unsplash.com/photo-1563805042-7684c019e1cb?w=600&q=90" },
-      { cat: catDesserts, name: "Brownie", desc: "Warm chocolate brownie with nuts", plu: "DES002", price: 6.5, img: "https://images.unsplash.com/photo-1564355808539-22fda35bed7e?w=600&q=90" },
+      { cat: catDrinks, name: "Coca Cola", desc: "Classic Coca Cola 330ml", plu: "DRK001", price: 2.5, img: "https://images.unsplash.com/photo-1554866585-cd94860890b7?w=600&q=90", kdsStation: "DRINKS" },
+      { cat: catDrinks, name: "Coke Zero", desc: "Coca Cola Zero Sugar 330ml", plu: "DRK002", price: 2.5, img: "https://images.unsplash.com/photo-1554866585-cd94860890b7?w=600&q=90", kdsStation: "DRINKS" },
+      { cat: catDrinks, name: "Fresh Orange Juice", desc: "Freshly squeezed orange juice", plu: "DRK003", price: 5.0, img: "https://images.unsplash.com/photo-1600271886742-f049cd451bba?w=600&q=90", kdsStation: "DRINKS" },
+      { cat: catDrinks, name: "Chocolate Milkshake", desc: "Creamy chocolate milkshake", plu: "DRK004", price: 6.0, img: "https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=600&q=90", kdsStation: "DRINKS" },
+      { cat: catDesserts, name: "Ice Cream Sundae", desc: "Vanilla ice cream, chocolate syrup", plu: "DES001", price: 7.0, img: "https://images.unsplash.com/photo-1563805042-7684c019e1cb?w=600&q=90", kdsStation: "DESSERT" },
+      { cat: catDesserts, name: "Brownie", desc: "Warm chocolate brownie with nuts", plu: "DES002", price: 6.5, img: "https://images.unsplash.com/photo-1564355808539-22fda35bed7e?w=600&q=90", kdsStation: "DESSERT" },
     ];
 
     const products = await Promise.all(
@@ -228,6 +282,7 @@ async function main() {
             basePrice: p.price,
             taxRate: 10,
             imageUrl: p.img,
+            kdsStation: p.kdsStation || "MAIN",
           },
         })
       )
@@ -381,8 +436,11 @@ async function main() {
     const existingProducts = await prisma.product.findMany({ where: { tenantId: tenant.id }, select: { id: true, plu: true } });
     for (const p of existingProducts) {
       const img = productImageMap[p.plu];
+      const kdsStation = p.plu.startsWith("DRK") ? "DRINKS" : p.plu.startsWith("DES") ? "DESSERT" : "MAIN";
       if (img) {
-        await prisma.product.update({ where: { id: p.id }, data: { imageUrl: img } });
+        await prisma.product.update({ where: { id: p.id }, data: { imageUrl: img, kdsStation } });
+      } else {
+        await prisma.product.update({ where: { id: p.id }, data: { kdsStation } });
       }
     }
     // Ensure Combos and Dips categories exist

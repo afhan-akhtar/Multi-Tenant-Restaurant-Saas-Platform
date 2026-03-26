@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { assertTenantFeatureAccess } from "@/lib/subscriptions";
 import { getRequestActor } from "@/lib/device-auth";
 import { getKDSOrderById } from "@/lib/kds";
+import { syncKdsItemsForOrder } from "@/lib/kds-routing";
 import { broadcastTenantKdsEvent } from "@/lib/realtime";
 
 function toNum(d) {
@@ -38,6 +39,21 @@ export async function POST(request) {
     if (!items?.length) {
       return NextResponse.json({ error: "Order must have items" }, { status: 400 });
     }
+
+    const productIds = [...new Set(items.map((item) => Number(item.productId)).filter(Boolean))];
+    const products = productIds.length
+      ? await prisma.product.findMany({
+          where: {
+            tenantId,
+            id: { in: productIds },
+          },
+          select: {
+            id: true,
+            kdsStation: true,
+          },
+        })
+      : [];
+    const productStationsByProductId = new Map(products.map((product) => [product.id, product.kdsStation || "MAIN"]));
 
     const branch = await prisma.branch.findFirst({
       where: { id: branchId, tenantId },
@@ -124,6 +140,14 @@ export async function POST(request) {
         },
       },
       include: { orderItems: true },
+    });
+
+    await syncKdsItemsForOrder({
+      orderId: order.id,
+      branchId,
+      orderStatus: order.status,
+      orderItems: order.orderItems,
+      productStationsByProductId,
     });
 
     const kdsOrder = await getKDSOrderById(tenantId, order.id);

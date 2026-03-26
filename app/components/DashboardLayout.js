@@ -32,6 +32,7 @@ const RESTAURANT_ITEMS = [
   { section: "POS & KITCHEN", items: [
     { href: "/pos", label: "POS System", icon: "pos" },
     { href: "/kds", label: "Kitchen Display (KDS)", icon: "kds" },
+    { href: "/devices", label: "Devices", icon: "devices" },
   ]},
   { section: "TENANT ADMINS & SECURITY", items: [
     { href: "/users", label: "Tenant Admins", icon: "users" },
@@ -210,6 +211,13 @@ const ICONS = {
       <path d="M8 21h8" />
     </svg>
   ),
+  devices: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <rect x="3" y="4" width="8" height="14" rx="2" />
+      <rect x="13" y="7" width="8" height="10" rx="2" />
+      <path d="M7 15h.01M17 14h.01" />
+    </svg>
+  ),
   settings: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <circle cx="12" cy="12" r="3" />
@@ -293,6 +301,7 @@ const PAGE_TITLES = {
   "/loyalty": "Loyalty Program",
   "/campaigns": "Email Campaigns",
   "/kds": "Kitchen Display (KDS)",
+  "/devices": "Devices",
 };
 
 const RESTAURANT_ITEM_FEATURES = {

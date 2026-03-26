@@ -36,10 +36,11 @@ export default async function DeviceKDSPage({ params, searchParams }) {
     return <AccessDenied />;
   }
 
-  const orders = await getKDSOrders(device.tenantId, device.branchId);
+  const orders = await getKDSOrders(device.tenantId, device.branchId, device.screenId ?? null);
   const wsTicket = createDeviceSocketTicket({
     tenantId: device.tenantId,
     branchId: device.branchId,
+    screenId: device.screenId ?? null,
     deviceType: "KDS",
   });
 
@@ -51,6 +52,7 @@ export default async function DeviceKDSPage({ params, searchParams }) {
         tenantId: device.tenantId,
         token,
         deviceType: "KDS",
+        screenId: device.screenId ?? null,
         wsTicket,
       }}
     />

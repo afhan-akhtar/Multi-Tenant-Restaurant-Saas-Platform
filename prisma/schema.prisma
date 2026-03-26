@@ -73,6 +73,22 @@ enum DeviceType {
   KDS
 }
 
+enum DeviceStatus {
+  ACTIVE
+  DISABLED
+}
+
+enum KDSStationType {
+  MAIN
+  EXPEDITOR
+  GRILL
+  FRYER
+  DRINKS
+  PACKING
+  DESSERT
+  CUSTOM
+}
+
 enum SubscriptionStatus {
   TRIALING
   ACTIVE
@@ -394,6 +410,7 @@ model Product {
   allergens    Json?
   dietaryFlags Json?
   isActive     Boolean @default(true)
+  kdsStation   KDSStationType?
 
   tenant     Tenant           @relation(fields: [tenantId], references: [id])
   category   Category         @relation(fields: [categoryId], references: [id])
@@ -594,12 +611,20 @@ model CashbookEntry {
 }
 
 model KDSScreen {
-  id       Int    @id @default(autoincrement())
-  branchId Int
-  name     String
+  id          Int            @id @default(autoincrement())
+  branchId    Int
+  name        String
+  code        String?
+  stationType KDSStationType @default(MAIN)
+  isActive    Boolean        @default(true)
+  isDefault   Boolean        @default(false)
 
-  branch   Branch    @relation(fields: [branchId], references: [id])
-  kdsItems KDSItem[]
+  branch       Branch        @relation(fields: [branchId], references: [id])
+  kdsItems     KDSItem[]
+  deviceTokens DeviceToken[]
+
+  @@unique([branchId, name])
+  @@index([branchId, stationType, isActive])
 }
 
 model KDSItem {
@@ -613,22 +638,26 @@ model KDSItem {
 }
 
 model DeviceToken {
-  id         Int        @id @default(autoincrement())
-  tenantId    Int
-  branchId    Int?
-  name        String
-  deviceType  DeviceType
-  tokenHash   String     @unique
-  lastSeenAt  DateTime?
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  id         Int          @id @default(autoincrement())
+  tenantId   Int
+  branchId   Int?
+  screenId   Int?
+  name       String
+  deviceType DeviceType
+  status     DeviceStatus @default(ACTIVE)
+  tokenHash  String       @unique
+  lastSeenAt DateTime?
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
 
-  tenant Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  branch Branch? @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  tenant Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  branch Branch?    @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  screen KDSScreen? @relation(fields: [screenId], references: [id], onDelete: SetNull)
 
   @@unique([tenantId, name])
   @@index([tenantId, deviceType])
   @@index([branchId])
+  @@index([screenId])
 }
 
 model AuditLog {

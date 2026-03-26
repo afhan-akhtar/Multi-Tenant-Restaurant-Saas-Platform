@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { assertTenantFeatureAccess } from "@/lib/subscriptions";
 import { getRequestActor } from "@/lib/device-auth";
 import { getKDSOrderById } from "@/lib/kds";
+import { syncOrderKdsItemStatus } from "@/lib/kds-routing";
 import { broadcastTenantKdsEvent } from "@/lib/realtime";
 
 const ALLOWED_STATUSES = ["CONFIRMED", "PREPARING", "READY", "PACK", "COMPLETED"];
@@ -55,6 +56,7 @@ export async function PATCH(request) {
       where: { id: orderId },
       data: { status },
     });
+    await syncOrderKdsItemStatus(orderId, status);
 
     const updatedOrder = await getKDSOrderById(tenantId, orderId);
     if (updatedOrder) {

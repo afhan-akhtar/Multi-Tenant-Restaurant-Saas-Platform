@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import ConfirmModal from "@/app/components/ConfirmModal";
 import { getDeviceHeaders } from "@/lib/device-client";
 import DashboardKDSView from "@/app/components/kds/DashboardKDSView";
@@ -22,6 +22,23 @@ export default function KDS({ data, deviceAuth = null, mode = "dashboard" }) {
     setOrders(initialOrders);
   }, [initialOrders]);
 
+  const syncOrders = useCallback(async () => {
+    try {
+      const response = await fetch("/api/kds/live", {
+        cache: "no-store",
+        headers: getDeviceHeaders(deviceAuth),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok || !Array.isArray(payload?.orders)) {
+        return;
+      }
+
+      setOrders(payload.orders);
+    } catch (error) {
+      console.error("KDS live sync failed", error);
+    }
+  }, [deviceAuth]);
+
   useEffect(() => {
     if (!deviceAuth?.wsTicket || typeof window === "undefined") {
       return undefined;
@@ -40,7 +57,7 @@ export default function KDS({ data, deviceAuth = null, mode = "dashboard" }) {
         if (!message?.event) return;
 
         if (message.event === "order.created" || message.event === "order.updated" || message.event === "order.cancelled") {
-          setOrders((current) => mergeKdsOrder(current, message.payload?.order));
+          syncOrders();
         }
       } catch (error) {
         console.error("KDS stream parse failed", error);
@@ -56,12 +73,12 @@ export default function KDS({ data, deviceAuth = null, mode = "dashboard" }) {
       setLiveConnected(false);
       source.close();
     };
-  }, [deviceAuth?.wsTicket]);
+  }, [deviceAuth?.wsTicket, syncOrders]);
 
   useEffect(() => {
     let cancelled = false;
 
-    const syncOrders = async () => {
+    const runSync = async () => {
       try {
         const response = await fetch("/api/kds/live", {
           cache: "no-store",
@@ -80,20 +97,20 @@ export default function KDS({ data, deviceAuth = null, mode = "dashboard" }) {
       }
     };
 
-    syncOrders();
+    runSync();
     const handleWindowFocus = () => {
-      syncOrders();
+      runSync();
     };
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
-        syncOrders();
+        runSync();
       }
     };
 
     window.addEventListener("focus", handleWindowFocus);
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
-    const intervalId = window.setInterval(syncOrders, liveConnected ? 4000 : 1000);
+    const intervalId = window.setInterval(runSync, liveConnected ? 4000 : 1000);
 
     return () => {
       cancelled = true;
@@ -102,15 +119,6 @@ export default function KDS({ data, deviceAuth = null, mode = "dashboard" }) {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [deviceAuth, liveConnected]);
-
-  const createdCount = orders.filter((o) => ["OPEN", "CONFIRMED"].includes(o.status)).length;
-  const cookingCount = orders.filter((o) => o.status === "PREPARING").length;
-  const readyCount = orders.filter((o) => o.status === "READY").length;
-  const dispatchedCount = orders.filter((o) => o.status === "PACK").length;
-
-  const getOrdersForColumn = (col) => {
-    return orders.filter((o) => col.statuses.includes(o.status));
-  };
 
   const handleStatusChange = async (orderId, newStatus) => {
     try {

@@ -4,6 +4,7 @@ import { refundPosPaymentIntent } from "@/lib/payments/stripe";
 import { refundPayPalCapture } from "@/lib/payments/paypal";
 import { NextResponse } from "next/server";
 import { getRequestActor } from "@/lib/device-auth";
+import { clearOrderKdsItems } from "@/lib/kds-routing";
 import { broadcastTenantKdsEvent } from "@/lib/realtime";
 
 /**
@@ -61,6 +62,7 @@ export async function POST(request) {
       where: { orderId: id },
       data: { status: "REFUNDED" },
     });
+    await clearOrderKdsItems(id);
 
     broadcastTenantKdsEvent(tenantId, "order.cancelled", {
       order: { id, status: "CANCELLED" },

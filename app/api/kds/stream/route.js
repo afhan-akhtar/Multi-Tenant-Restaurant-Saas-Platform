@@ -25,6 +25,7 @@ async function resolveStreamActor(request) {
     authMode: "stream",
     tenantId: payload.tenantId,
     branchId: payload.branchId ?? null,
+    screenId: payload.screenId ?? null,
     deviceType: payload.deviceType,
   };
 }
@@ -71,6 +72,7 @@ export async function GET(request) {
         payload: {
           tenantId: actor.tenantId,
           branchId: actor.branchId,
+          screenId: actor.screenId ?? null,
           deviceType: actor.deviceType || "KDS",
         },
         sentAt: new Date().toISOString(),
