@@ -1,10 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import ConfirmModal from "@/app/components/ConfirmModal";
 import { getDeviceHeaders } from "@/lib/device-client";
 import DashboardKDSView from "@/app/components/kds/DashboardKDSView";
 import DeviceKDSView from "@/app/components/kds/DeviceKDSView";
+import KdsCancelOrderModal from "@/app/components/kds/KdsCancelOrderModal";
 import { getKdsCounts, mergeKdsOrder } from "@/app/components/kds/KDSShared";
 
 export default function KDS({ data, deviceAuth = null, mode = "dashboard" }) {
@@ -14,6 +14,7 @@ export default function KDS({ data, deviceAuth = null, mode = "dashboard" }) {
   const [activeFilter, setActiveFilter] = useState("ALL");
   const [zoom, setZoom] = useState(100);
   const [cancelModal, setCancelModal] = useState({ open: false, orderId: null, orderNumber: "" });
+  const [cancelReason, setCancelReason] = useState("");
   const [cancelLoading, setCancelLoading] = useState(false);
   const [cancelError, setCancelError] = useState("");
   const [liveConnected, setLiveConnected] = useState(false);
@@ -141,6 +142,7 @@ export default function KDS({ data, deviceAuth = null, mode = "dashboard" }) {
 
   const openCancelModal = (order) => {
     setCancelModal({ open: true, orderId: order.id, orderNumber: order.orderNumber });
+    setCancelReason("");
     setCancelError("");
   };
 
@@ -156,11 +158,15 @@ export default function KDS({ data, deviceAuth = null, mode = "dashboard" }) {
           "Content-Type": "application/json",
           ...getDeviceHeaders(deviceAuth),
         },
-        body: JSON.stringify({ orderId }),
+        body: JSON.stringify({
+          orderId,
+          reason: cancelReason.trim(),
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Cancel failed");
       setCancelModal({ open: false, orderId: null, orderNumber: "" });
+      setCancelReason("");
       setOrders((current) => current.filter((order) => order.id !== orderId));
     } catch (err) {
       console.error("KDS cancel failed", err);
@@ -186,13 +192,18 @@ export default function KDS({ data, deviceAuth = null, mode = "dashboard" }) {
     <>
       {isDeviceMode ? <DeviceKDSView {...viewProps} /> : <DashboardKDSView {...viewProps} />}
 
-      <ConfirmModal
+      <KdsCancelOrderModal
         open={cancelModal.open}
-        title="Cancel order"
-        message={`Cancel order ${cancelModal.orderNumber}? This cannot be undone.`}
-        confirmLabel="Yes"
+        orderNumber={cancelModal.orderNumber}
+        reason={cancelReason}
+        onReasonChange={setCancelReason}
         onConfirm={handleCancelConfirm}
-        onCancel={() => { setCancelModal({ open: false, orderId: null, orderNumber: "" }); setCancelError(""); }}
+        onClose={() => {
+          if (cancelLoading) return;
+          setCancelModal({ open: false, orderId: null, orderNumber: "" });
+          setCancelReason("");
+          setCancelError("");
+        }}
         loading={cancelLoading}
         error={cancelError}
       />

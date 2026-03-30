@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import POSPaymentModal from "./POSPaymentModal";
+import POSRefundModal from "./POSRefundModal";
 import { printReceipt } from "./Receipt";
 import { formatEur } from "@/lib/currencyFormat";
 import { getDeviceHeaders } from "@/lib/device-client";
@@ -31,7 +33,7 @@ export default function POS({ data, deviceAuth = null }) {
     if (initialCustomers.length > 0 && !selectedCustomerId) {
       setSelectedCustomerId(initialCustomers[0].id);
     }
-  }, [initialCustomers]);
+  }, [initialCustomers, selectedCustomerId]);
 
   useEffect(() => {
     if (customers.length > 0 && (!selectedCustomerId || !customers.some((c) => c.id === selectedCustomerId))) {
@@ -73,6 +75,7 @@ export default function POS({ data, deviceAuth = null }) {
   const [addonProduct, setAddonProduct] = useState(null);
   const [selectedAddons, setSelectedAddons] = useState({});
   const [payModalOpen, setPayModalOpen] = useState(false);
+  const [refundModalOpen, setRefundModalOpen] = useState(false);
   const [confirmClearOpen, setConfirmClearOpen] = useState(false);
   const [toast, setToast] = useState(null);
 
@@ -190,6 +193,16 @@ export default function POS({ data, deviceAuth = null }) {
     setPayModalOpen(true);
   };
 
+  const handleRefundSuccess = (result) => {
+    setToast({
+      type: "success",
+      message: result?.warning
+        ? `Refunded ${formatEur(result?.refundAmount || 0)} for ${result?.orderNumber}. ${result.warning}`
+        : `Refunded ${formatEur(result?.refundAmount || 0)} for ${result?.orderNumber}.`,
+    });
+    router.refresh();
+  };
+
   const openClearConfirm = () => {
     if (cart.length === 0) return;
     setConfirmClearOpen(true);
@@ -206,6 +219,13 @@ export default function POS({ data, deviceAuth = null }) {
         <div className="sticky top-0 z-10 bg-[#2d3748] py-3 px-4 flex items-center gap-2 shrink-0">
           <span className="text-slate-300 font-semibold mr-4">Restaurant POS</span>
           <div className="flex gap-2 flex-wrap">
+            <button
+              type="button"
+              className="py-2 px-4 border-none rounded-md cursor-pointer font-medium text-sm bg-amber-500 text-white hover:bg-amber-600"
+              onClick={() => setRefundModalOpen(true)}
+            >
+              Order History
+            </button>
             {categories.map((cat, i) => (
               <button
                 key={cat.id}
@@ -235,9 +255,15 @@ export default function POS({ data, deviceAuth = null }) {
               className="bg-white border border-color-border rounded-xl p-4 cursor-pointer transition-all flex flex-col gap-2.5 shadow-sm hover:border-primary hover:shadow-[0_4px_16px_rgba(233,69,96,0.2)]"
               onClick={() => openAddonModal(product)}
             >
-              <div className="w-full aspect-square bg-slate-100 rounded-xl flex items-center justify-center text-slate-400 text-3xl overflow-hidden">
+              <div className="relative w-full aspect-square bg-slate-100 rounded-xl flex items-center justify-center text-slate-400 text-3xl overflow-hidden">
                 {product.imageUrl ? (
-                  <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" loading="lazy" />
+                  <Image
+                    src={product.imageUrl}
+                    alt={product.name}
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 480px) 50vw, (max-width: 768px) 140px, (max-width: 1024px) 160px, 220px"
+                  />
                 ) : (
                   <span>🍽</span>
                 )}
@@ -509,6 +535,13 @@ export default function POS({ data, deviceAuth = null }) {
         customerId={selectedCustomerId}
         deviceAuth={deviceAuth}
         onSuccess={handlePaymentSuccess}
+      />
+
+      <POSRefundModal
+        open={refundModalOpen}
+        onClose={() => setRefundModalOpen(false)}
+        deviceAuth={deviceAuth}
+        onSuccess={handleRefundSuccess}
       />
 
       {toast && (

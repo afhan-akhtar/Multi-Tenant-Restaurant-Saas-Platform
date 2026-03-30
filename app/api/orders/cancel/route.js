@@ -1,11 +1,14 @@
-import { prisma } from "@/lib/db";
 import { signAndStoreCancellation } from "@/lib/tse/db";
-import { refundPosPaymentIntent } from "@/lib/payments/stripe";
-import { refundPayPalCapture } from "@/lib/payments/paypal";
 import { NextResponse } from "next/server";
 import { getRequestActor } from "@/lib/device-auth";
 import { clearOrderKdsItems } from "@/lib/kds-routing";
 import { broadcastTenantKdsEvent } from "@/lib/realtime";
+import { assertTenantFeatureAccess } from "@/lib/subscriptions";
+import {
+  cancelOrderFromKitchenDisplay,
+  refundFullOrder,
+  RefundServiceError,
+} from "@/lib/refunds/service";
 
 /**
  * Cancel an order.
@@ -22,55 +25,64 @@ export async function POST(request) {
       return NextResponse.json({ error: "Restaurant context required" }, { status: 400 });
     }
 
+    const posAccess = await assertTenantFeatureAccess(tenantId, "POS");
+    if (!posAccess.ok) {
+      return NextResponse.json({ error: posAccess.error }, { status: posAccess.status });
+    }
+
     const body = await request.json();
-    const { orderId } = body;
-    const id = parseInt(orderId, 10);
-    if (!id) {
-      return NextResponse.json({ error: "Order ID required" }, { status: 400 });
+    const deviceLabel =
+      actor.authMode === "device" && actor.deviceName
+        ? String(actor.deviceName)
+        : "";
+
+    const isKdsDevice = actor.authMode === "device" && actor.deviceType === "KDS";
+
+    const result = isKdsDevice
+      ? await cancelOrderFromKitchenDisplay({
+          tenantId,
+          orderId: body.orderId,
+          reason: body.reason,
+          deviceLabel,
+        })
+      : await refundFullOrder({
+          tenantId,
+          actor,
+          orderId: body.orderId,
+          reason: body.reason || "Order cancelled from POS",
+        });
+
+    let warning = null;
+    try {
+      const orderIdForSideEffects = result.order?.id ?? result.orderId;
+      const orderNumberForSideEffects = result.order?.orderNumber ?? result.orderNumber;
+      await signAndStoreCancellation(tenantId, orderIdForSideEffects, orderNumberForSideEffects);
+      await clearOrderKdsItems(orderIdForSideEffects);
+    } catch (sideEffectError) {
+      warning = sideEffectError.message || "Refund completed, but cancellation post-processing needs attention.";
+      console.warn("[order cancel warning]", sideEffectError);
     }
 
-    const order = await prisma.order.findFirst({
-      where: { id, tenantId },
-      include: { payments: true },
-    });
-    if (!order) {
-      return NextResponse.json({ error: "Order not found" }, { status: 404 });
-    }
-
-    if (["CANCELLED", "REFUNDED"].includes(order.status)) {
-      return NextResponse.json({ error: "Order already cancelled or refunded" }, { status: 400 });
-    }
-
-    for (const payment of order.payments || []) {
-      if (payment.method === "STRIPE" && payment.providerRef && payment.status !== "REFUNDED") {
-        await refundPosPaymentIntent(payment.providerRef);
-      }
-
-      if (payment.method === "PAYPAL" && payment.providerRef && payment.status !== "REFUNDED") {
-        await refundPayPalCapture(payment.providerRef);
-      }
-    }
-
-    await signAndStoreCancellation(tenantId, id, order.orderNumber);
-
-    await prisma.order.update({
-      where: { id },
-      data: { status: "CANCELLED" },
-    });
-
-    await prisma.payment.updateMany({
-      where: { orderId: id },
-      data: { status: "REFUNDED" },
-    });
-    await clearOrderKdsItems(id);
+    const broadcastOrderId = result.order?.id ?? result.orderId;
+    const broadcastBranchId = result.order?.branchId ?? null;
 
     broadcastTenantKdsEvent(tenantId, "order.cancelled", {
-      order: { id, status: "CANCELLED" },
+      order: { id: broadcastOrderId, branchId: broadcastBranchId, status: "CANCELLED" },
     });
 
-    return NextResponse.json({ ok: true, orderId: id });
-  } catch (err) {
-    console.error("[order cancel error]", err);
-    return NextResponse.json({ error: err.message || "Cancel failed" }, { status: 500 });
+    return NextResponse.json({
+      ok: true,
+      orderId: broadcastOrderId,
+      refundAmount: result.refundAmount,
+      mode: result.mode,
+      ...(warning ? { warning } : {}),
+    });
+  } catch (error) {
+    if (error instanceof RefundServiceError) {
+      return NextResponse.json({ error: error.message, code: error.code }, { status: error.status });
+    }
+
+    console.error("[order cancel error]", error);
+    return NextResponse.json({ error: error.message || "Cancel failed" }, { status: 500 });
   }
 }

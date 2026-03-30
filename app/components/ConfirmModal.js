@@ -1,10 +1,23 @@
 "use client";
 
-export default function ConfirmModal({ open, title, message, confirmLabel = "Delete", onConfirm, onCancel, loading = false, error }) {
+export default function ConfirmModal({
+  open,
+  title,
+  message,
+  confirmLabel = "Delete",
+  loadingLabel = "Deleting…",
+  onConfirm,
+  onCancel,
+  loading = false,
+  error,
+  overlayClassName = "z-[100]",
+}) {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50">
+    <div
+      className={`fixed inset-0 flex items-center justify-center p-4 bg-black/50 ${overlayClassName}`.trim()}
+    >
       <div className="w-full max-w-sm bg-color-card rounded-xl shadow-xl border border-color-border p-6">
         <h3 className="m-0 mb-2 text-lg font-semibold text-color-text">{title}</h3>
         <p className={`m-0 text-sm text-color-text-muted ${error ? "mb-4" : "mb-6"}`}>{message}</p>
@@ -24,7 +37,7 @@ export default function ConfirmModal({ open, title, message, confirmLabel = "Del
             disabled={loading}
             className="py-2 px-4 bg-red-600 text-white rounded-lg font-medium border-0 cursor-pointer hover:bg-red-700 disabled:opacity-60"
           >
-            {loading ? "Deleting…" : confirmLabel}
+            {loading ? loadingLabel : confirmLabel}
           </button>
         </div>
       </div>

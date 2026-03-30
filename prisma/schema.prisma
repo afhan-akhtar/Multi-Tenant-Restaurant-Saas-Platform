@@ -37,6 +37,7 @@ enum OrderStatus {
   READY
   PACK
   COMPLETED
+  PARTIAL_REFUND
   CANCELLED
   REFUNDED
 }
@@ -45,6 +46,7 @@ enum PaymentStatus {
   PENDING
   COMPLETED
   FAILED
+  PARTIALLY_REFUNDED
   REFUNDED
 }
 
@@ -165,6 +167,7 @@ model Tenant {
   segments           Segment[]
   emailCampaigns     EmailCampaign[]
   orders             Order[]
+  refunds            Refund[]
   billingInvoices    BillingInvoice[]
   billingPayments    BillingPayment[]
   planChangeRequests SubscriptionPlanChangeRequest[]
@@ -369,6 +372,7 @@ model TenantAdmin {
   name         String
   email        String
   passwordHash String
+  refundPinHash String?
   status       TenantAdminStatus @default(ACTIVE)
   createdAt    DateTime          @default(now())
 
@@ -376,6 +380,7 @@ model TenantAdmin {
   branch    Branch     @relation(fields: [branchId], references: [id])
   role      Role       @relation(fields: [roleId], references: [id])
   sessions  Session[]  @relation("WaiterSessions")
+  refunds   Refund[]
   auditLogs AuditLog[]
 
   @@index([tenantId])
@@ -524,7 +529,10 @@ model Order {
   taxAmount      Decimal
   discountAmount Decimal
   tipAmount      Decimal
+  totalAmount    Decimal     @default(0)
   grandTotal     Decimal
+  refundedAmount Decimal     @default(0)
+  lastRefundAt   DateTime?
   createdAt      DateTime    @default(now())
 
   tenant          Tenant           @relation(fields: [tenantId], references: [id])
@@ -534,6 +542,7 @@ model Order {
   customer        Customer         @relation(fields: [customerId], references: [id])
   orderItems      OrderItem[]
   payments        Payment[]
+  refunds         Refund[]
   tseTransactions TSETransaction[]
 }
 
@@ -542,14 +551,18 @@ model OrderItem {
   orderId     Int
   productId   Int
   productName String
+  name        String?
   unitPrice   Decimal
+  price       Decimal?
   taxRate     Decimal
   quantity    Int
   totalAmount Decimal
   status      OrderStatus
+  refunded    Boolean     @default(false)
 
   order    Order     @relation(fields: [orderId], references: [id])
   product  Product   @relation(fields: [productId], references: [id])
+  refunds  Refund[]
   kdsItems KDSItem[]
 }
 
@@ -559,10 +572,44 @@ model Payment {
   method      PaymentMethod
   status      PaymentStatus
   amount      Decimal
+  refundedAmount Decimal    @default(0)
+  refundedAt   DateTime?
+  transactionId String?
   providerRef String?
+  metadata    Json?
   createdAt   DateTime      @default(now())
 
-  order Order @relation(fields: [orderId], references: [id])
+  order   Order    @relation(fields: [orderId], references: [id])
+  refunds Refund[]
+}
+
+model Refund {
+  id               Int           @id @default(autoincrement())
+  tenantId         Int
+  orderId          Int
+  paymentId        Int?
+  itemId           Int?
+  actorId          Int?
+  batchKey         String?
+  amount           Decimal
+  reason           String
+  paymentMethod    PaymentMethod?
+  refundType       String        @default("ITEM")
+  externalRefundId String?
+  metadata         Json?
+  createdAt        DateTime      @default(now())
+
+  tenant Tenant       @relation(fields: [tenantId], references: [id])
+  order  Order        @relation(fields: [orderId], references: [id])
+  payment Payment?    @relation(fields: [paymentId], references: [id])
+  item   OrderItem?   @relation(fields: [itemId], references: [id])
+  actor  TenantAdmin? @relation(fields: [actorId], references: [id])
+
+  @@index([tenantId, createdAt])
+  @@index([orderId, createdAt])
+  @@index([batchKey])
+  @@index([itemId])
+  @@index([paymentId])
 }
 
 model TSETransaction {

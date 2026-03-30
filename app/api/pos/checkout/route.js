@@ -222,7 +222,9 @@ export async function POST(request) {
       return {
         productId: p.id,
         productName: p.name,
+        name: p.name,
         unitPrice,
+        price: unitPrice,
         taxRate: Number(p.taxRate) || 0,
         quantity: qty,
         totalAmount: total,
@@ -344,6 +346,7 @@ export async function POST(request) {
         taxAmount,
         discountAmount: discount,
         tipAmount: 0,
+        totalAmount: grandTotal,
         grandTotal,
         orderItems: {
           create: orderItemsData,
@@ -376,7 +379,15 @@ export async function POST(request) {
           method: split.method,
           status: "COMPLETED",
           amount: split.amount,
+          transactionId: providerRef,
           providerRef,
+          metadata:
+            split.method === "CASH"
+              ? {
+                  cashTenderedAmount: normalizedCashTendered || split.amount,
+                  changeGiven: normalizedChangeGiven,
+                }
+              : null,
         },
       });
 

@@ -108,7 +108,9 @@ export async function POST(request) {
       return {
         productId: item.productId,
         productName: item.productName,
+        name: item.productName,
         unitPrice: price,
+        price,
         taxRate: toNum(item.taxRate),
         quantity: qty,
         totalAmount: total,
@@ -134,6 +136,7 @@ export async function POST(request) {
         taxAmount,
         discountAmount: 0,
         tipAmount: 0,
+        totalAmount: grandTotal,
         grandTotal,
         orderItems: {
           create: orderItemsData,
