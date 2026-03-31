@@ -103,10 +103,20 @@ export async function GET(request) {
 
       const BonkopfHeader = "Beleg-ID;Belegtyp;Belegdatum;Gesamtbetrag;Waehrung;TSE-Signatur;TSE-Transaktions-ID";
       const BonkopfRows = tseTransactions.map((t) => {
-        const amount = t.orderId
-          ? (orders.find((o) => o.id === t.orderId)?.grandTotal ?? 0)
-          : (t.rawPayload?.amount ?? 0);
-        const belegtyp = t.transactionType === "CASH_DEPOSIT" ? "Einlage" : t.transactionType === "CASH_WITHDRAWAL" ? "Entnahme" : "Kassenbeleg";
+        const isCancel = (t.transactionType || "").toUpperCase() === "CANCELLATION";
+        const amount = isCancel
+          ? -Math.abs(Number(t.rawPayload?.refundAmount ?? 0))
+          : t.orderId
+            ? (orders.find((o) => o.id === t.orderId)?.grandTotal ?? 0)
+            : (t.rawPayload?.amount ?? 0);
+        const belegtyp =
+          t.transactionType === "CASH_DEPOSIT"
+            ? "Einlage"
+            : t.transactionType === "CASH_WITHDRAWAL"
+              ? "Entnahme"
+              : isCancel
+                ? "Storno"
+                : "Kassenbeleg";
         return [t.id, belegtyp, new Date(t.signedAt).toISOString(), Number(amount).toFixed(2), "EUR", t.signature?.slice(0, 64) ?? "", t.fiskalyTxId].map(escapeCsv).join(";");
       });
 

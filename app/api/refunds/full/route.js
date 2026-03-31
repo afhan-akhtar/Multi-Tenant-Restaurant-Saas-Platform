@@ -28,7 +28,12 @@ export async function POST(request) {
 
     let warning = null;
     try {
-      await signAndStoreCancellation(actor.tenantId, result.order.id, result.order.orderNumber);
+      await signAndStoreCancellation(actor.tenantId, result.order.id, result.order.orderNumber, result.refundAmount, {
+        tsePaymentBreakdown: result.tsePaymentBreakdown,
+        refundedItemIds: result.refundedItemIds,
+        batchKey: result.batchKey,
+        reason: body.reason,
+      });
       await clearOrderKdsItems(result.order.id);
     } catch (sideEffectError) {
       warning = sideEffectError.message || "Refund completed, but cancellation side effects need attention.";
@@ -45,6 +50,7 @@ export async function POST(request) {
 
     return NextResponse.json({
       ...result,
+      stornoReceiptUrl: `/receipt/${result.order.id}/storno`,
       ...(warning ? { warning } : {}),
     });
   } catch (error) {

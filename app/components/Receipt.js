@@ -170,9 +170,15 @@ export function Receipt({ receipt, onPrinted, embedded = false }) {
     log_time_start,
     log_time_end,
     signature,
+    isStorno,
+    stornoOriginalTxId,
+    stornoReason,
   } = receipt;
 
   const { byRate, subtotalNet, subtotalGross, taxTotal, grandTotal: computedTotal } = computeVatBreakdown(items, discountAmount);
+  const displayGrand = isStorno
+    ? Number(receipt.grandTotal ?? 0)
+    : computedTotal || grandTotal || 0;
 
   const cashPayment = (payments || []).find((p) => p.method === "CASH");
   const cashMeta = decodeCashPaymentMeta(cashPayment?.providerRef);
@@ -257,60 +263,83 @@ export function Receipt({ receipt, onPrinted, embedded = false }) {
           </div>
 
           <div className="flex justify-between items-center mb-4 border-b border-gray-200 pb-2">
-            <h2 className="font-semibold text-base">Receipt</h2>
+            <h2 className="font-semibold text-base">
+              {isStorno ? "Stornobeleg (Rückerstattung)" : "Receipt"}
+            </h2>
             <div className="text-right text-xs">
-              <div>Receipt No: {orderNumber}</div>
+              <div>{isStorno ? "Beleg-Nr." : "Receipt No:"} {orderNumber}</div>
               <div className="text-gray-600">
                 {date ? formatGermanDateTime(date) : "—"}
               </div>
             </div>
           </div>
 
-          <div className="mb-4">
-            <table className="w-full border-collapse text-sm">
-              <thead>
-                <tr className="border-b border-gray-300 text-left">
-                  <th className="py-2 pr-3">DESCRIPTION</th>
-                  <th className="py-2 px-2 text-right w-28 whitespace-nowrap">QTY × PRICE</th>
-                  <th className="py-2 px-2 text-right w-16">VAT</th>
-                  <th className="py-2 pl-2 text-right w-20">TOTAL</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(items || []).map((it, i) => {
-                  const net = Number(it.total) || 0;
-                  const rate = Number(it.taxRate) || 10;
-                  const qty = Number(it.qty) || 0;
-                  const unitNet = qty > 0 ? net / qty : net;
-                  const unitGross = unitNet * (1 + rate / 100);
-                  const lineGross = unitGross * qty;
-                  return (
-                    <tr key={i} className="border-b border-gray-100">
-                      <td className="py-2 pr-3 align-top">{it.name}</td>
-                      <td className="py-2 px-2 text-right align-top whitespace-nowrap">
-                        {qty} × €{unitGross.toFixed(2)}
-                      </td>
-                      <td className="py-2 px-2 text-right align-top">{rate}%</td>
-                      <td className="py-2 pl-2 text-right align-top whitespace-nowrap">
-                        €{lineGross.toFixed(2)}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          {isStorno && stornoOriginalTxId && (
+            <div className="mb-4 rounded-md border border-amber-200 bg-amber-50/80 px-3 py-2 text-xs text-amber-950">
+              <div className="font-medium">Bezug zum Ursprungsbeleg (TSE-Transaktion)</div>
+              <div className="mt-1 break-all font-mono text-[11px]">{stornoOriginalTxId}</div>
+              {stornoReason ? <div className="mt-2 text-amber-900/90">{stornoReason}</div> : null}
+            </div>
+          )}
+
+          {!isStorno || (items || []).length > 0 ? (
+            <div className="mb-4">
+              <table className="w-full border-collapse text-sm">
+                <thead>
+                  <tr className="border-b border-gray-300 text-left">
+                    <th className="py-2 pr-3">DESCRIPTION</th>
+                    <th className="py-2 px-2 text-right w-28 whitespace-nowrap">QTY × PRICE</th>
+                    <th className="py-2 px-2 text-right w-16">VAT</th>
+                    <th className="py-2 pl-2 text-right w-20">TOTAL</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(items || []).map((it, i) => {
+                    const net = Number(it.total) || 0;
+                    const rate = Number(it.taxRate) || 10;
+                    const qty = Number(it.qty) || 0;
+                    const unitNet = qty > 0 ? net / qty : net;
+                    const unitGross = unitNet * (1 + rate / 100);
+                    const lineGross = unitGross * qty;
+                    return (
+                      <tr key={i} className="border-b border-gray-100">
+                        <td className="py-2 pr-3 align-top">{it.name}</td>
+                        <td className="py-2 px-2 text-right align-top whitespace-nowrap">
+                          {qty} × €{unitGross.toFixed(2)}
+                        </td>
+                        <td className="py-2 px-2 text-right align-top">{rate}%</td>
+                        <td className="py-2 pl-2 text-right align-top whitespace-nowrap">
+                          €{lineGross.toFixed(2)}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="mb-4 rounded-md border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-800">
+              Rückerstattung gemäß KassenSichV (Fiskaly SIGN DE, Kassenbeleg-V1 mit negativen Beträgen). Der
+              Ursprungsverkauf bleibt unverändert in der TSE-Protokollierung.
+            </div>
+          )}
 
           <div className="space-y-0.5 text-right mb-3 border-t border-gray-200 pt-2">
-            <div>Subtotal (excl. VAT): €{(subtotalNet || 0).toFixed(2)}</div>
-            <div>VAT (10%): €{(taxTotal || taxAmount || 0).toFixed(2)}</div>
-            {(discountAmount || 0) > 0 && (
-              <div className="text-amber-600">Discount (incl. VAT): -€{Number(discountAmount).toFixed(2)}</div>
+            {isStorno ? (
+              <div className="font-bold text-base">Rückerstattung (Brutto): €{displayGrand.toFixed(2)}</div>
+            ) : (
+              <>
+                <div>Subtotal (excl. VAT): €{(subtotalNet || 0).toFixed(2)}</div>
+                <div>VAT (10%): €{(taxTotal || taxAmount || 0).toFixed(2)}</div>
+                {(discountAmount || 0) > 0 && (
+                  <div className="text-amber-600">Discount (incl. VAT): -€{Number(discountAmount).toFixed(2)}</div>
+                )}
+                <div className="font-bold text-base">Total (incl. VAT): €{displayGrand.toFixed(2)}</div>
+              </>
             )}
-            <div className="font-bold text-base">Total (incl. VAT): €{(computedTotal || grandTotal || 0).toFixed(2)}</div>
           </div>
 
-          {byRate.length > 0 && (
+          {!isStorno && byRate.length > 0 && (
             <div className="mb-4 overflow-x-auto">
               <table className="w-full border-collapse text-xs">
                 <thead>
@@ -336,14 +365,14 @@ export function Receipt({ receipt, onPrinted, embedded = false }) {
           )}
 
           <div style={{ background: ACCENT }} className="px-3 py-2 rounded mb-3">
-            <div className="text-white text-xs font-medium mb-1">Payment</div>
+            <div className="text-white text-xs font-medium mb-1">{isStorno ? "Erstattung" : "Payment"}</div>
             {(payments || []).map((p, i) => (
               <div key={i} className="flex justify-between text-white text-sm">
                 <span>{p.method}</span>
                 <span>€{(p.amount || 0).toFixed(2)}</span>
               </div>
             ))}
-            {cashReceived != null && (
+            {!isStorno && cashReceived != null && (
               <div className="mt-2 text-[11px] text-teal-50 space-y-0.5">
                 <div className="flex justify-between">
                   <span>Cash received</span>
@@ -386,7 +415,7 @@ export function Receipt({ receipt, onPrinted, embedded = false }) {
 
           <div style={{ background: ACCENT, height: 4 }} />
           <div className="text-center py-4 text-gray-600 text-sm">
-            Thank you for your order!
+            {isStorno ? "Stornobeleg — bitte mit Ursprungsbeleg aufbewahren." : "Thank you for your order!"}
           </div>
         </div>
       </div>
@@ -430,6 +459,9 @@ export function printReceipt(receipt) {
     orgVat,
     orgTaxNumber,
     orgWidnr,
+    isStorno,
+    stornoOriginalTxId,
+    stornoReason,
   } = receipt;
 
   const fiscalTssId = tss_id ?? receipt?.tssId ?? receipt?.tseTssId;
@@ -460,6 +492,9 @@ export function printReceipt(receipt) {
   const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&margin=4&data=${encodeURIComponent(qrPayload)}`;
 
   const { byRate, subtotalGross, subtotalNet, taxTotal, grandTotal: computedTotal } = computeVatBreakdown(items, discountAmount);
+  const displayGrandPrint = isStorno
+    ? Number(receipt.grandTotal ?? 0)
+    : computedTotal || grandTotal || 0;
 
   const cashPayment = (payments || []).find((p) => p.method === "CASH");
   const cashMeta = decodeCashPaymentMeta(cashPayment?.providerRef);
@@ -564,13 +599,24 @@ export function printReceipt(receipt) {
         }
       </div>
       <div class="flex mb" style="border-bottom:1px solid #ddd;padding-bottom:8px;">
-        <span class="bold">Receipt</span>
+        <span class="bold">${isStorno ? "Stornobeleg (Rückerstattung)" : "Receipt"}</span>
         <div class="r" style="font-size:12px;">
-          <div>Receipt No: ${orderNumber}</div>
+          <div>${isStorno ? "Beleg-Nr." : "Receipt No:"} ${orderNumber}</div>
           <div style="color:#666;">${formatGermanDateTime(date)}</div>
         </div>
       </div>
-      <table class="mb">
+      ${
+        isStorno && stornoOriginalTxId
+          ? `<div class="mb" style="border:1px solid #fcd34d;background:#fffbeb;padding:8px;font-size:11px;line-height:1.35;">
+               <div style="font-weight:600;">Bezug zum Ursprungsbeleg (TSE-Transaktion)</div>
+               <div style="word-break:break-all;font-family:monospace;margin-top:4px;">${String(stornoOriginalTxId)}</div>
+               ${stornoReason ? `<div style="margin-top:6px;">${String(stornoReason)}</div>` : ""}
+             </div>`
+          : ""
+      }
+      ${
+        !isStorno || (items || []).length > 0
+          ? `<table class="mb">
         <tr style="border-bottom:1px solid #ccc;">
           <th style="text-align:left;padding:8px 12px 8px 0;">DESCRIPTION</th>
           <th class="r" style="padding:8px 8px;white-space:nowrap;">QTY × PRICE</th>
@@ -578,19 +624,27 @@ export function printReceipt(receipt) {
           <th class="r" style="padding:8px 0 8px 8px;white-space:nowrap;">TOTAL</th>
         </tr>
         ${itemsHtml}
-      </table>
+      </table>`
+          : `<div class="mb" style="border:1px solid #e2e8f0;background:#f8fafc;padding:10px;font-size:12px;line-height:1.4;">
+               Rückerstattung (Kassenbeleg-V1, negative Beträge). Ursprungsverkauf unverändert in der TSE.
+             </div>`
+      }
       <div class="mb" style="border-top:1px solid #ddd;padding-top:8px;text-align:right;line-height:1.4;">
-        <div>Subtotal (excl. VAT): €${(subtotalNet || 0).toFixed(2)}</div>
+        ${
+          isStorno
+            ? `<div class="bold" style="margin-top:2px;">Rückerstattung (Brutto): €${displayGrandPrint.toFixed(2)}</div>`
+            : `<div>Subtotal (excl. VAT): €${(subtotalNet || 0).toFixed(2)}</div>
         <div>VAT (10%): €${(taxTotal || taxAmount || 0).toFixed(2)}</div>
         ${(discountAmount || 0) > 0 ? `<div style="color:#b45309;">Discount (incl. VAT): -€${Number(discountAmount).toFixed(2)}</div>` : ""}
-        <div class="bold" style="margin-top:2px;">Total (incl. VAT): €${(computedTotal || grandTotal || 0).toFixed(2)}</div>
+        <div class="bold" style="margin-top:2px;">Total (incl. VAT): €${displayGrandPrint.toFixed(2)}</div>`
+        }
       </div>
-      ${vatRows ? `<table class="mb" style="font-size:12px;"><tr style="border-bottom:1px solid #ccc;"><th style="text-align:left">VAT</th><th class="r">Net</th><th class="r">VAT</th><th class="r">Gross</th></tr>${vatRows}</table>` : ""}
+      ${!isStorno && vatRows ? `<table class="mb" style="font-size:12px;"><tr style="border-bottom:1px solid #ccc;"><th style="text-align:left">VAT</th><th class="r">Net</th><th class="r">VAT</th><th class="r">Gross</th></tr>${vatRows}</table>` : ""}
       <div class="accent" style="padding:10px;border-radius:6px;color:white;margin-bottom:8px;">
-        <div style="font-size:11px;margin-bottom:4px;">Payment</div>
+        <div style="font-size:11px;margin-bottom:4px;">${isStorno ? "Erstattung" : "Payment"}</div>
         ${paymentsHtml}
         ${
-          cashReceived != null
+          !isStorno && cashReceived != null
             ? `<div style="margin-top:6px;font-size:11px;line-height:1.3;">
                  <div class="flex"><span>Cash received</span><span class="ml-auto">€${cashReceived.toFixed(
                    2
@@ -607,7 +661,7 @@ export function printReceipt(receipt) {
         <div style="font-size:11px;color:#666;margin-top:4px;">${qrPayload ? "Fiscal QR (KassenSichV/TSE)" : ""}</div>
       </div>
       <div class="accent" style="height:4px;"></div>
-      <div class="center mt" style="color:#666;font-size:13px;">Thank you for your order!</div>
+      <div class="center mt" style="color:#666;font-size:13px;">${isStorno ? "Stornobeleg — bitte mit Ursprungsbeleg aufbewahren." : "Thank you for your order!"}</div>
     </body>
     </html>
   `);

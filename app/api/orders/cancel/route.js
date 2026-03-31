@@ -56,7 +56,15 @@ export async function POST(request) {
     try {
       const orderIdForSideEffects = result.order?.id ?? result.orderId;
       const orderNumberForSideEffects = result.order?.orderNumber ?? result.orderNumber;
-      await signAndStoreCancellation(tenantId, orderIdForSideEffects, orderNumberForSideEffects);
+      const refundAmt = Number(result.refundAmount) || 0;
+      if (refundAmt > 0.01 && orderIdForSideEffects && orderNumberForSideEffects) {
+        await signAndStoreCancellation(tenantId, orderIdForSideEffects, orderNumberForSideEffects, refundAmt, {
+          tsePaymentBreakdown: result.tsePaymentBreakdown,
+          refundedItemIds: result.refundedItemIds,
+          batchKey: result.batchKey,
+          reason: body.reason,
+        });
+      }
       await clearOrderKdsItems(orderIdForSideEffects);
     } catch (sideEffectError) {
       warning = sideEffectError.message || "Refund completed, but cancellation post-processing needs attention.";

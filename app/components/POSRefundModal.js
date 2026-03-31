@@ -106,6 +106,10 @@ export default function POSRefundModal({
   const fullRefundAmount = Number(selectedOrder?.refundableAmount || 0);
   const canRefund = fullRefundAmount > 0 && reason.trim().length > 0;
 
+  const hasRefundActivity =
+    Number(selectedOrder?.refundedAmount || 0) > 0.001 ||
+    (Array.isArray(selectedOrder?.refunds) && selectedOrder.refunds.length > 0);
+
   const replaceOrder = (updatedOrder) => {
     setOrders((current) =>
       current.map((order) => (order.id === updatedOrder.id ? updatedOrder : order))
@@ -286,6 +290,40 @@ export default function POSRefundModal({
                         {formatEur(selectedOrder.refundableAmount || 0)}
                       </div>
                     </div>
+                  </div>
+
+                  <div className="mt-6 rounded-xl border border-teal-200/80 bg-teal-50/40 p-4">
+                    <div className="text-sm font-semibold text-slate-900">Fiscal receipts (TSE)</div>
+                    <p className="mt-1 text-xs text-slate-600">
+                      Opens in a new tab. Use{" "}
+                      <span className="font-medium">Print → Save as PDF</span> to download.
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <a
+                        href={`/receipt/${selectedOrder.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center justify-center rounded-lg border border-teal-600 bg-white px-3 py-2 text-sm font-medium text-teal-800 shadow-sm hover:bg-teal-50"
+                      >
+                        Original sale receipt
+                      </a>
+                      {hasRefundActivity ? (
+                        <a
+                          href={`/receipt/${selectedOrder.id}/storno`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center justify-center rounded-lg border border-amber-600 bg-white px-3 py-2 text-sm font-medium text-amber-900 shadow-sm hover:bg-amber-50"
+                        >
+                          Refund / Storno receipt
+                        </a>
+                      ) : null}
+                    </div>
+                    {!hasRefundActivity ? (
+                      <p className="mt-2 text-[11px] text-slate-500">
+                        The Storno receipt appears after at least one refund has been recorded (Fiskaly
+                        cancellation TSE).
+                      </p>
+                    ) : null}
                   </div>
 
                   <div className="mt-6">

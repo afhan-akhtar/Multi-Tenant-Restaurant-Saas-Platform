@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { getRequestActor } from "@/lib/device-auth";
 import { assertTenantFeatureAccess } from "@/lib/subscriptions";
 import { broadcastTenantKdsEvent } from "@/lib/realtime";
+import { signAndStoreCancellation } from "@/lib/tse/db";
 import { refundOrderItems, RefundServiceError } from "@/lib/refunds/service";
 
 export async function POST(request) {
@@ -26,6 +27,17 @@ export async function POST(request) {
       reason: body.reason,
     });
 
+    try {
+      await signAndStoreCancellation(actor.tenantId, result.order.id, result.order.orderNumber, result.refundAmount, {
+        tsePaymentBreakdown: result.tsePaymentBreakdown,
+        refundedItemIds: result.refundedItemIds,
+        batchKey: result.batchKey,
+        reason: body.reason,
+      });
+    } catch (tseErr) {
+      console.warn("[partial refund TSE storno]", tseErr?.message || tseErr);
+    }
+
     if (result.refundedItemIds?.length) {
       await prisma.kDSItem.deleteMany({
         where: {
@@ -42,7 +54,10 @@ export async function POST(request) {
       },
     });
 
-    return NextResponse.json(result);
+    return NextResponse.json({
+      ...result,
+      stornoReceiptUrl: `/receipt/${result.order.id}/storno`,
+    });
   } catch (error) {
     if (error instanceof RefundServiceError) {
       return NextResponse.json({ error: error.message, code: error.code }, { status: error.status });
