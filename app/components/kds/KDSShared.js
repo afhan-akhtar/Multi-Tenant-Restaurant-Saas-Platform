@@ -40,18 +40,89 @@ export function sortOrdersByCreatedAt(list) {
   return [...list].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 }
 
+/** Normalize order id for comparisons (API / IndexedDB may use number or string). */
+export function kdsOrderNumericId(order) {
+  const n = Number(order?.id);
+  return Number.isFinite(n) ? n : null;
+}
+
+/** Higher = further through kitchen flow (duplicate sync rows often lag as OPEN/CONFIRMED). */
+export function kdsStatusWorkflowRank(status) {
+  const s = String(status || "").toUpperCase();
+  const ranks = {
+    OPEN: 1,
+    CONFIRMED: 2,
+    PREPARING: 3,
+    READY: 4,
+    PACK: 5,
+    PARTIAL_REFUND: 5,
+    COMPLETED: 6,
+    CANCELLED: 0,
+    REFUNDED: 0,
+  };
+  return ranks[s] ?? 0;
+}
+
+function pickBetterKdsDuplicate(prev, next) {
+  const rPrev = kdsStatusWorkflowRank(prev?.status);
+  const rNext = kdsStatusWorkflowRank(next?.status);
+  if (rNext > rPrev) return next;
+  if (rNext < rPrev) return prev;
+  const idPrev = kdsOrderNumericId(prev);
+  const idNext = kdsOrderNumericId(next);
+  if (idPrev != null && idNext != null) {
+    return idNext < idPrev ? next : prev;
+  }
+  return prev;
+}
+
+/**
+ * One row per kitchen ticket: unique id, then unique orderNumber.
+ * For same orderNumber, keep the row that is furthest in the kitchen workflow (not highest id),
+ * so a late duplicate from offline POS sync does not reset a ticket to New.
+ */
+export function dedupeKdsOrders(list) {
+  if (!Array.isArray(list) || list.length === 0) return list;
+
+  const byId = new Map();
+  for (const o of list) {
+    const id = kdsOrderNumericId(o);
+    if (id == null) continue;
+    byId.set(id, o);
+  }
+
+  const afterId = [...byId.values()];
+  const byOrderNumber = new Map();
+  for (const o of afterId) {
+    const label = String(o.orderNumber ?? "").trim();
+    if (!label) {
+      byOrderNumber.set(`$id:${kdsOrderNumericId(o)}`, o);
+      continue;
+    }
+    const prev = byOrderNumber.get(label);
+    if (!prev) {
+      byOrderNumber.set(label, o);
+    } else {
+      byOrderNumber.set(label, pickBetterKdsDuplicate(prev, o));
+    }
+  }
+
+  return sortOrdersByCreatedAt([...byOrderNumber.values()]);
+}
+
 export function mergeKdsOrder(list, nextOrder) {
+  const nextId = kdsOrderNumericId(nextOrder);
   const nextStatus = String(nextOrder?.status || "").toUpperCase();
-  if (!nextOrder?.id) {
+  if (nextId == null) {
     return list;
   }
 
   if (["CANCELLED", "COMPLETED", "REFUNDED"].includes(nextStatus)) {
-    return list.filter((order) => order.id !== nextOrder.id);
+    return list.filter((order) => kdsOrderNumericId(order) !== nextId);
   }
 
-  const withoutCurrent = list.filter((order) => order.id !== nextOrder.id);
-  return sortOrdersByCreatedAt([...withoutCurrent, nextOrder]);
+  const withoutCurrent = list.filter((order) => kdsOrderNumericId(order) !== nextId);
+  return dedupeKdsOrders(sortOrdersByCreatedAt([...withoutCurrent, nextOrder]));
 }
 
 export function getKdsCounts(orders) {

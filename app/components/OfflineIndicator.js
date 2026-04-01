@@ -3,13 +3,15 @@
 import { useState, useEffect } from "react";
 import { isOnline, onConnectionChange, getQueuedCount, syncQueuedOrders } from "@/lib/offline";
 
-export default function OfflineIndicator() {
+export default function OfflineIndicator({ deviceAuth = null }) {
   const [online, setOnline] = useState(true);
   const [queuedCount, setQueuedCount] = useState(0);
   const [syncing, setSyncing] = useState(false);
   const [lastSync, setLastSync] = useState(null);
 
   useEffect(() => {
+    const syncOpts = { deviceAuth };
+
     const run = async () => {
       const on = isOnline();
       setOnline(on);
@@ -17,7 +19,7 @@ export default function OfflineIndicator() {
       setQueuedCount(count);
       if (on && count > 0) {
         setSyncing(true);
-        const r = await syncQueuedOrders();
+        const r = await syncQueuedOrders("/api/pos/checkout", syncOpts);
         setQueuedCount(await getQueuedCount());
         setLastSync(r);
         setSyncing(false);
@@ -29,7 +31,7 @@ export default function OfflineIndicator() {
       setOnline(isOn);
       if (isOn) {
         setSyncing(true);
-        syncQueuedOrders()
+        syncQueuedOrders("/api/pos/checkout", syncOpts)
           .then((r) => {
             setLastSync(r);
             return getQueuedCount();
@@ -41,7 +43,7 @@ export default function OfflineIndicator() {
       }
     });
     return unsub;
-  }, []);
+  }, [deviceAuth]);
 
   if (online && queuedCount === 0 && !lastSync?.synced) return null;
 
@@ -71,7 +73,7 @@ export default function OfflineIndicator() {
           type="button"
           onClick={() => {
             setSyncing(true);
-            syncQueuedOrders()
+            syncQueuedOrders("/api/pos/checkout", { deviceAuth })
               .then((r) => {
                 setLastSync(r);
                 return getQueuedCount();

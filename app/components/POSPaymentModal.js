@@ -242,7 +242,8 @@ export default function POSPaymentModal({
       addonItemIds: Array.isArray(i.addons) ? i.addons.map((a) => a.id) : [],
     })),
     orderType: orderType || "TAKEAWAY",
-    orderNumber: offline ? undefined : orderNumber,
+    // Always send order number so offline sync keeps the same label (server uses it when provided).
+    orderNumber,
     customerId: customerId || null,
     splits: payload,
     discountAmount,
@@ -266,7 +267,7 @@ export default function POSPaymentModal({
 
     try {
       if (offline) {
-        const queuedId = await queueOrder(checkoutPayload);
+        const queuedId = await queueOrder(checkoutPayload, deviceAuth);
         if (queuedId == null) {
           setError("Offline storage unavailable (e.g. private browsing). Please go online or try a different browser.");
           return;

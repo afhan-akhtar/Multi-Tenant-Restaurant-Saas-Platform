@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import POSPaymentModal from "./POSPaymentModal";
 import POSRefundModal from "./POSRefundModal";
+import OfflineIndicator from "./OfflineIndicator";
 import { printReceipt } from "./Receipt";
 import { formatEur } from "@/lib/currencyFormat";
 import { getDeviceHeaders } from "@/lib/device-client";
@@ -551,6 +552,8 @@ export default function POS({ data, deviceAuth = null }) {
           {toast.message}
         </div>
       )}
+
+      {deviceAuth?.token ? <OfflineIndicator deviceAuth={deviceAuth} /> : null}
     </div>
   );
 }

@@ -79,6 +79,9 @@ function resolveSplits(splits, grandTotal) {
 }
 
 export async function POST(request) {
+  let offlineCheckoutIdForIdemp = "";
+  let tenantIdForIdemp = null;
+
   try {
     const actor = await getRequestActor(request, { allowedDeviceTypes: ["POS"] });
     if (!actor?.tenantId) {
@@ -97,9 +100,14 @@ export async function POST(request) {
       providerPayments = [],
       cashTenderedAmount = null,
       changeGiven = 0,
+      offlineCheckoutId: offlineCheckoutIdBody,
     } = body;
 
+    offlineCheckoutIdForIdemp =
+      typeof offlineCheckoutIdBody === "string" ? offlineCheckoutIdBody.trim().slice(0, 64) : "";
+
     const tenantId = actor.tenantId ?? null;
+    tenantIdForIdemp = tenantId;
     const branchId = actor.branchId ?? null;
     const staffId = actor.staffId ?? null;
 
@@ -118,6 +126,21 @@ export async function POST(request) {
 
     if (!items?.length) {
       return NextResponse.json({ error: "Order must have items" }, { status: 400 });
+    }
+
+    if (offlineCheckoutIdForIdemp.length >= 8) {
+      const existingOrder = await prisma.order.findFirst({
+        where: { tenantId, offlineCheckoutId: offlineCheckoutIdForIdemp },
+        include: { orderItems: true },
+      });
+      if (existingOrder) {
+        return NextResponse.json({
+          order: existingOrder,
+          orderNumber: existingOrder.orderNumber,
+          receipt: null,
+          idempotentReplay: true,
+        });
+      }
     }
 
     // Server-authoritative pricing: load products + add-ons from DB (never trust client-sent prices).
@@ -340,6 +363,7 @@ export async function POST(request) {
         tableId: table.id,
         customerId: customer.id,
         orderNumber,
+        offlineCheckoutId: offlineCheckoutIdForIdemp.length >= 8 ? offlineCheckoutIdForIdemp : null,
         orderType: orderType === "TAKEAWAY" ? "TAKEAWAY" : "DINE_IN",
         status: "CONFIRMED",
         subtotal,
@@ -486,6 +510,24 @@ export async function POST(request) {
       receipt,
     });
   } catch (err) {
+    if (
+      err?.code === "P2002" &&
+      offlineCheckoutIdForIdemp.length >= 8 &&
+      tenantIdForIdemp
+    ) {
+      const existingOrder = await prisma.order.findFirst({
+        where: { tenantId: tenantIdForIdemp, offlineCheckoutId: offlineCheckoutIdForIdemp },
+        include: { orderItems: true },
+      });
+      if (existingOrder) {
+        return NextResponse.json({
+          order: existingOrder,
+          orderNumber: existingOrder.orderNumber,
+          receipt: null,
+          idempotentReplay: true,
+        });
+      }
+    }
     console.error("[POS checkout error]", err);
     return NextResponse.json({ error: err.message || "Checkout failed" }, { status: 500 });
   }

@@ -4,6 +4,9 @@ import { useEffect, useMemo, useState } from "react";
 import ConfirmModal from "./ConfirmModal";
 import { formatEur } from "@/lib/currencyFormat";
 import { getDeviceHeaders } from "@/lib/device-client";
+import { dedupeOrderHistoryList } from "@/lib/order-history-dedupe";
+
+const ORDER_HISTORY_LIMIT = 30;
 
 function buildHeaders(deviceAuth) {
   return {
@@ -53,10 +56,13 @@ export default function POSRefundModal({
       setError("");
       try {
         const [ordersResponse, analyticsResponse] = await Promise.all([
-          fetch(`/api/orders/history?limit=30&search=${encodeURIComponent(search.trim())}`, {
-            cache: "no-store",
-            headers: buildHeaders(deviceAuth),
-          }),
+          fetch(
+            `/api/orders/history?limit=${ORDER_HISTORY_LIMIT}&search=${encodeURIComponent(search.trim())}`,
+            {
+              cache: "no-store",
+              headers: buildHeaders(deviceAuth),
+            }
+          ),
           fetch("/api/refunds/analytics", {
             cache: "no-store",
             headers: getDeviceHeaders(deviceAuth),
@@ -71,7 +77,8 @@ export default function POSRefundModal({
         }
 
         if (!cancelled) {
-          const nextOrders = Array.isArray(ordersPayload.orders) ? ordersPayload.orders : [];
+          const raw = Array.isArray(ordersPayload.orders) ? ordersPayload.orders : [];
+          const nextOrders = dedupeOrderHistoryList(raw, ORDER_HISTORY_LIMIT);
           setOrders(nextOrders);
           setAnalytics(analyticsResponse.ok ? analyticsPayload : null);
           setSelectedOrderId((current) => {

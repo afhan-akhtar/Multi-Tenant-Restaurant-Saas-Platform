@@ -523,6 +523,8 @@ model Order {
   tableId        Int
   customerId     Int
   orderNumber    String
+  /// Idempotency key from offline POS queue (UUID); prevents duplicate Order rows on sync retry / double POST.
+  offlineCheckoutId String? @db.VarChar(64)
   orderType      OrderType
   status         OrderStatus
   subtotal       Decimal
@@ -544,6 +546,8 @@ model Order {
   payments        Payment[]
   refunds         Refund[]
   tseTransactions TSETransaction[]
+
+  @@unique([tenantId, offlineCheckoutId])
 }
 
 model OrderItem {

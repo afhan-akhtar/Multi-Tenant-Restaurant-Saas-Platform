@@ -11,9 +11,12 @@ export default function DeviceKDSView({
   counts,
   onStatusChange,
   onCancel,
+  /** When true, fill a parent flex column (e.g. with an offline banner above). */
+  nested = false,
 }) {
+  const rootLayout = nested ? "h-full min-h-0 w-full" : "h-screen w-screen";
   return (
-    <div className="flex h-screen w-screen flex-col overflow-hidden bg-white text-slate-900">
+    <div className={`flex ${rootLayout} flex-col overflow-hidden bg-white text-slate-900`}>
       <header className="border-b border-slate-200 bg-white px-6 py-4 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
