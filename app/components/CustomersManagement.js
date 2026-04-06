@@ -3,24 +3,31 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import ConfirmModal from "@/app/components/ConfirmModal";
+import {
+  normalizeCustomerPhone,
+  isValidCustomerPhoneDigits,
+  formatPhoneDigitsForDisplay,
+} from "@/lib/customerPhone";
 
 export default function CustomersManagement({ customers: initial }) {
   const router = useRouter();
   const [customers, setCustomers] = useState(initial);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [editingWalkIn, setEditingWalkIn] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState({ open: false, id: null, name: "" });
   const [loading, setLoading] = useState(null);
   const [error, setError] = useState("");
-  const [form, setForm] = useState({ name: "", email: "", phone: "" });
+  const [form, setForm] = useState({ phone: "" });
 
   useEffect(() => {
     setCustomers(initial);
   }, [initial]);
 
   const resetForm = () => {
-    setForm({ name: "", email: "", phone: "" });
+    setForm({ phone: "" });
     setEditingId(null);
+    setEditingWalkIn(false);
   };
 
   const openAdd = () => {
@@ -29,12 +36,9 @@ export default function CustomersManagement({ customers: initial }) {
   };
 
   const openEdit = (c) => {
-    setForm({
-      name: c.name,
-      email: c.email || "",
-      phone: c.phone || "",
-    });
+    setForm({ phone: c.phone || "" });
     setEditingId(c.id);
+    setEditingWalkIn(String(c.email || "").toLowerCase() === "walkin@internal.local");
     setModalOpen(true);
   };
 
@@ -44,12 +48,16 @@ export default function CustomersManagement({ customers: initial }) {
     setLoading(editingId ? "edit" : "add");
     try {
       if (editingId) {
+        const editDigits = normalizeCustomerPhone(form.phone);
+        if (!editingWalkIn && !isValidCustomerPhoneDigits(editDigits)) {
+          setError("Enter a valid mobile number (7–15 digits).");
+          setLoading(null);
+          return;
+        }
         const res = await fetch(`/api/customers/${editingId}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            name: form.name.trim(),
-            email: form.email.trim(),
             phone: form.phone.trim(),
           }),
         });
@@ -59,12 +67,16 @@ export default function CustomersManagement({ customers: initial }) {
           return;
         }
       } else {
+        const digits = normalizeCustomerPhone(form.phone);
+        if (!isValidCustomerPhoneDigits(digits)) {
+          setError("Enter a valid mobile number (7–15 digits).");
+          setLoading(null);
+          return;
+        }
         const res = await fetch("/api/customers", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            name: form.name.trim(),
-            email: form.email.trim(),
             phone: form.phone.trim(),
           }),
         });
@@ -112,7 +124,7 @@ export default function CustomersManagement({ customers: initial }) {
         <div>
           <h2 className="m-0 text-xl font-semibold text-color-text">Customers</h2>
           <p className="m-0 mt-1 text-sm text-color-text-muted">
-            Add customers for orders, loyalty, and segments. Customers appear in POS and KDS receipts.
+            Register by mobile number only — same as POS. Used for orders and loyalty.
           </p>
         </div>
         <button
@@ -126,22 +138,25 @@ export default function CustomersManagement({ customers: initial }) {
       {error && <div className="mb-4 p-3 rounded-lg bg-red-500/10 text-red-600 text-sm">{error}</div>}
       <div className="bg-color-card rounded-lg border border-color-border overflow-hidden shadow-sm">
         <div className="w-full overflow-x-auto overflow-y-hidden">
-          <table className="w-full border-collapse text-sm min-w-[600px] [&_th[data-align=right]]:text-right [&_td[data-align=right]]:text-right">
+          <table className="w-full border-collapse text-sm min-w-[320px] [&_th[data-align=right]]:text-right [&_td[data-align=right]]:text-right">
             <thead>
               <tr className="bg-color-bg border-b border-color-border">
-                <th className="py-3 px-4 text-left font-semibold text-color-text whitespace-nowrap">Name</th>
-                <th className="py-3 px-4 text-left font-semibold text-color-text whitespace-nowrap">Email</th>
                 <th className="py-3 px-4 text-left font-semibold text-color-text whitespace-nowrap">Phone</th>
                 <th className="py-3 px-4 text-left font-semibold text-color-text whitespace-nowrap" data-align="right">Loyalty</th>
                 <th className="py-3 px-4 text-left font-semibold text-color-text whitespace-nowrap text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {customers.map((c) => (
+              {customers.map((c) => {
+                const isWalkIn =
+                  String(c.email || "").toLowerCase() === "walkin@internal.local" || c.name === "Walk-in";
+                const phoneLabel =
+                  isWalkIn && !c.phone
+                    ? "Guest / Walk-in"
+                    : formatPhoneDigitsForDisplay(c.phone) || c.phone || "—";
+                return (
                 <tr key={c.id} className="border-b border-slate-100 last:border-0">
-                  <td className="py-3 px-4">{c.name}</td>
-                  <td className="py-3 px-4 text-color-text-muted">{c.email}</td>
-                  <td className="py-3 px-4 text-color-text-muted">{c.phone || "—"}</td>
+                  <td className="py-3 px-4 font-medium">{phoneLabel}</td>
                   <td className="py-3 px-4" data-align="right">{c.loyaltyPoints ?? 0}</td>
                   <td className="py-3 px-4 text-right">
                     <button
@@ -153,7 +168,13 @@ export default function CustomersManagement({ customers: initial }) {
                     </button>
                     <button
                       type="button"
-                      onClick={() => setDeleteConfirm({ open: true, id: c.id, name: c.name })}
+                      onClick={() =>
+                        setDeleteConfirm({
+                          open: true,
+                          id: c.id,
+                          name: phoneLabel,
+                        })
+                      }
                       disabled={loading === c.id}
                       className="py-1.5 px-3 bg-red-100 text-red-700 rounded text-xs font-medium border-0 cursor-pointer hover:bg-red-200 disabled:opacity-60"
                     >
@@ -161,13 +182,14 @@ export default function CustomersManagement({ customers: initial }) {
                     </button>
                   </td>
                 </tr>
-              ))}
+              );
+              })}
             </tbody>
           </table>
         </div>
         {customers.length === 0 && (
           <div className="py-8 px-6 text-center text-color-text-muted text-[0.95rem]">
-            No customers yet. Add customers for orders, loyalty, and marketing.
+            No customers yet. Add a mobile number for orders and loyalty.
           </div>
         )}
       </div>
@@ -180,34 +202,16 @@ export default function CustomersManagement({ customers: initial }) {
             </h3>
             <form onSubmit={handleSubmit}>
               <div className="mb-4">
-                <label className="block text-sm font-medium text-color-text mb-1">Name *</label>
-                <input
-                  type="text"
-                  className="w-full py-2 px-3 border border-color-border rounded-lg"
-                  value={form.name}
-                  onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                  placeholder="John Doe"
-                  required
-                />
-              </div>
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-color-text mb-1">Email</label>
-                <input
-                  type="email"
-                  className="w-full py-2 px-3 border border-color-border rounded-lg"
-                  value={form.email}
-                  onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-                  placeholder="john@example.com"
-                />
-              </div>
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-color-text mb-1">Phone</label>
+                <label className="block text-sm font-medium text-color-text mb-1">Mobile number *</label>
                 <input
                   type="tel"
+                  inputMode="numeric"
+                  autoComplete="tel"
                   className="w-full py-2 px-3 border border-color-border rounded-lg"
                   value={form.phone}
-                  onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
-                  placeholder="+1234567890"
+                  onChange={(e) => setForm({ phone: e.target.value })}
+                  placeholder="7–15 digits"
+                  required={!editingId || !editingWalkIn}
                 />
               </div>
               <div className="flex gap-3 justify-end">
@@ -220,7 +224,13 @@ export default function CustomersManagement({ customers: initial }) {
                 </button>
                 <button
                   type="submit"
-                  disabled={loading || !form.name?.trim()}
+                  disabled={
+                    loading ||
+                    (!editingId && !isValidCustomerPhoneDigits(normalizeCustomerPhone(form.phone))) ||
+                    (!!editingId &&
+                      !editingWalkIn &&
+                      !isValidCustomerPhoneDigits(normalizeCustomerPhone(form.phone)))
+                  }
                   className="py-2 px-4 bg-primary text-white rounded-lg text-sm font-medium border-0 cursor-pointer hover:opacity-90 disabled:opacity-60"
                 >
                   {loading ? "..." : editingId ? "Update" : "Add"}

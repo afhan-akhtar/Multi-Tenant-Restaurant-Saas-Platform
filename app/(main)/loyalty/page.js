@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { redirect } from "next/navigation";
 import LoyaltyClient from "@/app/components/LoyaltyClient";
+import { normalizeLoyaltySettings } from "@/lib/loyalty";
 
 export const dynamic = "force-dynamic";
 
@@ -18,16 +19,20 @@ export default async function LoyaltyPage() {
     );
   }
 
-  const [customers, orderStats] = await Promise.all([
+  const [customers, orderStats, tenantRow] = await Promise.all([
     prisma.customer.findMany({
       where: { tenantId },
       orderBy: { loyaltyPoints: "desc" },
     }),
     prisma.order.groupBy({
       by: ["customerId"],
-      where: { tenantId, status: "COMPLETED" },
+      where: { tenantId, status: { in: ["COMPLETED", "CONFIRMED"] } },
       _sum: { grandTotal: true },
       _count: true,
+    }),
+    prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { loyaltySettings: true },
     }),
   ]);
 
@@ -51,6 +56,7 @@ export default async function LoyaltyPage() {
     <LoyaltyClient
       customers={customersWithStats}
       totalPoints={totalPoints}
+      initialSettings={normalizeLoyaltySettings(tenantRow?.loyaltySettings)}
     />
   );
 }

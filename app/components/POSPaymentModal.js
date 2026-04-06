@@ -39,11 +39,16 @@ export default function POSPaymentModal({
   orderNumber,
   orderType,
   customerId,
+  loyaltyEnabled = false,
+  loyaltySettings = {},
+  customerLoyaltyBalance = 0,
+  loyaltyCustomerWalkIn = true,
   deviceAuth = null,
   onSuccess,
 }) {
   const [splits, setSplits] = useState([]);
   const [discount, setDiscount] = useState(0);
+  const [redeemPointsInput, setRedeemPointsInput] = useState(0);
   const [loading, setLoading] = useState(false);
   const [configLoading, setConfigLoading] = useState(false);
   const [paymentConfig, setPaymentConfig] = useState(null);
@@ -81,6 +86,7 @@ export default function POSPaymentModal({
       setError("");
       return;
     }
+    setRedeemPointsInput(0);
 
     let cancelled = false;
 
@@ -152,12 +158,27 @@ export default function POSPaymentModal({
 
   const discountPercent = Math.min(100, Math.max(0, Number(discount) || 0));
   const discountAmount = round2((Number(grandTotal) || 0) * (discountPercent / 100));
-  const total = Math.max(0, round2((Number(grandTotal) || 0) - discountAmount));
+  const afterPercentDiscount = Math.max(0, round2((Number(grandTotal) || 0) - discountAmount));
+
+  const redemptionRate = Math.max(1, Number(loyaltySettings?.redemptionRate) || 100);
+  const loyaltyUiActive = loyaltyEnabled && !loyaltyCustomerWalkIn;
+  const maxRedeemPoints = loyaltyUiActive
+    ? Math.min(
+        Math.max(0, Math.floor(Number(customerLoyaltyBalance) || 0)),
+        Math.floor(afterPercentDiscount * redemptionRate + 1e-9)
+      )
+    : 0;
+  const effectiveRedeem = loyaltyUiActive
+    ? Math.min(Math.max(0, Math.floor(Number(redeemPointsInput) || 0)), maxRedeemPoints)
+    : 0;
+  const loyaltyDiscountEuros =
+    loyaltyUiActive && effectiveRedeem > 0 ? round2(effectiveRedeem / redemptionRate) : 0;
+  const payableTotal = Math.max(0, round2(afterPercentDiscount - loyaltyDiscountEuros));
 
   const quantityTotal = splits.filter((x) => x.type === "quantity").reduce((s, x) => s + (Number(x.value) || 0), 0);
-  const remainingByQuantity = quantityTotal > 0 ? total - splits.filter((x) => x.type !== "quantity").reduce((s, x) => {
+  const remainingByQuantity = quantityTotal > 0 ? payableTotal - splits.filter((x) => x.type !== "quantity").reduce((s, x) => {
     const v = Number(x.value) || 0;
-    return s + (x.type === "amount" ? v : (total * v) / 100);
+    return s + (x.type === "amount" ? v : (payableTotal * v) / 100);
   }, 0) : 0;
 
   const addSplit = () => {
@@ -177,7 +198,7 @@ export default function POSPaymentModal({
   const getSplitAmount = (s) => {
     const v = Number(s.value) || 0;
     if (s.type === "amount") return v;
-    if (s.type === "percentage") return round2((total * v) / 100);
+    if (s.type === "percentage") return round2((payableTotal * v) / 100);
     if (s.type === "quantity" && quantityTotal > 0) return round2((remainingByQuantity * v) / quantityTotal);
     return 0;
   };
@@ -193,7 +214,7 @@ export default function POSPaymentModal({
   const allocatedAmount = round2(
     splits.reduce((sum, split) => sum + getSplitAmount(split), 0)
   );
-  const remaining = round2(total - allocatedAmount);
+  const remaining = round2(payableTotal - allocatedAmount);
   const overpayment = remaining < 0 ? round2(-remaining) : 0;
   const cashTendered = round2(
     resolvedSplits
@@ -204,13 +225,13 @@ export default function POSPaymentModal({
   const hasInvalidOverpayment = overpayment > 0.01 && !canReturnChange;
 
   const payFull = () => {
-    setSplits([{ method: "CASH", type: "amount", value: String(total) }]);
+    setSplits([{ method: "CASH", type: "amount", value: String(payableTotal) }]);
   };
 
   const buildPayload = () => {
     const basePayload =
       resolvedSplits.length === 0
-        ? [{ method: "CASH", type: "amount", value: round2(total) }]
+        ? [{ method: "CASH", type: "amount", value: round2(payableTotal) }]
         : resolvedSplits.map((split) => ({ ...split }));
 
     if (overpayment > 0.01 && canReturnChange) {
@@ -229,7 +250,7 @@ export default function POSPaymentModal({
     const normalizedPayload = basePayload.filter((split) => split.value > 0.009);
 
     if (normalizedPayload.length === 0) {
-      return [{ method: "CASH", type: "amount", value: round2(total) }];
+      return [{ method: "CASH", type: "amount", value: round2(payableTotal) }];
     }
 
     return normalizedPayload;
@@ -247,6 +268,7 @@ export default function POSPaymentModal({
     customerId: customerId || null,
     splits: payload,
     discountAmount,
+    redeemLoyaltyPoints: effectiveRedeem > 0 ? effectiveRedeem : 0,
     cashTenderedAmount: cashTendered > 0 ? cashTendered : null,
     changeGiven: canReturnChange ? overpayment : 0,
   });
@@ -382,7 +404,7 @@ export default function POSPaymentModal({
               <div className="flex justify-between">
                 <span>Total order</span>
                 <span className="font-semibold">
-                  {paymentConfig?.currency || "EUR"} {total.toFixed(2)}
+                  {paymentConfig?.currency || "EUR"} {payableTotal.toFixed(2)}
                 </span>
               </div>
               {providerContext.onlineProviderTotals.STRIPE > 0 ? (
@@ -477,7 +499,7 @@ export default function POSPaymentModal({
         <div className="py-4 px-6 overflow-y-auto flex-1">
           <div className="mb-4 flex justify-between items-center">
             <span className="text-color-text-muted">Total</span>
-            <span className="font-bold text-lg">€{total.toFixed(2)}</span>
+            <span className="font-bold text-lg">€{payableTotal.toFixed(2)}</span>
           </div>
           <div className="mb-4">
             <label className="block text-sm font-medium text-color-text mb-1">Discount (%)</label>
@@ -503,6 +525,51 @@ export default function POSPaymentModal({
               </div>
             )}
           </div>
+
+          {loyaltyUiActive && maxRedeemPoints > 0 && (
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-color-text mb-1">
+                Redeem loyalty points (balance: {customerLoyaltyBalance})
+              </label>
+              <div className="flex gap-2 items-center flex-wrap">
+                <input
+                  type="number"
+                  min={0}
+                  max={maxRedeemPoints}
+                  step={1}
+                  className="flex-1 min-w-[120px] py-2 px-3 border border-color-border rounded-lg"
+                  value={redeemPointsInput || ""}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v === "") {
+                      setRedeemPointsInput(0);
+                      return;
+                    }
+                    const n = Math.max(0, Math.floor(Number(v) || 0));
+                    setRedeemPointsInput(Math.min(n, maxRedeemPoints));
+                  }}
+                  placeholder="0"
+                />
+                <button
+                  type="button"
+                  className="py-2 px-3 text-sm rounded-lg border border-color-border bg-white hover:bg-color-bg"
+                  onClick={() => setRedeemPointsInput(maxRedeemPoints)}
+                >
+                  Max
+                </button>
+              </div>
+              {effectiveRedeem > 0 ? (
+                <div className="mt-1 text-sm text-color-text-muted">
+                  −€{loyaltyDiscountEuros.toFixed(2)} off ({effectiveRedeem} pts, {redemptionRate} pts = €1)
+                </div>
+              ) : null}
+            </div>
+          )}
+          {loyaltyEnabled && loyaltyCustomerWalkIn ? (
+            <p className="mb-4 text-xs text-color-text-muted">
+              Select a named customer (not Walk-in) to earn or redeem loyalty points on this sale.
+            </p>
+          ) : null}
 
           <div className="flex justify-between items-center mb-2">
             <span className="text-sm font-medium">Split payments</span>
@@ -622,7 +689,7 @@ export default function POSPaymentModal({
               loading ||
               configLoading ||
               (splits.length > 0 && (remaining > 0.02 || hasInvalidOverpayment)) ||
-              total <= 0
+              payableTotal <= 0
             }
           >
             {loading ? (

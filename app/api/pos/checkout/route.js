@@ -14,6 +14,12 @@ import { getRequestActor } from "@/lib/device-auth";
 import { getKDSOrderById } from "@/lib/kds";
 import { syncKdsItemsForOrder } from "@/lib/kds-routing";
 import { broadcastTenantKdsEvent } from "@/lib/realtime";
+import {
+  isWalkInCustomer,
+  computePointsEarned,
+  computeRedemption,
+  getTenantLoyaltySettings,
+} from "@/lib/loyalty";
 
 function toNum(d) {
   return d ? Number(d) : 0;
@@ -97,6 +103,7 @@ export async function POST(request) {
       orderNumber: clientOrderNumber,
       splits,
       discountAmount = 0,
+      redeemLoyaltyPoints = 0,
       providerPayments = [],
       cashTenderedAmount = null,
       changeGiven = 0,
@@ -258,7 +265,41 @@ export async function POST(request) {
     const taxRate = 0.1;
     const taxAmount = subtotal * taxRate;
     const discount = toNum(discountAmount) || 0;
-    const grandTotal = Math.max(0, subtotal + taxAmount - discount);
+    const basePayable = Math.max(0, subtotal + taxAmount - discount);
+
+    const loyaltyAccess = await assertTenantFeatureAccess(tenantId, "LOYALTY");
+    const loyaltySettings = await getTenantLoyaltySettings(tenantId);
+    const requestedCustomerId =
+      customerId != null && customerId !== "" ? Number(customerId) : null;
+    const loyaltyEligible =
+      loyaltyAccess.ok &&
+      customer &&
+      !isWalkInCustomer(customer) &&
+      Number.isInteger(requestedCustomerId) &&
+      requestedCustomerId === customer.id;
+
+    let loyaltyDiscount = 0;
+    let pointsRedeemed = 0;
+    if (loyaltyEligible) {
+      const reqRedeem = Math.max(0, Math.floor(Number(redeemLoyaltyPoints) || 0));
+      if (reqRedeem > 0) {
+        const r = computeRedemption({
+          balance: customer.loyaltyPoints,
+          requestedPoints: reqRedeem,
+          orderTotal: basePayable,
+          redemptionRate: loyaltySettings.redemptionRate,
+        });
+        pointsRedeemed = r.points;
+        loyaltyDiscount = r.discount;
+      }
+    }
+
+    const grandTotal = Math.max(0, basePayable - loyaltyDiscount);
+
+    let pointsEarned = 0;
+    if (loyaltyEligible && grandTotal > 0) {
+      pointsEarned = computePointsEarned(grandTotal, loyaltySettings.pointsPerEuro);
+    }
 
     const paymentSplits = resolveSplits(splits, grandTotal);
     if (paymentSplits.length > 1) {
@@ -369,9 +410,12 @@ export async function POST(request) {
         subtotal,
         taxAmount,
         discountAmount: discount,
+        loyaltyDiscountAmount: loyaltyDiscount,
         tipAmount: 0,
         totalAmount: grandTotal,
         grandTotal,
+        loyaltyPointsEarned: pointsEarned,
+        loyaltyPointsRedeemed: pointsRedeemed,
         orderItems: {
           create: orderItemsData,
         },
@@ -420,6 +464,24 @@ export async function POST(request) {
       }
 
       await signAndStorePayment(tenantId, order.id, orderNumber, split.amount, split.method);
+    }
+
+    if (loyaltyEligible && (pointsRedeemed > 0 || pointsEarned > 0)) {
+      const net = pointsEarned - pointsRedeemed;
+      const up = await prisma.customer.updateMany({
+        where: {
+          id: customer.id,
+          tenantId,
+          ...(pointsRedeemed > 0 ? { loyaltyPoints: { gte: pointsRedeemed } } : {}),
+        },
+        data: { loyaltyPoints: { increment: net } },
+      });
+      if (up.count !== 1) {
+        return NextResponse.json(
+          { error: "Loyalty balance changed — adjust redemption or retry checkout." },
+          { status: 409 }
+        );
+      }
     }
 
     console.log("[POS checkout] Signing order with TSE...", order.id, orderNumber);
@@ -474,6 +536,9 @@ export async function POST(request) {
       subtotal,
       taxAmount,
       discountAmount: discount,
+      loyaltyDiscountAmount: loyaltyDiscount,
+      loyaltyPointsEarned: pointsEarned,
+      loyaltyPointsRedeemed: pointsRedeemed,
       grandTotal,
       payments: paymentSplits,
       cashReceived: normalizedCashTendered || null,
@@ -508,6 +573,9 @@ export async function POST(request) {
       order,
       orderNumber,
       receipt,
+      loyalty: loyaltyEligible
+        ? { pointsEarned, pointsRedeemed, discountEuros: loyaltyDiscount }
+        : null,
     });
   } catch (err) {
     if (

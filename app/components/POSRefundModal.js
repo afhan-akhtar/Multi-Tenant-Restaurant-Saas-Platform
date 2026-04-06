@@ -5,6 +5,7 @@ import ConfirmModal from "./ConfirmModal";
 import { formatEur } from "@/lib/currencyFormat";
 import { getDeviceHeaders } from "@/lib/device-client";
 import { dedupeOrderHistoryList } from "@/lib/order-history-dedupe";
+import { customerPhoneUiLabel } from "@/lib/customerPhone";
 
 const ORDER_HISTORY_LIMIT = 30;
 
@@ -233,7 +234,7 @@ export default function POSRefundModal({
                       </div>
                     </div>
                     <div className="mt-1 text-xs text-slate-500">
-                      {order.customer?.name || "Walk-in"} • {formatDay(order.createdAt)}
+                      {customerPhoneUiLabel(order.customer)} • {formatDay(order.createdAt)}
                     </div>
                     <div className="mt-2 flex items-center justify-between text-sm">
                       <span className="text-slate-600">Remaining refundable</span>

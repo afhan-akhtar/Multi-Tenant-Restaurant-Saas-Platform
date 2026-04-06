@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getRequestActor } from "@/lib/device-auth";
+import {
+  normalizeCustomerPhone,
+  isValidCustomerPhoneDigits,
+  resolveCustomerName,
+  guestEmailForPhone,
+} from "@/lib/customerPhone";
 
 export async function POST(req) {
   try {
@@ -11,19 +17,38 @@ export async function POST(req) {
 
     const body = await req.json();
     const { name, email, phone } = body;
-    if (!name?.trim()) return NextResponse.json({ error: "Name is required" }, { status: 400 });
+    const phoneDigits = normalizeCustomerPhone(phone);
+    if (!isValidCustomerPhoneDigits(phoneDigits)) {
+      return NextResponse.json(
+        { error: "Valid mobile number is required (7–15 digits)." },
+        { status: 400 }
+      );
+    }
+
+    const duplicate = await prisma.customer.findFirst({
+      where: { tenantId, phone: phoneDigits },
+    });
+    if (duplicate) {
+      return NextResponse.json({ error: "This number is already registered." }, { status: 409 });
+    }
+
+    const displayName = resolveCustomerName({ name, phoneDigits });
+    const emailFinal = String(email || "").trim() || guestEmailForPhone(phoneDigits);
 
     const customer = await prisma.customer.create({
       data: {
         tenantId,
-        name: name.trim(),
-        email: (email || "").trim() || `customer-${Date.now()}@placeholder.local`,
-        phone: (phone || "").trim() || "",
+        name: displayName,
+        phone: phoneDigits,
+        email: emailFinal,
         loyaltyPoints: 0,
       },
     });
     return NextResponse.json({ success: true, customer });
   } catch (err) {
+    if (err?.code === "P2002") {
+      return NextResponse.json({ error: "This number is already registered." }, { status: 409 });
+    }
     console.error("[customers POST]", err);
     return NextResponse.json({ error: "Failed to create customer" }, { status: 500 });
   }

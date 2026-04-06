@@ -152,6 +152,8 @@ model Tenant {
   logoUrl   String? // Optional logo for receipts and branding
   status    TenantStatus @default(ACTIVE)
   createdAt DateTime     @default(now())
+  /// { pointsPerEuro, redemptionRate, tier1Threshold, tier2Threshold }
+  loyaltySettings Json?
 
   fiskalyConfig      TenantFiskalyConfig?
   branches           Branch[]
@@ -488,12 +490,15 @@ model Customer {
   id            Int    @id @default(autoincrement())
   tenantId      Int
   name          String
+  /// Normalized digits-only (E.164 without +). Empty only for internal Walk-in row per tenant.
   phone         String
   email         String
   loyaltyPoints Int    @default(0)
 
   tenant Tenant  @relation(fields: [tenantId], references: [id])
   orders Order[]
+
+  @@unique([tenantId, phone])
 }
 
 model Segment {
@@ -530,9 +535,12 @@ model Order {
   subtotal       Decimal
   taxAmount      Decimal
   discountAmount Decimal
+  loyaltyDiscountAmount Decimal @default(0)
   tipAmount      Decimal
   totalAmount    Decimal     @default(0)
   grandTotal     Decimal
+  loyaltyPointsEarned   Int @default(0)
+  loyaltyPointsRedeemed Int @default(0)
   refundedAmount Decimal     @default(0)
   lastRefundAt   DateTime?
   createdAt      DateTime    @default(now())

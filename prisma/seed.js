@@ -302,7 +302,7 @@ async function main() {
         data: {
           tenantId: tenant.id,
           name: "John Smith",
-          phone: "+1234567890",
+          phone: "1234567890",
           email: "john@example.com",
         },
       }),
@@ -310,7 +310,7 @@ async function main() {
         data: {
           tenantId: tenant.id,
           name: "Jane Doe",
-          phone: "+1987654321",
+          phone: "1987654321",
           email: "jane@example.com",
         },
       }),
@@ -318,7 +318,7 @@ async function main() {
         data: {
           tenantId: tenant.id,
           name: "Bob Wilson",
-          phone: "+1122334455",
+          phone: "1122334455",
           email: "bob@example.com",
         },
       }),

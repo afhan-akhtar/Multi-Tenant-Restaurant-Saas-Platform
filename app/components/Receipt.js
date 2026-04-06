@@ -150,6 +150,9 @@ export function Receipt({ receipt, onPrinted, embedded = false }) {
     subtotal,
     taxAmount,
     discountAmount,
+    loyaltyDiscountAmount = 0,
+    loyaltyPointsEarned = 0,
+    loyaltyPointsRedeemed = 0,
     grandTotal,
     payments,
     cashReceived: explicitCashReceived,
@@ -175,7 +178,12 @@ export function Receipt({ receipt, onPrinted, embedded = false }) {
     stornoReason,
   } = receipt;
 
-  const { byRate, subtotalNet, subtotalGross, taxTotal, grandTotal: computedTotal } = computeVatBreakdown(items, discountAmount);
+  const totalDiscountForVat =
+    (Number(discountAmount) || 0) + (Number(loyaltyDiscountAmount) || 0);
+  const { byRate, subtotalNet, subtotalGross, taxTotal, grandTotal: computedTotal } = computeVatBreakdown(
+    items,
+    totalDiscountForVat
+  );
   const displayGrand = isStorno
     ? Number(receipt.grandTotal ?? 0)
     : computedTotal || grandTotal || 0;
@@ -334,7 +342,18 @@ export function Receipt({ receipt, onPrinted, embedded = false }) {
                 {(discountAmount || 0) > 0 && (
                   <div className="text-amber-600">Discount (incl. VAT): -€{Number(discountAmount).toFixed(2)}</div>
                 )}
+                {(loyaltyDiscountAmount || 0) > 0 && (
+                  <div className="text-amber-600">
+                    Loyalty discount: -€{Number(loyaltyDiscountAmount).toFixed(2)}
+                  </div>
+                )}
                 <div className="font-bold text-base">Total (incl. VAT): €{displayGrand.toFixed(2)}</div>
+                {!isStorno && (loyaltyPointsEarned > 0 || loyaltyPointsRedeemed > 0) ? (
+                  <div className="text-xs text-gray-500 mt-1 space-y-0.5">
+                    {loyaltyPointsEarned > 0 ? <div>Loyalty points earned: +{loyaltyPointsEarned}</div> : null}
+                    {loyaltyPointsRedeemed > 0 ? <div>Loyalty points redeemed: −{loyaltyPointsRedeemed}</div> : null}
+                  </div>
+                ) : null}
               </>
             )}
           </div>
@@ -439,6 +458,9 @@ export function printReceipt(receipt) {
     subtotal,
     taxAmount,
     discountAmount,
+    loyaltyDiscountAmount = 0,
+    loyaltyPointsEarned = 0,
+    loyaltyPointsRedeemed = 0,
     grandTotal,
     payments,
     cashReceived: explicitCashReceived,
@@ -491,7 +513,12 @@ export function printReceipt(receipt) {
   // Higher resolution + quiet zone improves scanning on thermal/PDF.
   const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&margin=4&data=${encodeURIComponent(qrPayload)}`;
 
-  const { byRate, subtotalGross, subtotalNet, taxTotal, grandTotal: computedTotal } = computeVatBreakdown(items, discountAmount);
+  const totalDiscountForVatPrint =
+    (Number(discountAmount) || 0) + (Number(loyaltyDiscountAmount) || 0);
+  const { byRate, subtotalGross, subtotalNet, taxTotal, grandTotal: computedTotal } = computeVatBreakdown(
+    items,
+    totalDiscountForVatPrint
+  );
   const displayGrandPrint = isStorno
     ? Number(receipt.grandTotal ?? 0)
     : computedTotal || grandTotal || 0;
@@ -636,7 +663,16 @@ export function printReceipt(receipt) {
             : `<div>Subtotal (excl. VAT): €${(subtotalNet || 0).toFixed(2)}</div>
         <div>VAT (10%): €${(taxTotal || taxAmount || 0).toFixed(2)}</div>
         ${(discountAmount || 0) > 0 ? `<div style="color:#b45309;">Discount (incl. VAT): -€${Number(discountAmount).toFixed(2)}</div>` : ""}
-        <div class="bold" style="margin-top:2px;">Total (incl. VAT): €${displayGrandPrint.toFixed(2)}</div>`
+        ${(loyaltyDiscountAmount || 0) > 0 ? `<div style="color:#b45309;">Loyalty discount: -€${Number(loyaltyDiscountAmount).toFixed(2)}</div>` : ""}
+        <div class="bold" style="margin-top:2px;">Total (incl. VAT): €${displayGrandPrint.toFixed(2)}</div>
+        ${
+          !isStorno && (loyaltyPointsEarned > 0 || loyaltyPointsRedeemed > 0)
+            ? `<div style="font-size:11px;color:#666;margin-top:4px;text-align:right;line-height:1.35;">
+                 ${loyaltyPointsEarned > 0 ? `<div>Loyalty points earned: +${loyaltyPointsEarned}</div>` : ""}
+                 ${loyaltyPointsRedeemed > 0 ? `<div>Loyalty points redeemed: −${loyaltyPointsRedeemed}</div>` : ""}
+               </div>`
+            : ""
+        }`
         }
       </div>
       ${!isStorno && vatRows ? `<table class="mb" style="font-size:12px;"><tr style="border-bottom:1px solid #ccc;"><th style="text-align:left">VAT</th><th class="r">Net</th><th class="r">VAT</th><th class="r">Gross</th></tr>${vatRows}</table>` : ""}

@@ -1,6 +1,11 @@
 import { getToken } from "next-auth/jwt";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import {
+  normalizeCustomerPhone,
+  isValidCustomerPhoneDigits,
+  resolveCustomerName,
+} from "@/lib/customerPhone";
 
 export async function PATCH(req, { params }) {
   try {
@@ -19,9 +24,46 @@ export async function PATCH(req, { params }) {
     const { name, email, phone, loyaltyPoints } = body;
 
     const data = {};
-    if (name !== undefined) data.name = String(name).trim();
-    if (email !== undefined) data.email = String(email).trim() || existing.email;
-    if (phone !== undefined) data.phone = String(phone).trim();
+    let nextPhone = existing.phone;
+
+    if (phone !== undefined) {
+      const digits = normalizeCustomerPhone(phone);
+      const isWalkIn = String(existing.email || "").toLowerCase() === "walkin@internal.local";
+      if (digits === "" && isWalkIn) {
+        nextPhone = "";
+        data.phone = "";
+      } else if (!isValidCustomerPhoneDigits(digits)) {
+        return NextResponse.json(
+          { error: "Valid mobile number is required (7–15 digits)." },
+          { status: 400 }
+        );
+      } else {
+        const dup = await prisma.customer.findFirst({
+          where: { tenantId, phone: digits, id: { not: id } },
+        });
+        if (dup) {
+          return NextResponse.json({ error: "This number is already registered." }, { status: 409 });
+        }
+        nextPhone = digits;
+        data.phone = digits;
+      }
+    }
+
+    if (name !== undefined) {
+      const trimmed = String(name).trim();
+      data.name = trimmed || resolveCustomerName({ name: "", phoneDigits: nextPhone });
+    } else if (phone !== undefined && data.phone !== undefined && data.phone !== "") {
+      const isWalkIn = String(existing.email || "").toLowerCase() === "walkin@internal.local";
+      if (!isWalkIn) {
+        data.name = resolveCustomerName({ name: "", phoneDigits: nextPhone });
+      }
+    }
+
+    if (email !== undefined) {
+      const e = String(email).trim();
+      data.email = e || existing.email;
+    }
+
     if (loyaltyPoints !== undefined) data.loyaltyPoints = parseInt(loyaltyPoints, 10) || 0;
 
     const customer = await prisma.customer.update({
@@ -30,6 +72,9 @@ export async function PATCH(req, { params }) {
     });
     return NextResponse.json({ success: true, customer });
   } catch (err) {
+    if (err?.code === "P2002") {
+      return NextResponse.json({ error: "This number is already registered." }, { status: 409 });
+    }
     console.error("[customers PATCH]", err);
     return NextResponse.json({ error: "Failed to update customer" }, { status: 500 });
   }

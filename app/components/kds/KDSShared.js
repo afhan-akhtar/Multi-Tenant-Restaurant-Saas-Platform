@@ -1,5 +1,7 @@
 "use client";
 
+import { customerPhoneUiLabel } from "@/lib/customerPhone";
+
 export const KDS_COLUMNS = [
   {
     id: "CREATED",
@@ -146,7 +148,7 @@ export function getOrdersForColumn(orders, column, activeFilter = "ALL") {
 }
 
 export function KDSOrderCard({ order, columnColor, compact = false, onStatusChange, onCancel }) {
-  const customerName = order.customer?.name || "Takeaway";
+  const customerLine = customerPhoneUiLabel(order.customer);
   const tableName = order.table?.name || "";
   const typeLabel = order.orderType === "DINE_IN" ? (tableName || "Dine-in") : "Takeaway";
 
@@ -189,7 +191,7 @@ export function KDSOrderCard({ order, columnColor, compact = false, onStatusChan
         </div>
 
         <div className={compact ? "mb-1 text-sm font-semibold text-slate-800" : "text-sm font-medium text-color-text mb-1"}>
-          {customerName}
+          {customerLine}
         </div>
         <div className={compact ? "mb-3 text-xs text-slate-500" : "text-xs text-color-text-muted mb-3"}>
           {typeLabel}

@@ -9,19 +9,28 @@ import OfflineIndicator from "./OfflineIndicator";
 import { printReceipt } from "./Receipt";
 import { formatEur } from "@/lib/currencyFormat";
 import { getDeviceHeaders } from "@/lib/device-client";
+import { formatPhoneDigitsForDisplay, normalizeCustomerPhone } from "@/lib/customerPhone";
 
 const CATEGORY_COLORS = ["#1a202c", "#3182ce", "#4299e1", "#48bb78", "#ed64a6"];
 
 export default function POS({ data, deviceAuth = null }) {
   const router = useRouter();
-  const { categories = [], products = [], addonGroups = [], customers: initialCustomers = [], nextOrderNumber = 1 } = data || {};
+  const {
+    categories = [],
+    products = [],
+    addonGroups = [],
+    customers: initialCustomers = [],
+    nextOrderNumber = 1,
+    loyaltyEnabled = false,
+    loyaltySettings = {},
+  } = data || {};
 
   const [customers, setCustomers] = useState(initialCustomers);
   const [selectedCategoryId, setSelectedCategoryId] = useState(categories[0]?.id ?? null);
   const [selectedCustomerId, setSelectedCustomerId] = useState(() => initialCustomers[0]?.id ?? null);
   const [cart, setCart] = useState([]);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
-  const [quickAddForm, setQuickAddForm] = useState({ name: "", phone: "" });
+  const [quickAddForm, setQuickAddForm] = useState({ phone: "" });
   const [quickAddLoading, setQuickAddLoading] = useState(false);
   const [orderType] = useState("TAKEAWAY");
   const [orderNumber, setOrderNumber] = useState(() => `ORD${nextOrderNumber}`);
@@ -44,7 +53,7 @@ export default function POS({ data, deviceAuth = null }) {
 
   const handleQuickAdd = async (e) => {
     e.preventDefault();
-    if (!quickAddForm.name?.trim()) return;
+    if (!normalizeCustomerPhone(quickAddForm.phone)) return;
     setQuickAddLoading(true);
     try {
       const res = await fetch("/api/customers", {
@@ -54,9 +63,7 @@ export default function POS({ data, deviceAuth = null }) {
           ...getDeviceHeaders(deviceAuth),
         },
         body: JSON.stringify({
-          name: quickAddForm.name.trim(),
           phone: quickAddForm.phone.trim(),
-          email: quickAddForm.name.trim().toLowerCase().replace(/\s+/g, "") + "@guest.local",
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -65,8 +72,8 @@ export default function POS({ data, deviceAuth = null }) {
       setCustomers((prev) => [...prev, newCustomer]);
       setSelectedCustomerId(newCustomer.id);
       setQuickAddOpen(false);
-      setQuickAddForm({ name: "", phone: "" });
-      setToast({ type: "success", message: `${newCustomer.name} added` });
+      setQuickAddForm({ phone: "" });
+      setToast({ type: "success", message: `${newCustomer.phone} registered` });
     } catch (err) {
       setToast({ type: "error", message: err.message || "Failed to add" });
     } finally {
@@ -165,6 +172,18 @@ export default function POS({ data, deviceAuth = null }) {
   const taxAmount = subtotal * 0.1;
   const grandTotal = subtotal + taxAmount;
 
+  const selectedCustomer = useMemo(
+    () => customers.find((c) => c.id === selectedCustomerId) ?? null,
+    [customers, selectedCustomerId]
+  );
+  const loyaltyCustomerWalkIn =
+    String(selectedCustomer?.email || "").toLowerCase() === "walkin@internal.local";
+
+  const posCustomerSelectLabel = (c) => {
+    if (c.name === "Walk-in") return "Guest / Walk-in";
+    return formatPhoneDigitsForDisplay(c.phone) || c.phone || "—";
+  };
+
   const [lastReceipt, setLastReceipt] = useState(null);
 
   const handlePaymentSuccess = (result) => {
@@ -174,7 +193,12 @@ export default function POS({ data, deviceAuth = null }) {
       setToast({ type: "success", message: `Order queued for sync when online (${result.localOrderNumber})` });
     } else {
       setLastReceipt(result?.receipt || null);
-      setToast({ type: "success", message: `Order ${result?.orderNumber} paid successfully!` });
+      const l = result?.loyalty;
+      const extra =
+        l && (l.pointsEarned > 0 || l.pointsRedeemed > 0)
+          ? ` · ${l.pointsEarned > 0 ? `+${l.pointsEarned} pts` : ""}${l.pointsEarned > 0 && l.pointsRedeemed > 0 ? ", " : ""}${l.pointsRedeemed > 0 ? `-${l.pointsRedeemed} pts` : ""}`
+          : "";
+      setToast({ type: "success", message: `Order ${result?.orderNumber} paid successfully!${extra}` });
     }
     router.refresh();
   };
@@ -297,8 +321,7 @@ export default function POS({ data, deviceAuth = null }) {
             >
               {customers.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.name === "Walk-in" ? "Guest / Walk-in" : c.name}
-                  {c.phone && c.name !== "Walk-in" ? ` (${c.phone})` : ""}
+                  {posCustomerSelectLabel(c)}
                 </option>
               ))}
               {customers.length === 0 && (
@@ -315,7 +338,7 @@ export default function POS({ data, deviceAuth = null }) {
             </button>
           </div>
           <p className="text-[10px] text-color-text-muted mt-0.5">
-            Guest = unregistered. Use + New to add on the spot.
+            Guest = walk-in. + New registers by mobile number only.
           </p>
         </div>
 
@@ -400,29 +423,21 @@ export default function POS({ data, deviceAuth = null }) {
       {quickAddOpen && (
         <div className="fixed inset-0 bg-black/50 z-[110] flex items-center justify-center p-4" onClick={() => setQuickAddOpen(false)}>
           <div className="bg-white rounded-xl max-w-[340px] w-full p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
-            <h3 className="m-0 mb-3 text-base font-semibold text-color-text">Quick add customer</h3>
-            <p className="m-0 mb-4 text-xs text-color-text-muted">Unregistered customer? Add them here for this order.</p>
+            <h3 className="m-0 mb-3 text-base font-semibold text-color-text">Register customer</h3>
+            <p className="m-0 mb-4 text-xs text-color-text-muted">Enter mobile number (7–15 digits).</p>
             <form onSubmit={handleQuickAdd}>
-              <div className="mb-3">
-                <label className="block text-xs font-medium text-color-text mb-1">Name *</label>
-                <input
-                  type="text"
-                  className="w-full py-2 px-3 border border-color-border rounded-lg text-sm"
-                  value={quickAddForm.name}
-                  onChange={(e) => setQuickAddForm((f) => ({ ...f, name: e.target.value }))}
-                  placeholder="Customer name"
-                  required
-                  autoFocus
-                />
-              </div>
               <div className="mb-4">
-                <label className="block text-xs font-medium text-color-text mb-1">Phone</label>
+                <label className="block text-xs font-medium text-color-text mb-1">Mobile number *</label>
                 <input
                   type="tel"
+                  inputMode="numeric"
+                  autoComplete="tel"
                   className="w-full py-2 px-3 border border-color-border rounded-lg text-sm"
                   value={quickAddForm.phone}
-                  onChange={(e) => setQuickAddForm((f) => ({ ...f, phone: e.target.value }))}
-                  placeholder="+1234567890"
+                  onChange={(e) => setQuickAddForm({ phone: e.target.value })}
+                  placeholder="e.g. 030 12345678"
+                  required
+                  autoFocus
                 />
               </div>
               <div className="flex gap-2 justify-end">
@@ -435,7 +450,7 @@ export default function POS({ data, deviceAuth = null }) {
                 </button>
                 <button
                   type="submit"
-                  disabled={quickAddLoading || !quickAddForm.name?.trim()}
+                  disabled={quickAddLoading || !normalizeCustomerPhone(quickAddForm.phone)}
                   className="py-2 px-4 rounded-lg bg-primary text-white text-sm font-medium disabled:opacity-60"
                 >
                   {quickAddLoading ? "..." : "Add & select"}
@@ -534,6 +549,10 @@ export default function POS({ data, deviceAuth = null }) {
         orderNumber={orderNumber}
         orderType={orderType}
         customerId={selectedCustomerId}
+        loyaltyEnabled={loyaltyEnabled}
+        loyaltySettings={loyaltySettings}
+        customerLoyaltyBalance={selectedCustomer?.loyaltyPoints ?? 0}
+        loyaltyCustomerWalkIn={loyaltyCustomerWalkIn}
         deviceAuth={deviceAuth}
         onSuccess={handlePaymentSuccess}
       />
