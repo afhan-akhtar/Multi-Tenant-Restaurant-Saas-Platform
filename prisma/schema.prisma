@@ -73,6 +73,7 @@ enum KDSStatus {
 enum DeviceType {
   POS
   KDS
+  TABLET
 }
 
 enum DeviceStatus {
@@ -154,6 +155,8 @@ model Tenant {
   createdAt DateTime     @default(now())
   /// { pointsPerEuro, redemptionRate, tier1Threshold, tier2Threshold }
   loyaltySettings Json?
+  /// { waiterPinHash?: string, fcmTokens?: string[], otaManifestUrl?: string }
+  tabletSettings Json?
 
   fiskalyConfig      TenantFiskalyConfig?
   branches           Branch[]

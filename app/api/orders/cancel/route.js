@@ -15,7 +15,7 @@ import {
  */
 export async function POST(request) {
   try {
-    const actor = await getRequestActor(request, { allowedDeviceTypes: ["KDS", "POS"] });
+    const actor = await getRequestActor(request, { allowedDeviceTypes: ["KDS", "POS", "TABLET"] });
     if (!actor?.tenantId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -25,9 +25,16 @@ export async function POST(request) {
       return NextResponse.json({ error: "Restaurant context required" }, { status: 400 });
     }
 
-    const posAccess = await assertTenantFeatureAccess(tenantId, "POS");
-    if (!posAccess.ok) {
-      return NextResponse.json({ error: posAccess.error }, { status: posAccess.status });
+    if (actor.deviceType === "TABLET") {
+      const tabletAccess = await assertTenantFeatureAccess(tenantId, "TABLET");
+      if (!tabletAccess.ok) {
+        return NextResponse.json({ error: tabletAccess.error }, { status: tabletAccess.status });
+      }
+    } else {
+      const posAccess = await assertTenantFeatureAccess(tenantId, "POS");
+      if (!posAccess.ok) {
+        return NextResponse.json({ error: posAccess.error }, { status: posAccess.status });
+      }
     }
 
     const body = await request.json();
@@ -36,9 +43,10 @@ export async function POST(request) {
         ? String(actor.deviceName)
         : "";
 
-    const isKdsDevice = actor.authMode === "device" && actor.deviceType === "KDS";
+    const isKitchenDisplayDevice =
+      actor.authMode === "device" && ["KDS", "TABLET"].includes(actor.deviceType);
 
-    const result = isKdsDevice
+    const result = isKitchenDisplayDevice
       ? await cancelOrderFromKitchenDisplay({
           tenantId,
           orderId: body.orderId,

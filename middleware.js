@@ -14,6 +14,12 @@ export async function middleware(request) {
     secret: process.env.NEXTAUTH_SECRET,
   });
   const { pathname, search } = request.nextUrl;
+
+  // /public assets (e.g. *.js) — must not be rewritten as /{tenant}/… or login HTML will be returned for .js URLs
+  if (pathname.match(/\.(ico|png|svg|jpg|jpeg|gif|webp|js|mjs|css|map|txt|json|woff2?)$/i)) {
+    return NextResponse.next();
+  }
+
   const host = request.headers.get("x-forwarded-host") || request.headers.get("host") || "localhost:3000";
   const protocol = request.headers.get("x-forwarded-proto") || request.nextUrl.protocol.replace(/:$/, "") || "http";
   const { subdomain: currentSubdomain, isTenantHost } = getHostInfo(host);
@@ -93,6 +99,8 @@ export async function middleware(request) {
     pathname === "/api/register" ||
     pathname.startsWith("/pos/") ||
     pathname.startsWith("/kds/") ||
+    pathname === "/tablet" ||
+    pathname.startsWith("/tablet/") ||
     pathname.startsWith("/api/auth") ||
     pathname.startsWith("/_next") ||
     pathname.match(/\.(ico|png|svg|jpg|jpeg|gif|webp)$/);

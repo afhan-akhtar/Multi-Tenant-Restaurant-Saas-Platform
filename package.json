@@ -7,12 +7,24 @@
     "build": "prisma generate && next build",
     "start": "node server.js",
     "lint": "next lint",
-    "db:seed": "node prisma/seed.js"
+    "db:seed": "node prisma/seed.js",
+    "cap:set-url": "node scripts/cap-set-dev-url.js",
+    "cap:sync": "node scripts/cap-set-dev-url.js && npx cap sync",
+    "cap:android": "node scripts/cap-set-dev-url.js && npx cap sync android && npx cap open android",
+    "cap:android:emu": "CAP_SERVER_HOST=10.0.2.2 node scripts/cap-set-dev-url.js && npx cap sync android && npx cap open android",
+    "cap:ios": "node scripts/cap-set-dev-url.js && npx cap sync ios && npx cap open ios",
+    "cap:ios:sim": "CAP_SERVER_HOST=127.0.0.1 node scripts/cap-set-dev-url.js && npx cap sync ios && npx cap open ios"
   },
   "prisma": {
     "seed": "node prisma/seed.js"
   },
   "dependencies": {
+    "@capacitor/android": "^8.3.0",
+    "@capacitor/cli": "^8.3.0",
+    "@capacitor/core": "^8.3.0",
+    "@capacitor/filesystem": "^8.1.2",
+    "@capacitor/ios": "^8.3.0",
+    "@capacitor/preferences": "^8.0.1",
     "@prisma/adapter-pg": "^7.4.2",
     "@prisma/client": "^7.4.1",
     "@stripe/react-stripe-js": "^5.6.1",

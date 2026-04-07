@@ -11,7 +11,7 @@ const ALLOWED_STATUSES = ["CONFIRMED", "PREPARING", "READY", "PACK", "COMPLETED"
 
 export async function PATCH(request) {
   try {
-    const actor = await getRequestActor(request, { allowedDeviceTypes: ["KDS"] });
+    const actor = await getRequestActor(request, { allowedDeviceTypes: ["KDS", "TABLET"] });
     if (!actor?.tenantId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -21,7 +21,8 @@ export async function PATCH(request) {
       return NextResponse.json({ error: "Restaurant context required" }, { status: 400 });
     }
 
-    const featureAccess = await assertTenantFeatureAccess(tenantId, "KDS");
+    const featureCode = actor.deviceType === "TABLET" ? "TABLET" : "KDS";
+    const featureAccess = await assertTenantFeatureAccess(tenantId, featureCode);
     if (!featureAccess.ok) {
       return NextResponse.json({ error: featureAccess.error }, { status: featureAccess.status });
     }

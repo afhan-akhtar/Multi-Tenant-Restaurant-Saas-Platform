@@ -203,7 +203,7 @@ export default async function RestaurantSubscriptionPage() {
         <div className="mt-8">
           <h3 className="text-base font-semibold mb-4 text-color-text">Available Plans</h3>
           <p className="text-color-text-muted text-sm mb-4">
-            You can request a different plan based on your restaurant's needs. The new plan will become active after Super Admin approval.
+            You can request a different plan based on your restaurant&apos;s needs. The new plan will become active after Super Admin approval.
           </p>
           <SubscriptionPlanRequestActions
             plans={normalizedPlans}

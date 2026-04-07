@@ -1,3 +1,4 @@
+import Script from "next/script";
 import "./globals.css";
 import { Providers } from "./providers";
 
@@ -16,6 +17,11 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body suppressHydrationWarning>
+        <Script
+          id="tablet-device-token-bootstrap"
+          src="/tablet-device-bootstrap.js"
+          strategy="beforeInteractive"
+        />
         <Providers>{children}</Providers>
       </body>
     </html>

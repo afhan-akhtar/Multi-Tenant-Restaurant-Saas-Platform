@@ -192,6 +192,72 @@ async function main() {
     },
   });
 
+  const demoTabletToken = "demo-tablet-device-token";
+  await prisma.deviceToken.upsert({
+    where: {
+      tenantId_name: {
+        tenantId: tenant.id,
+        name: "Demo Table Tablet",
+      },
+    },
+    update: {
+      branchId: branch.id,
+      screenId: null,
+      deviceType: "TABLET",
+      status: "ACTIVE",
+      tokenHash: hashDeviceToken(demoTabletToken),
+    },
+    create: {
+      tenantId: tenant.id,
+      branchId: branch.id,
+      screenId: null,
+      name: "Demo Table Tablet",
+      deviceType: "TABLET",
+      status: "ACTIVE",
+      tokenHash: hashDeviceToken(demoTabletToken),
+    },
+  });
+
+  let waiterRole = await prisma.role.findFirst({
+    where: { tenantId: tenant.id, name: "Waiter" },
+  });
+  if (!waiterRole) {
+    waiterRole = await prisma.role.create({
+      data: {
+        tenantId: tenant.id,
+        name: "Waiter",
+      },
+    });
+  }
+
+  let waiterUser = await prisma.tenantAdmin.findFirst({
+    where: { tenantId: tenant.id, email: "waiter@demo.com" },
+  });
+  if (!waiterUser) {
+    const waiterPassword = await bcrypt.hash("waiter123", 12);
+    waiterUser = await prisma.tenantAdmin.create({
+      data: {
+        tenantId: tenant.id,
+        branchId: branch.id,
+        roleId: waiterRole.id,
+        name: "Floor Waiter",
+        email: "waiter@demo.com",
+        passwordHash: waiterPassword,
+        status: "ACTIVE",
+      },
+    });
+  }
+
+  const tabletPinHash = await bcrypt.hash("1234", 12);
+  await prisma.tenant.update({
+    where: { id: tenant.id },
+    data: {
+      tabletSettings: {
+        waiterPinHash: tabletPinHash,
+      },
+    },
+  });
+
   const productCount = await prisma.product.count({ where: { tenantId: tenant.id } });
   const addonCount = await prisma.addonGroup.count({ where: { tenantId: tenant.id } });
 
@@ -484,8 +550,8 @@ async function main() {
       graceDays: 5,
       sortOrder: 1,
       features: {
-        codes: ["POS", "REPORTS", "CASHBOOK", "TEAM_MANAGEMENT"],
-        items: ["POS system", "Reports", "Cashbook", "Team management"],
+        codes: ["POS", "TABLET", "REPORTS", "CASHBOOK", "TEAM_MANAGEMENT"],
+        items: ["POS system", "Tableside tablet", "Reports", "Cashbook", "Team management"],
       },
     },
     {
@@ -498,8 +564,8 @@ async function main() {
       graceDays: 7,
       sortOrder: 2,
       features: {
-        codes: ["POS", "ONLINE_PAYMENTS", "SPLIT_PAYMENTS", "KDS", "REPORTS", "Z_REPORTS", "CASHBOOK", "TEAM_MANAGEMENT", "LOYALTY"],
-        items: ["POS system", "Online payments", "Split payments", "Kitchen display system", "Reports", "Z-reports", "Cashbook", "Team management", "Loyalty program"],
+        codes: ["POS", "TABLET", "ONLINE_PAYMENTS", "SPLIT_PAYMENTS", "KDS", "REPORTS", "Z_REPORTS", "CASHBOOK", "TEAM_MANAGEMENT", "LOYALTY"],
+        items: ["POS system", "Tableside tablet", "Online payments", "Split payments", "Kitchen display system", "Reports", "Z-reports", "Cashbook", "Team management", "Loyalty program"],
       },
     },
     {
@@ -512,8 +578,8 @@ async function main() {
       graceDays: 10,
       sortOrder: 3,
       features: {
-        codes: ["POS", "ONLINE_PAYMENTS", "SPLIT_PAYMENTS", "KDS", "REPORTS", "Z_REPORTS", "CASHBOOK", "TEAM_MANAGEMENT", "LOYALTY", "CUSTOMER_SEGMENTS", "EMAIL_CAMPAIGNS", "MULTI_BRANCH"],
-        items: ["POS system", "Online payments", "Split payments", "Kitchen display system", "Reports", "Z-reports", "Cashbook", "Team management", "Loyalty program", "Customer segments", "Email campaigns", "Multi-branch operations"],
+        codes: ["POS", "TABLET", "ONLINE_PAYMENTS", "SPLIT_PAYMENTS", "KDS", "REPORTS", "Z_REPORTS", "CASHBOOK", "TEAM_MANAGEMENT", "LOYALTY", "CUSTOMER_SEGMENTS", "EMAIL_CAMPAIGNS", "MULTI_BRANCH"],
+        items: ["POS system", "Tableside tablet", "Online payments", "Split payments", "Kitchen display system", "Reports", "Z-reports", "Cashbook", "Team management", "Loyalty program", "Customer segments", "Email campaigns", "Multi-branch operations"],
       },
     },
   ];
@@ -724,6 +790,7 @@ async function main() {
   console.log("  Tenant admin: tenant@demo.com / tenant123 (subdomain: demo)");
   console.log(`  Device POS: /pos/${tenant.id}?token=${demoPosToken}`);
   console.log(`  Device KDS: /kds/${tenant.id}?token=${demoKdsToken}`);
+  console.log(`  Device TABLET: /tablet?token=${demoTabletToken}`);
 }
 
 main()

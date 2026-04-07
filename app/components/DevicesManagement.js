@@ -7,6 +7,7 @@ import ConfirmModal from "@/app/components/ConfirmModal";
 const DEVICE_TYPES = [
   { value: "POS", label: "POS Device" },
   { value: "KDS", label: "KDS Device" },
+  { value: "TABLET", label: "Tableside tablet" },
 ];
 
 const KDS_STATION_OPTIONS = [
@@ -73,6 +74,11 @@ export default function DevicesManagement({ devices: initialDevices, branches, s
     isDefault: false,
     isActive: true,
   });
+  const [waiterPinMeta, setWaiterPinMeta] = useState(null);
+  const [waiterPinNew, setWaiterPinNew] = useState("");
+  const [waiterPinConfirm, setWaiterPinConfirm] = useState("");
+  const [waiterPinSaving, setWaiterPinSaving] = useState(false);
+  const [waiterPinError, setWaiterPinError] = useState("");
 
   useEffect(() => {
     setDevices(initialDevices);
@@ -81,6 +87,42 @@ export default function DevicesManagement({ devices: initialDevices, branches, s
   useEffect(() => {
     setScreens(initialScreens);
   }, [initialScreens]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const response = await fetch("/api/devices/tablet-waiter-pin");
+        const data = await response.json().catch(() => ({}));
+        if (cancelled) return;
+        if (!response.ok) {
+          setWaiterPinMeta({ tabletFeatureAvailable: false, configured: false });
+          return;
+        }
+        setWaiterPinMeta({
+          tabletFeatureAvailable: Boolean(data.tabletFeatureAvailable),
+          configured: Boolean(data.configured),
+        });
+      } catch {
+        if (!cancelled) {
+          setWaiterPinMeta({ tabletFeatureAvailable: false, configured: false });
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const hasTabletDevice = useMemo(
+    () => devices.some((d) => d.deviceType === "TABLET"),
+    [devices]
+  );
+
+  const showWaiterPinCard =
+    hasTabletDevice ||
+    Boolean(waiterPinMeta?.configured) ||
+    Boolean(waiterPinMeta?.tabletFeatureAvailable);
 
   const availableScreenOptions = useMemo(
     () => buildScreenOptions(screens, deviceForm.branchId),
@@ -297,6 +339,66 @@ export default function DevicesManagement({ devices: initialDevices, branches, s
     }
   }
 
+  async function saveWaiterPin(event) {
+    event.preventDefault();
+    setWaiterPinError("");
+    if (waiterPinNew !== waiterPinConfirm) {
+      setWaiterPinError("PIN and confirmation do not match.");
+      return;
+    }
+    setWaiterPinSaving(true);
+    try {
+      const response = await fetch("/api/devices/tablet-waiter-pin", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pin: waiterPinNew.trim() }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setWaiterPinError(payload.error || "Could not save PIN.");
+        return;
+      }
+      setWaiterPinNew("");
+      setWaiterPinConfirm("");
+      setWaiterPinMeta((prev) =>
+        prev ? { ...prev, configured: Boolean(payload.configured) } : { tabletFeatureAvailable: true, configured: true }
+      );
+      router.refresh();
+    } catch {
+      setWaiterPinError("Something went wrong while saving the PIN.");
+    } finally {
+      setWaiterPinSaving(false);
+    }
+  }
+
+  async function clearWaiterPin() {
+    setWaiterPinError("");
+    if (!window.confirm("Remove the waiter PIN? Waiter mode will be unavailable until you set a new PIN.")) {
+      return;
+    }
+    setWaiterPinSaving(true);
+    try {
+      const response = await fetch("/api/devices/tablet-waiter-pin", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clear: true }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setWaiterPinError(payload.error || "Could not remove PIN.");
+        return;
+      }
+      setWaiterPinMeta((prev) =>
+        prev ? { ...prev, configured: Boolean(payload.configured) } : { tabletFeatureAvailable: true, configured: false }
+      );
+      router.refresh();
+    } catch {
+      setWaiterPinError("Something went wrong while removing the PIN.");
+    } finally {
+      setWaiterPinSaving(false);
+    }
+  }
+
   return (
     <div className="py-4 w-full min-w-0 space-y-8">
       <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -331,6 +433,90 @@ export default function DevicesManagement({ devices: initialDevices, branches, s
       </div>
 
       {error ? <div className="rounded-lg bg-red-500/10 px-4 py-3 text-sm text-red-600">{error}</div> : null}
+
+      {showWaiterPinCard ? (
+        <section className="space-y-3">
+          <div>
+            <h3 className="m-0 text-lg font-semibold text-color-text">Tableside waiter PIN</h3>
+            <p className="mt-1 text-sm text-color-text-muted">
+              One PIN for your restaurant. Staff enter it when they tap Waiter mode on tableside tablets (same PIN for
+              all TABLET device links).
+            </p>
+            {waiterPinMeta && !waiterPinMeta.tabletFeatureAvailable ? (
+              <p className="mt-2 text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                Your subscription may not include the tableside tablet add-on. If saving the PIN fails, check My
+                Subscription or contact support.
+              </p>
+            ) : null}
+          </div>
+          <div className="rounded-lg border border-color-border bg-color-card p-5 shadow-sm">
+            <div className="mb-4 flex flex-wrap items-center gap-2">
+              <span className="text-sm text-color-text-muted">Status:</span>
+              {waiterPinMeta == null ? (
+                <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-600">
+                  Checking…
+                </span>
+              ) : waiterPinMeta.configured ? (
+                <span className="inline-flex rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-800">
+                  PIN set
+                </span>
+              ) : (
+                <span className="inline-flex rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-900">
+                  Not set — waiter unlock is disabled
+                </span>
+              )}
+            </div>
+            <form onSubmit={saveWaiterPin} className="space-y-4 max-w-md">
+              <div>
+                <label className="mb-1 block text-sm font-medium text-color-text">New PIN (4–12 digits)</label>
+                <input
+                  type="password"
+                  inputMode="numeric"
+                  autoComplete="new-password"
+                  value={waiterPinNew}
+                  onChange={(e) => setWaiterPinNew(e.target.value.replace(/\D/g, "").slice(0, 12))}
+                  className="w-full rounded-lg border border-color-border bg-white px-3 py-2 text-color-text"
+                  placeholder="••••"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium text-color-text">Confirm PIN</label>
+                <input
+                  type="password"
+                  inputMode="numeric"
+                  autoComplete="new-password"
+                  value={waiterPinConfirm}
+                  onChange={(e) => setWaiterPinConfirm(e.target.value.replace(/\D/g, "").slice(0, 12))}
+                  className="w-full rounded-lg border border-color-border bg-white px-3 py-2 text-color-text"
+                  placeholder="••••"
+                />
+              </div>
+              {waiterPinError ? (
+                <div className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-600">{waiterPinError}</div>
+              ) : null}
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="submit"
+                  disabled={waiterPinSaving || waiterPinNew.length < 4}
+                  className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {waiterPinSaving ? "Saving…" : "Save PIN"}
+                </button>
+                {waiterPinMeta?.configured ? (
+                  <button
+                    type="button"
+                    disabled={waiterPinSaving}
+                    onClick={clearWaiterPin}
+                    className="rounded-lg border border-color-border bg-white px-4 py-2 text-sm font-medium text-color-text hover:bg-color-bg disabled:opacity-50"
+                  >
+                    Remove PIN
+                  </button>
+                ) : null}
+              </div>
+            </form>
+          </div>
+        </section>
+      ) : null}
 
       <section className="space-y-4">
         <div>
@@ -412,7 +598,7 @@ export default function DevicesManagement({ devices: initialDevices, branches, s
           </div>
           {devices.length === 0 ? (
             <div className="px-6 py-8 text-center text-color-text-muted text-sm">
-              No devices yet. Create a POS or KDS device to generate a kiosk-ready link.
+              No devices yet. Create a POS, KDS, or tableside tablet device to generate a kiosk-ready link.
             </div>
           ) : null}
         </div>

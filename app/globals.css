@@ -23,6 +23,31 @@
   }
 }
 
+@layer utilities {
+  /* Full viewport on mobile: dvh accounts for browser chrome; vh fallback for older WebViews */
+  .min-h-dvh-safe {
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+  /* Extra bottom padding above home indicator / gesture bar */
+  .pb-nav-safe {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+  }
+  /*
+   * Status bar / notch: env() is correct on iOS with viewport-fit=cover.
+   * Many Android WebViews report 0 — min padding matches typical status bar (~24–32px).
+   */
+  .pt-notch-safe {
+    padding-top: constant(safe-area-inset-top);
+    /* ~32px fallback when WebView reports 0 (common on Android) */
+    padding-top: max(env(safe-area-inset-top, 0px), 2rem);
+  }
+  .px-nav-safe {
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
+  }
+}
+
 @keyframes toastIn {
   from {
     opacity: 0;

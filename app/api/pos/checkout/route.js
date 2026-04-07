@@ -11,6 +11,7 @@ import { encodeCashPaymentMeta } from "@/lib/receiptPayments";
 import { NextResponse } from "next/server";
 import { assertTenantFeatureAccess } from "@/lib/subscriptions";
 import { getRequestActor } from "@/lib/device-auth";
+import { verifyTabletWaiterSession } from "@/lib/tablet-waiter";
 import { getKDSOrderById } from "@/lib/kds";
 import { syncKdsItemsForOrder } from "@/lib/kds-routing";
 import { broadcastTenantKdsEvent } from "@/lib/realtime";
@@ -89,7 +90,7 @@ export async function POST(request) {
   let tenantIdForIdemp = null;
 
   try {
-    const actor = await getRequestActor(request, { allowedDeviceTypes: ["POS"] });
+    const actor = await getRequestActor(request, { allowedDeviceTypes: ["POS", "TABLET"] });
     if (!actor?.tenantId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -116,17 +117,30 @@ export async function POST(request) {
     const tenantId = actor.tenantId ?? null;
     tenantIdForIdemp = tenantId;
     const branchId = actor.branchId ?? null;
-    const staffId = actor.staffId ?? null;
+    let staffId = actor.staffId ?? null;
 
     if (!tenantId || !branchId) {
       return NextResponse.json({ error: "Restaurant context required" }, { status: 400 });
+    }
+
+    if (actor.deviceType === "TABLET") {
+      const waiterHeader = request.headers.get("x-tablet-waiter-session");
+      const waiterSession = verifyTabletWaiterSession(waiterHeader);
+      if (!waiterSession || waiterSession.tenantId !== tenantId) {
+        return NextResponse.json(
+          { error: "Waiter unlock required on tablet to process payments." },
+          { status: 403 }
+        );
+      }
+      staffId = waiterSession.staffId;
     }
 
     if (!staffId) {
       return NextResponse.json({ error: "No active staff member is linked to this POS device." }, { status: 400 });
     }
 
-    const posAccess = await assertTenantFeatureAccess(tenantId, "POS");
+    const featureCode = actor.deviceType === "TABLET" ? "TABLET" : "POS";
+    const posAccess = await assertTenantFeatureAccess(tenantId, featureCode);
     if (!posAccess.ok) {
       return NextResponse.json({ error: posAccess.error }, { status: posAccess.status });
     }

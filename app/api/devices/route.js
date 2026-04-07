@@ -43,7 +43,7 @@ export async function POST(request) {
       return NextResponse.json({ error: "Device name is required" }, { status: 400 });
     }
 
-    if (!["POS", "KDS"].includes(deviceType)) {
+    if (!["POS", "KDS", "TABLET"].includes(deviceType)) {
       return NextResponse.json({ error: "Invalid device type" }, { status: 400 });
     }
 

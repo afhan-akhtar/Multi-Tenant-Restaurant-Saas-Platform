@@ -147,7 +147,14 @@ export function getOrdersForColumn(orders, column, activeFilter = "ALL") {
   return columnOrders;
 }
 
-export function KDSOrderCard({ order, columnColor, compact = false, onStatusChange, onCancel }) {
+export function KDSOrderCard({
+  order,
+  columnColor,
+  compact = false,
+  readOnly = false,
+  onStatusChange,
+  onCancel,
+}) {
   const customerLine = customerPhoneUiLabel(order.customer);
   const tableName = order.table?.name || "";
   const typeLabel = order.orderType === "DINE_IN" ? (tableName || "Dine-in") : "Takeaway";
@@ -197,63 +204,74 @@ export function KDSOrderCard({ order, columnColor, compact = false, onStatusChan
           {typeLabel}
         </div>
 
-        <div className="space-y-2">
+        <div className={compact ? "space-y-2 text-slate-900" : "space-y-2"}>
           {order.orderItems?.map((item) => (
-            <div key={item.id} className="flex min-h-[36px] items-center justify-between gap-2 text-sm py-0.5">
+            <div
+              key={item.id}
+              className={`flex min-h-[36px] items-center justify-between gap-2 py-0.5 ${compact ? "text-sm text-slate-900" : "text-sm"}`}
+            >
               <span className="min-w-0 flex-1">
-                {item.quantity}x {item.productName}
+                {item.quantity}x {item.productName || item.name || "Item"}
               </span>
             </div>
           ))}
         </div>
 
-        <div className={compact ? "mt-4 flex flex-wrap gap-2 border-t border-slate-200 pt-3" : "mt-3 pt-2 border-t border-color-border flex gap-2 flex-wrap"}>
-          {columnColor === "#22c55e" && (
-            <>
+        {!readOnly && (
+          <div
+            className={
+              compact
+                ? "mt-4 flex flex-wrap gap-2 border-t border-slate-200 pt-3"
+                : "mt-3 pt-2 border-t border-color-border flex gap-2 flex-wrap"
+            }
+          >
+            {columnColor === "#22c55e" && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => onStatusChange?.(order.id, "PREPARING")}
+                  className={`${actionBase} bg-primary text-white hover:bg-primary-hover`}
+                >
+                  Start Cooking
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onCancel?.(order)}
+                  className={`${actionBase} bg-red-500 text-white hover:bg-red-600`}
+                >
+                  Cancel
+                </button>
+              </>
+            )}
+            {columnColor === "#e94560" && (
               <button
                 type="button"
-                onClick={() => onStatusChange?.(order.id, "PREPARING")}
-                className={`${actionBase} bg-primary text-white hover:bg-primary-hover`}
+                onClick={() => onStatusChange?.(order.id, "READY")}
+                className={`${actionBase} bg-[#3182ce] text-white hover:bg-[#2b6cb0]`}
               >
-                Start Cooking
+                Ready
               </button>
+            )}
+            {columnColor === "#3182ce" && (
               <button
                 type="button"
-                onClick={() => onCancel?.(order)}
-                className={`${actionBase} bg-red-500 text-white hover:bg-red-600`}
+                onClick={() => onStatusChange?.(order.id, "PACK")}
+                className={`${actionBase} bg-[#64748b] text-white hover:bg-[#475569]`}
               >
-                Cancel
+                Dispatch
               </button>
-            </>
-          )}
-          {columnColor === "#e94560" && (
-            <button
-              type="button"
-              onClick={() => onStatusChange?.(order.id, "READY")}
-              className={`${actionBase} bg-[#3182ce] text-white hover:bg-[#2b6cb0]`}
-            >
-              Ready
-            </button>
-          )}
-          {columnColor === "#3182ce" && (
-            <button
-              type="button"
-              onClick={() => onStatusChange?.(order.id, "PACK")}
-              className={`${actionBase} bg-[#64748b] text-white hover:bg-[#475569]`}
-            >
-              Dispatch
-            </button>
-          )}
-          {columnColor === "#64748b" && (
-            <button
-              type="button"
-              onClick={() => onStatusChange?.(order.id, "COMPLETED")}
-              className={`${actionBase} bg-[#22c55e] text-white hover:bg-[#16a34a]`}
-            >
-              Complete Order
-            </button>
-          )}
-        </div>
+            )}
+            {columnColor === "#64748b" && (
+              <button
+                type="button"
+                onClick={() => onStatusChange?.(order.id, "COMPLETED")}
+                className={`${actionBase} bg-[#22c55e] text-white hover:bg-[#16a34a]`}
+              >
+                Complete Order
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
