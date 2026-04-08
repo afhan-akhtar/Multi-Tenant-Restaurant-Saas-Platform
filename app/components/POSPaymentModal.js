@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import Spinner from "./Spinner";
 import StripePaymentSection from "./StripePaymentSection";
 import PayPalButtonsSection from "./PayPalButtonsSection";
 import { isOnline, queueOrder } from "@/lib/offline";
-import { getDeviceHeaders } from "@/lib/device-client";
+import { getDeviceHeaders, getTabletWaiterHeaders } from "@/lib/device-client";
 
 const METHODS = [
   { id: "CASH", label: "Cash", color: "#22c55e" },
@@ -44,6 +45,10 @@ export default function POSPaymentModal({
   customerLoyaltyBalance = 0,
   loyaltyCustomerWalkIn = true,
   deviceAuth = null,
+  /** Dine-in: send with checkout so the order is tied to the correct table (tablet POS). */
+  tableId = null,
+  /** TABLET: required by `/api/pos/checkout` when paying from a tablet device. */
+  waiterSession = null,
   onSuccess,
 }) {
   const [splits, setSplits] = useState([]);
@@ -79,6 +84,15 @@ export default function POSPaymentModal({
 
     closeModal();
   };
+
+  useEffect(() => {
+    if (!open) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [open]);
 
   useEffect(() => {
     if (!open) {
@@ -266,6 +280,9 @@ export default function POSPaymentModal({
     // Always send order number so offline sync keeps the same label (server uses it when provided).
     orderNumber,
     customerId: customerId || null,
+    ...(tableId != null && String(tableId).trim() !== "" && Number(tableId) > 0
+      ? { tableId: Number(tableId) }
+      : {}),
     splits: payload,
     discountAmount,
     redeemLoyaltyPoints: effectiveRedeem > 0 ? effectiveRedeem : 0,
@@ -302,6 +319,7 @@ export default function POSPaymentModal({
           headers: {
             "Content-Type": "application/json",
             ...getDeviceHeaders(deviceAuth),
+            ...getTabletWaiterHeaders(waiterSession),
           },
           body: JSON.stringify({
             ...checkoutPayload,
@@ -389,11 +407,15 @@ export default function POSPaymentModal({
 
   if (!open) return null;
 
+  /** Same markup as web POS; portaled to `document.body` so tablet/mobile shells with overflow/stacking do not clip it. */
+  const overlayClassName =
+    "fixed inset-0 z-[200] flex items-center justify-center bg-black/60 touch-manipulation pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))]";
+
   if (providerStep && providerContext) {
-    return (
-      <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4" onClick={handleClose}>
+    const onlineNode = (
+      <div className={overlayClassName} onClick={handleClose}>
         <div
-          className="bg-white rounded-xl max-w-[560px] w-full max-h-[90vh] overflow-hidden flex flex-col shadow-xl"
+          className="flex max-h-[min(90vh,100dvh)] w-full max-w-[560px] flex-col overflow-hidden rounded-xl bg-white shadow-xl"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="py-4 px-6 border-b border-color-border font-semibold text-[1.1rem]">
@@ -485,12 +507,13 @@ export default function POSPaymentModal({
         </div>
       </div>
     );
+    return typeof document !== "undefined" ? createPortal(onlineNode, document.body) : null;
   }
 
-  return (
-    <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4" onClick={handleClose}>
+  const paymentNode = (
+    <div className={overlayClassName} onClick={handleClose}>
       <div
-        className="bg-white rounded-xl max-w-[480px] w-full max-h-[90vh] overflow-hidden flex flex-col shadow-xl"
+        className="flex max-h-[min(90vh,100dvh)] w-full max-w-[480px] flex-col overflow-hidden rounded-xl bg-white text-color-text shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="py-4 px-6 border-b border-color-border font-semibold text-[1.1rem]">
@@ -571,12 +594,12 @@ export default function POSPaymentModal({
             </p>
           ) : null}
 
-          <div className="flex justify-between items-center mb-2">
-            <span className="text-sm font-medium">Split payments</span>
-            <div className="flex gap-2">
+          <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <span className="text-sm font-medium text-color-text">Split payments</span>
+            <div className="flex flex-wrap gap-2 sm:justify-end">
               <button
                 type="button"
-                className="py-1.5 px-3 text-sm rounded-lg border border-color-border bg-white hover:bg-color-bg"
+                className="py-1.5 px-3 text-sm rounded-lg border border-color-border bg-white text-color-text hover:bg-color-bg"
                 onClick={payFull}
               >
                 Pay full (Cash)
@@ -705,4 +728,6 @@ export default function POSPaymentModal({
       </div>
     </div>
   );
+
+  return typeof document !== "undefined" ? createPortal(paymentNode, document.body) : null;
 }

@@ -10,7 +10,7 @@ import { roundMoney } from "@/lib/payments/config";
 import { encodeCashPaymentMeta } from "@/lib/receiptPayments";
 import { NextResponse } from "next/server";
 import { assertTenantFeatureAccess } from "@/lib/subscriptions";
-import { getRequestActor } from "@/lib/device-auth";
+import { getRequestActor, resolveDeviceStaffId } from "@/lib/device-auth";
 import { verifyTabletWaiterSession } from "@/lib/tablet-waiter";
 import { getKDSOrderById } from "@/lib/kds";
 import { syncKdsItemsForOrder } from "@/lib/kds-routing";
@@ -126,13 +126,11 @@ export async function POST(request) {
     if (actor.deviceType === "TABLET") {
       const waiterHeader = request.headers.get("x-tablet-waiter-session");
       const waiterSession = verifyTabletWaiterSession(waiterHeader);
-      if (!waiterSession || waiterSession.tenantId !== tenantId) {
-        return NextResponse.json(
-          { error: "Waiter unlock required on tablet to process payments." },
-          { status: 403 }
-        );
+      if (waiterSession && waiterSession.tenantId === tenantId) {
+        staffId = waiterSession.staffId;
+      } else {
+        staffId = await resolveDeviceStaffId(tenantId, branchId);
       }
-      staffId = waiterSession.staffId;
     }
 
     if (!staffId) {

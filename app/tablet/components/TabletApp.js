@@ -1,7 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { useSearchParams } from "next/navigation";
+import { Receipt, printReceipt } from "@/app/components/Receipt";
 import KdsCancelOrderModal from "@/app/components/kds/KdsCancelOrderModal";
 import {
   KDS_COLUMNS,
@@ -12,7 +14,7 @@ import {
 import { getDeviceHeaders, getTabletWaiterHeaders } from "@/lib/device-client";
 import { formatEur } from "@/lib/currencyFormat";
 import { buildEscPosReceipt } from "../lib/escpos";
-import { drainTabletQueue, enqueueTabletAction } from "../lib/offline-queue";
+import POSPaymentModal from "@/app/components/POSPaymentModal";
 
 const CATEGORY_COLORS = ["#1a202c", "#3182ce", "#4299e1", "#48bb78", "#ed64a6", "#9f7aea", "#dd6b20"];
 
@@ -38,11 +40,15 @@ export default function TabletApp({ data, deviceAuth }) {
   const tables = data?.tables || [];
   const products = useMemo(() => data?.products || [], [data?.products]);
   const customers = useMemo(() => data?.customers || [], [data?.customers]);
+  const loyaltyEnabled = data?.loyaltyEnabled ?? false;
+  const loyaltySettings = data?.loyaltySettings ?? {};
 
   const walkIn = useMemo(
     () => customers.find((c) => c.name === "Walk-in") || customers[0],
     [customers]
   );
+  const loyaltyCustomerWalkIn =
+    String(walkIn?.email || "").toLowerCase() === "walkin@internal.local";
 
   const [view, setView] = useState("order"); // order | floor | waiter
   const [selectedCategoryId, setSelectedCategoryId] = useState(
@@ -76,6 +82,11 @@ export default function TabletApp({ data, deviceAuth }) {
   const [kdsCancelReason, setKdsCancelReason] = useState("");
   const [kdsCancelLoading, setKdsCancelLoading] = useState(false);
   const [kdsCancelError, setKdsCancelError] = useState("");
+  const [payModalOpen, setPayModalOpen] = useState(false);
+  const [orderSeq, setOrderSeq] = useState(() => data?.nextOrderNumber ?? 1);
+  const orderNumber = useMemo(() => `ORD${orderSeq}`, [orderSeq]);
+  const [lastReceipt, setLastReceipt] = useState(null);
+  const [receiptModalOpen, setReceiptModalOpen] = useState(false);
 
   const filteredProducts = useMemo(() => {
     if (!selectedCategoryId) return products;
@@ -229,6 +240,15 @@ export default function TabletApp({ data, deviceAuth }) {
   }, [refreshOrders, refreshTables]);
 
   useEffect(() => {
+    if (!receiptModalOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [receiptModalOpen]);
+
+  useEffect(() => {
     if (view === "kitchen") {
       refreshOrders();
     }
@@ -323,75 +343,35 @@ export default function TabletApp({ data, deviceAuth }) {
     });
   };
 
-  const placeOrder = async () => {
-    if (!selectedTableId || !cart.length) {
-      showToast("Select a table and add items.");
+  const openCheckout = () => {
+    if (!cart.length) {
+      showToast("Add items from the menu.");
       return;
     }
-    setBusy(true);
-    const body = {
-      items: cart.map((i) => ({
-        productId: i.productId,
-        productName: i.productName,
-        unitPrice: i.unitPrice,
-        taxRate: i.taxRate,
-        quantity: i.quantity,
-        addonTotal: i.addonTotal || 0,
-      })),
-      orderType: "DINE_IN",
-      tableId: selectedTableId,
-      customerId: walkIn?.id ?? null,
-    };
-
-    try {
-      if (!navigator.onLine) {
-        await enqueueTabletAction({ type: "order", body });
-        showToast("Saved offline — will sync when online.");
-        setCart([]);
-        return;
-      }
-      const res = await fetch("/api/tablet/order", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...deviceHeaders,
-        },
-        body: JSON.stringify(body),
-      });
-      const payload = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(payload.error || "Order failed");
-      showToast(`Sent ${payload.orderNumber}`);
-      setCart([]);
-      refreshOrders();
-    } catch (e) {
-      showToast(e.message || "Order failed");
-    } finally {
-      setBusy(false);
+    if (!selectedTableId) {
+      showToast("Select a table.");
+      return;
     }
+    setPayModalOpen(true);
   };
 
-  useEffect(() => {
-    if (typeof navigator === "undefined" || !navigator.onLine) return undefined;
-    const run = async () => {
-      await drainTabletQueue(async (row) => {
-        if (row.type === "order") {
-          const res = await fetch("/api/tablet/order", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              ...deviceHeaders,
-            },
-            body: JSON.stringify(row.body),
-          });
-          if (!res.ok) throw new Error("sync");
-        }
-      });
-    };
-    run();
-    const onOnline = () => run();
-    window.addEventListener("online", onOnline);
-    return () => window.removeEventListener("online", onOnline);
-  }, [deviceHeaders]);
+  const handlePaymentSuccess = (result) => {
+    setLastReceipt(result?.receipt ?? null);
+    if (result?.queued) {
+      showToast(`Order queued — will sync when online (${result.localOrderNumber})`);
+    } else {
+      const l = result?.loyalty;
+      const extra =
+        l && (l.pointsEarned > 0 || l.pointsRedeemed > 0)
+          ? ` · ${l.pointsEarned > 0 ? `+${l.pointsEarned} pts` : ""}${l.pointsEarned > 0 && l.pointsRedeemed > 0 ? ", " : ""}${l.pointsRedeemed > 0 ? `-${l.pointsRedeemed} pts` : ""}`
+          : "";
+      showToast(`Paid ${result?.orderNumber || "order"}${extra}`);
+    }
+    setCart([]);
+    setOrderSeq((s) => s + 1);
+    refreshOrders();
+    refreshTables();
+  };
 
   const unlockWaiter = async () => {
     setBusy(true);
@@ -425,57 +405,6 @@ export default function TabletApp({ data, deviceAuth }) {
     setWaiterSession(null);
     setView("order");
     showToast("Waiter mode locked.");
-  };
-
-  const payCash = async () => {
-    if (!waiterSession || !cart.length || !selectedTableId) {
-      showToast("Unlock waiter mode and add items to pay.");
-      return;
-    }
-    setBusy(true);
-    try {
-      const orderNumber = `ORD${Date.now() % 100000}`;
-      const subtotal = cart.reduce((s, i) => s + i.unitPrice * i.quantity, 0);
-      const taxAmount = subtotal * 0.1;
-      const grandTotal = subtotal + taxAmount;
-
-      const checkoutPayload = {
-        items: cart.map((i) => ({
-          productId: i.productId,
-          quantity: i.quantity,
-          addonItemIds: Array.isArray(i.addons) ? i.addons.map((a) => a.id) : [],
-        })),
-        orderType: "DINE_IN",
-        orderNumber,
-        customerId: walkIn?.id ?? null,
-        tableId: selectedTableId,
-        splits: [{ method: "CASH", type: "amount", value: grandTotal }],
-        discountAmount: 0,
-        redeemLoyaltyPoints: 0,
-        cashTenderedAmount: grandTotal,
-        changeGiven: 0,
-      };
-
-      const res = await fetch("/api/pos/checkout", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...deviceHeaders,
-          ...waiterHeaders,
-        },
-        body: JSON.stringify(checkoutPayload),
-      });
-      const payload = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(payload.error || "Checkout failed");
-      showToast(`Paid ${payload.orderNumber}`);
-      setCart([]);
-      refreshOrders();
-      refreshTables();
-    } catch (e) {
-      showToast(e.message || "Checkout failed");
-    } finally {
-      setBusy(false);
-    }
   };
 
   const mergeTables = async () => {
@@ -571,8 +500,18 @@ export default function TabletApp({ data, deviceAuth }) {
     }
   };
 
-  const printLast = (receipt) => {
-    const raw = buildEscPosReceipt(receipt);
+  const printThermalOrCopy = (receipt) => {
+    if (!receipt) return;
+    const raw = buildEscPosReceipt({
+      tenantName: receipt.tenantName,
+      orderNumber: receipt.orderNumber,
+      grandTotal: receipt.grandTotal,
+      items: (receipt.items || []).map((it) => ({
+        qty: it.qty,
+        name: it.name,
+        total: it.total,
+      })),
+    });
     if (typeof window !== "undefined" && window.Capacitor?.Plugins?.Printer) {
       window.Capacitor.Plugins.Printer.print({ data: raw }).catch(() =>
         showToast("Printer plugin not available")
@@ -580,7 +519,15 @@ export default function TabletApp({ data, deviceAuth }) {
       return;
     }
     void navigator.clipboard?.writeText(raw);
-    showToast("Receipt copied (ESC/POS). Connect a printer plugin for Bluetooth/network.");
+    showToast("Receipt copied (ESC/POS text). Connect a printer plugin for Bluetooth/network.");
+  };
+
+  const handlePrintReceiptBrowser = () => {
+    if (!lastReceipt) {
+      showToast("No receipt yet — complete a payment first.");
+      return;
+    }
+    printReceipt(lastReceipt);
   };
 
   const floorTables = tablesLive.length ? tablesLive : tables;
@@ -785,20 +732,43 @@ export default function TabletApp({ data, deviceAuth }) {
                 <button
                   type="button"
                   disabled={busy}
-                  onClick={placeOrder}
+                  onClick={openCheckout}
                   className="w-full rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 py-4 text-base font-bold text-white shadow-lg shadow-emerald-900/30 disabled:opacity-50 min-h-[52px] active:scale-[0.99]"
                 >
-                  Send to kitchen
+                  Pay & send to kitchen
                 </button>
-                {waiterSession ? (
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={payCash}
-                    className="w-full rounded-xl border-2 border-slate-500 bg-slate-800/80 py-3.5 text-base font-semibold text-slate-100 min-h-[48px]"
-                  >
-                    Pay cash (waiter)
-                  </button>
+                <p className="text-center text-[11px] leading-snug text-slate-500">
+                  Kitchen gets the order after payment (same as web POS). Choose cash, card, or PayPal in the next step.
+                </p>
+                {lastReceipt ? (
+                  <div className="space-y-2 border-t border-slate-700/80 pt-3">
+                    <p className="text-center text-[10px] font-medium uppercase tracking-wide text-slate-500">
+                      Last sale
+                    </p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setReceiptModalOpen(true)}
+                        className="rounded-xl border border-slate-500 bg-slate-800/90 py-3 text-sm font-semibold text-white min-h-[48px] active:scale-[0.99]"
+                      >
+                        View receipt
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handlePrintReceiptBrowser}
+                        className="rounded-xl border border-slate-500 bg-slate-800/90 py-3 text-sm font-semibold text-white min-h-[48px] active:scale-[0.99]"
+                      >
+                        Print
+                      </button>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => printThermalOrCopy(lastReceipt)}
+                      className="w-full rounded-xl border border-slate-600 py-2.5 text-xs font-medium text-slate-300 min-h-[44px] active:bg-slate-800"
+                    >
+                      Thermal printer / copy text
+                    </button>
+                  </div>
                 ) : null}
               </div>
             </aside>
@@ -1025,7 +995,7 @@ export default function TabletApp({ data, deviceAuth }) {
                     <button
                       type="button"
                       onClick={() =>
-                        printLast({
+                        printThermalOrCopy({
                           tenantName: data?.tenantName || "Restaurant",
                           orderNumber: o.orderNumber,
                           items: (o.orderItems || []).map((i) => ({
@@ -1175,6 +1145,85 @@ export default function TabletApp({ data, deviceAuth }) {
           </div>
         </div>
       )}
+
+      {receiptModalOpen && lastReceipt && typeof document !== "undefined"
+        ? createPortal(
+            <div
+              className="fixed inset-0 z-[210] flex items-end justify-center bg-black/65 touch-manipulation sm:items-center sm:p-4"
+              style={{
+                paddingTop: "max(0.75rem, env(safe-area-inset-top))",
+                paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))",
+              }}
+              onClick={() => setReceiptModalOpen(false)}
+            >
+              <div
+                className="flex max-h-[min(92dvh,100dvh)] w-full max-w-lg flex-col overflow-hidden rounded-t-2xl bg-white text-black shadow-2xl sm:max-h-[90vh] sm:rounded-2xl"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-200 px-4 py-3">
+                  <h2 className="truncate text-lg font-semibold text-slate-900">Receipt</h2>
+                  <div className="flex shrink-0 items-center gap-2">
+                    {lastReceipt.receiptUrl ? (
+                      <a
+                        href={lastReceipt.receiptUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs font-medium text-[#3182ce] underline"
+                      >
+                        Full page
+                      </a>
+                    ) : null}
+                    <button
+                      type="button"
+                      onClick={() => setReceiptModalOpen(false)}
+                      className="rounded-lg px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100"
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
+                <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain bg-white">
+                  <Receipt receipt={lastReceipt} embedded />
+                </div>
+                <div className="flex shrink-0 flex-col gap-2 border-t border-slate-200 p-4 sm:flex-row sm:justify-end">
+                  <button
+                    type="button"
+                    onClick={() => printThermalOrCopy(lastReceipt)}
+                    className="order-2 rounded-xl border border-slate-300 bg-white py-3 text-sm font-semibold text-slate-800 min-h-[48px] sm:order-1 sm:px-4"
+                  >
+                    Thermal / copy text
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => printReceipt(lastReceipt)}
+                    className="order-1 rounded-xl bg-[#e94560] py-3 text-sm font-semibold text-white min-h-[48px] sm:order-2 sm:px-6"
+                  >
+                    Print
+                  </button>
+                </div>
+              </div>
+            </div>,
+            document.body
+          )
+        : null}
+
+      <POSPaymentModal
+        open={payModalOpen}
+        onClose={() => setPayModalOpen(false)}
+        grandTotal={cartTotal}
+        cart={cart}
+        orderNumber={orderNumber}
+        orderType="DINE_IN"
+        customerId={walkIn?.id ?? null}
+        loyaltyEnabled={loyaltyEnabled}
+        loyaltySettings={loyaltySettings}
+        customerLoyaltyBalance={walkIn?.loyaltyPoints ?? 0}
+        loyaltyCustomerWalkIn={loyaltyCustomerWalkIn}
+        deviceAuth={deviceAuth}
+        tableId={selectedTableId}
+        waiterSession={waiterSession}
+        onSuccess={handlePaymentSuccess}
+      />
 
       <KdsCancelOrderModal
         open={kdsCancelModal.open}
