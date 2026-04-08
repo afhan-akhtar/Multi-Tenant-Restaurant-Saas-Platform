@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
 import { assertTenantFeatureAccess } from "@/lib/subscriptions";
 import { getRequestActor, resolveDeviceStaffId } from "@/lib/device-auth";
 import { createDineInOrder } from "@/lib/dine-in-order";
@@ -37,13 +36,6 @@ export async function POST(request) {
       clientOrderNumber,
       lineItemStatus: "OPEN",
     });
-
-    await prisma.diningTable
-      .updateMany({
-        where: { id: order.tableId, tenantId },
-        data: { status: "OCCUPIED" },
-      })
-      .catch(() => {});
 
     return NextResponse.json({ order, orderNumber, kdsOrder });
   } catch (err) {

@@ -6,6 +6,7 @@ import { getTabletWaiterFromRequest, assertWaiterStaff } from "@/lib/tablet-wait
 import { syncOrderKdsItemStatus } from "@/lib/kds-routing";
 import { getKDSOrderById } from "@/lib/kds";
 import { broadcastTenantKdsEvent } from "@/lib/realtime";
+import { syncDiningTableAvailabilityForTable } from "@/lib/dining-table-availability";
 
 export async function POST(request) {
   try {
@@ -59,24 +60,7 @@ export async function POST(request) {
 
     await syncOrderKdsItemStatus(orderId, "COMPLETED");
 
-    const otherOpen = await prisma.order.count({
-      where: {
-        tenantId: actor.tenantId,
-        tableId: order.tableId,
-        id: { not: orderId },
-        status: { notIn: ["COMPLETED", "CANCELLED", "REFUNDED"] },
-      },
-    });
-
-    if (otherOpen === 0) {
-      await prisma.diningTable.updateMany({
-        where: {
-          id: order.tableId,
-          tenantId: actor.tenantId,
-        },
-        data: { status: "AVAILABLE" },
-      });
-    }
+    await syncDiningTableAvailabilityForTable(actor.tenantId, order.tableId);
 
     const kdsOrder = await getKDSOrderById(actor.tenantId, orderId);
     if (kdsOrder) {

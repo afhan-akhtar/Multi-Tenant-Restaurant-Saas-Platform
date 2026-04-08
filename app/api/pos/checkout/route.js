@@ -21,6 +21,7 @@ import {
   computeRedemption,
   getTenantLoyaltySettings,
 } from "@/lib/loyalty";
+import { markDiningTableOccupied } from "@/lib/dining-table-availability";
 
 function toNum(d) {
   return d ? Number(d) : 0;
@@ -408,6 +409,8 @@ export async function POST(request) {
       }
     }
 
+    const resolvedCheckoutOrderType = orderType === "TAKEAWAY" ? "TAKEAWAY" : "DINE_IN";
+
     const order = await prisma.order.create({
       data: {
         tenantId,
@@ -417,7 +420,7 @@ export async function POST(request) {
         customerId: customer.id,
         orderNumber,
         offlineCheckoutId: offlineCheckoutIdForIdemp.length >= 8 ? offlineCheckoutIdForIdemp : null,
-        orderType: orderType === "TAKEAWAY" ? "TAKEAWAY" : "DINE_IN",
+        orderType: resolvedCheckoutOrderType,
         status: "CONFIRMED",
         subtotal,
         taxAmount,
@@ -434,6 +437,10 @@ export async function POST(request) {
       },
       include: { orderItems: true },
     });
+
+    if (resolvedCheckoutOrderType === "DINE_IN") {
+      await markDiningTableOccupied(tenantId, table.id);
+    }
 
     await syncKdsItemsForOrder({
       orderId: order.id,

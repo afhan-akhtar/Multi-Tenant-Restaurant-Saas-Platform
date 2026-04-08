@@ -6,6 +6,7 @@ import { getRequestActor } from "@/lib/device-auth";
 import { getKDSOrderById } from "@/lib/kds";
 import { syncOrderKdsItemStatus } from "@/lib/kds-routing";
 import { broadcastTenantKdsEvent } from "@/lib/realtime";
+import { syncDiningTableAvailabilityForTable } from "@/lib/dining-table-availability";
 
 const ALLOWED_STATUSES = ["CONFIRMED", "PREPARING", "READY", "PACK", "COMPLETED"];
 
@@ -58,6 +59,10 @@ export async function PATCH(request) {
       data: { status },
     });
     await syncOrderKdsItemStatus(orderId, status);
+
+    if (status === "COMPLETED") {
+      await syncDiningTableAvailabilityForTable(tenantId, order.tableId);
+    }
 
     const updatedOrder = await getKDSOrderById(tenantId, orderId);
     if (updatedOrder) {
