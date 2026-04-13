@@ -1,6 +1,6 @@
 import { getToken } from "next-auth/jwt";
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { platformPrisma } from "@/lib/platform-db";
 import { assignSubscriptionToTenant } from "@/lib/subscriptions";
 
 export async function PATCH(request, { params }) {
@@ -27,7 +27,7 @@ export async function PATCH(request, { params }) {
       return NextResponse.json({ error: "Invalid action." }, { status: 400 });
     }
 
-    const changeRequest = await prisma.subscriptionPlanChangeRequest.findUnique({
+    const changeRequest = await platformPrisma.subscriptionPlanChangeRequest.findUnique({
       where: { id },
       include: {
         tenant: true,
@@ -49,7 +49,7 @@ export async function PATCH(request, { params }) {
     const nextStatus =
       action === "approve" ? "APPROVED" : action === "reject" ? "REJECTED" : "CANCELLED";
 
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await platformPrisma.$transaction(async (tx) => {
       let subscription = null;
 
       if (action === "approve") {

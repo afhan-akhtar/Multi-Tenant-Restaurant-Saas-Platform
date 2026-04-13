@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/db";
+import { getTenantPrisma } from "@/lib/tenant-db";
 import { verifyPassword } from "@/lib/password";
 
 export async function GET() {

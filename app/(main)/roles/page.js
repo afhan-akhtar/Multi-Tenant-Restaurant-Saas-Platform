@@ -1,5 +1,5 @@
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/db";
+import { getTenantPrisma } from "@/lib/tenant-db";
 import { redirect } from "next/navigation";
 
 export default async function RolesPage() {
@@ -8,6 +8,8 @@ export default async function RolesPage() {
 
   const tenantId = session.user?.tenantId ?? null;
   if (!tenantId) return <div className="py-4 w-full min-w-0"><p>Restaurant context required.</p></div>;
+
+  const prisma = await getTenantPrisma(tenantId);
 
   const roles = await prisma.role.findMany({
     where: { tenantId },

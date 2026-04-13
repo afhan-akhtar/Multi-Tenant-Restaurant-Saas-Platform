@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/db";
+import { getTenantPrisma } from "@/lib/tenant-db";
+import { listAllTenantAdmins } from "@/lib/tenant-staff-list";
 import { redirect } from "next/navigation";
 
 export default async function UsersPage() {
@@ -11,17 +12,15 @@ export default async function UsersPage() {
 
   let staff = [];
   if (tenantId) {
+    const prisma = await getTenantPrisma(tenantId);
     staff = await prisma.tenantAdmin.findMany({
       where: { tenantId },
       include: { role: true, branch: true },
       orderBy: { name: "asc" },
     });
   } else if (isSuperAdmin) {
-    staff = await prisma.tenantAdmin.findMany({
-      include: { role: true, branch: true, tenant: true },
-      orderBy: { name: "asc" },
-      take: 50,
-    });
+    const all = await listAllTenantAdmins();
+    staff = all.slice(0, 50);
   }
 
   return (

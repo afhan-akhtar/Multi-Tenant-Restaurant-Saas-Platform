@@ -1,5 +1,5 @@
 import { getToken } from "next-auth/jwt";
-import { prisma } from "@/lib/db";
+import { getTenantPrisma } from "@/lib/tenant-db";
 import { NextResponse } from "next/server";
 import JSZip from "jszip";
 

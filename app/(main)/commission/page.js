@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/db";
+import { platformPrisma } from "@/lib/platform-db";
+import { getRevenueByTenantFromOrders } from "@/lib/cross-tenant-aggregates";
 import { redirect } from "next/navigation";
 import CommissionClient from "@/app/components/CommissionClient";
 
@@ -9,34 +10,21 @@ export default async function CommissionPage() {
   const session = await auth();
   if (!session || session.user?.type !== "super_admin") redirect("/");
 
-  const [plans, subscriptions, tenantRevenue] = await Promise.all([
-    prisma.subscriptionPlan.findMany({
+  const [plans, subscriptions, revenueByTenant] = await Promise.all([
+    platformPrisma.subscriptionPlan.findMany({
       orderBy: { name: "asc" },
       include: { _count: { select: { tenantSubscriptions: true } } },
     }),
-    prisma.tenantSubscription.findMany({
+    platformPrisma.tenantSubscription.findMany({
       where: { status: "ACTIVE" },
       include: { tenant: true, plan: true },
       orderBy: { startDate: "desc" },
     }),
-    prisma.order.groupBy({
-      by: ["tenantId"],
-      where: { status: "COMPLETED" },
-      _sum: { grandTotal: true },
-      _count: true,
-    }),
+    getRevenueByTenantFromOrders(),
   ]);
 
-  const revenueByTenant = {};
-  tenantRevenue.forEach((r) => {
-    revenueByTenant[r.tenantId] = {
-      revenue: Number(r._sum.grandTotal || 0),
-      orderCount: r._count,
-    };
-  });
-
   const tenantIds = [...new Set(subscriptions.map((s) => s.tenantId))];
-  const tenants = await prisma.tenant.findMany({
+  const tenants = await platformPrisma.tenant.findMany({
     where: { id: { in: tenantIds } },
     select: { id: true, name: true, subdomain: true },
   });

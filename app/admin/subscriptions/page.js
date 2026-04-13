@@ -1,5 +1,5 @@
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/db";
+import { platformPrisma } from "@/lib/platform-db";
 import { redirect } from "next/navigation";
 import SubscriptionsManagement from "@/app/components/SubscriptionsManagement";
 import { buildPlanFeatures } from "@/lib/subscriptionPlans";
@@ -11,14 +11,14 @@ export default async function AdminSubscriptionsPage() {
   const session = await auth();
   if (!session || session.user?.type !== "super_admin") redirect("/admin");
 
-  await runSubscriptionBillingCycle(prisma);
+  await runSubscriptionBillingCycle(platformPrisma);
 
   const [plans, subscriptions, tenants, planChangeRequests] = await Promise.all([
-    prisma.subscriptionPlan.findMany({
+    platformPrisma.subscriptionPlan.findMany({
       orderBy: [{ sortOrder: "asc" }, { monthlyPrice: "asc" }],
       include: { _count: { select: { tenantSubscriptions: true } } },
     }),
-    prisma.tenantSubscription.findMany({
+    platformPrisma.tenantSubscription.findMany({
       include: {
         tenant: true,
         plan: true,
@@ -33,12 +33,12 @@ export default async function AdminSubscriptionsPage() {
       },
       orderBy: [{ endDate: "desc" }, { createdAt: "desc" }],
     }),
-    prisma.tenant.findMany({
+    platformPrisma.tenant.findMany({
       where: { status: "ACTIVE" },
       orderBy: { name: "asc" },
       select: { id: true, name: true, subdomain: true },
     }),
-    prisma.subscriptionPlanChangeRequest.findMany({
+    platformPrisma.subscriptionPlanChangeRequest.findMany({
       include: {
         tenant: { select: { id: true, name: true, subdomain: true } },
         requestedPlan: true,

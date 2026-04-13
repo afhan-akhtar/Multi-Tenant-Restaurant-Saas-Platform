@@ -1,6 +1,6 @@
 import { getToken } from "next-auth/jwt";
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { platformPrisma } from "@/lib/platform-db";
 import { parsePlanPayload } from "@/lib/subscriptionPlans";
 
 // POST /api/admin/plans - Create subscription plan (Super Admin only)
@@ -53,7 +53,7 @@ export async function POST(req) {
       );
     }
 
-    const plan = await prisma.subscriptionPlan.create({
+    const plan = await platformPrisma.subscriptionPlan.create({
       data: {
         code,
         name: name.trim(),

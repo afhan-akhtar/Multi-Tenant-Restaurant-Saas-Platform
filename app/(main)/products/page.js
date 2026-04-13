@@ -1,5 +1,5 @@
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/db";
+import { getTenantPrisma } from "@/lib/tenant-db";
 import { redirect } from "next/navigation";
 import ProductsManagement from "@/app/components/ProductsManagement";
 
@@ -10,16 +10,23 @@ export default async function ProductsPage() {
   if (!session) redirect("/login");
 
   const tenantId = session.user?.tenantId ?? null;
-  const where = tenantId ? { tenantId } : {};
+  if (!tenantId) {
+    return (
+      <div className="py-4 w-full min-w-0">
+        <p className="text-color-text-muted">Restaurant context required.</p>
+      </div>
+    );
+  }
 
+  const prisma = await getTenantPrisma(tenantId);
   const [productsRaw, categories] = await Promise.all([
     prisma.product.findMany({
-      where,
+      where: { tenantId },
       include: { category: true },
       orderBy: [{ category: { name: "asc" } }, { name: "asc" }],
     }),
     prisma.category.findMany({
-      where: tenantId ? { tenantId } : {},
+      where: { tenantId },
       orderBy: { name: "asc" },
     }),
   ]);

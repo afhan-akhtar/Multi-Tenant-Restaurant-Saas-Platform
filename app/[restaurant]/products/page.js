@@ -1,5 +1,5 @@
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/db";
+import { getTenantPrisma } from "@/lib/tenant-db";
 import { redirect } from "next/navigation";
 import ProductsManagement from "@/app/components/ProductsManagement";
 

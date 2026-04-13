@@ -1,5 +1,5 @@
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/db";
+import { platformPrisma } from "@/lib/platform-db";
 import { redirect } from "next/navigation";
 import CommissionClient from "@/app/components/CommissionClient";
 import { runSubscriptionBillingCycle, serializeSubscription } from "@/lib/subscriptions";
@@ -10,14 +10,14 @@ export default async function AdminCommissionPage() {
   const session = await auth();
   if (!session || session.user?.type !== "super_admin") redirect("/admin");
 
-  await runSubscriptionBillingCycle(prisma);
+  await runSubscriptionBillingCycle(platformPrisma);
 
   const [plans, subscriptions, invoices] = await Promise.all([
-    prisma.subscriptionPlan.findMany({
+    platformPrisma.subscriptionPlan.findMany({
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
       include: { _count: { select: { tenantSubscriptions: true } } },
     }),
-    prisma.tenantSubscription.findMany({
+    platformPrisma.tenantSubscription.findMany({
       include: {
         tenant: true,
         plan: true,
@@ -32,7 +32,7 @@ export default async function AdminCommissionPage() {
       },
       orderBy: [{ endDate: "desc" }, { createdAt: "desc" }],
     }),
-    prisma.billingInvoice.findMany({
+    platformPrisma.billingInvoice.findMany({
       include: {
         tenant: true,
         plan: true,

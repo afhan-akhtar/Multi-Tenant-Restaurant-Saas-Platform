@@ -1,16 +1,12 @@
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/db";
+import { getMergedAuditLogs } from "@/lib/cross-tenant-aggregates";
 import { redirect } from "next/navigation";
 
 export default async function LogsPage() {
   const session = await auth();
   if (!session || session.user?.type !== "super_admin") redirect("/");
 
-  const logs = await prisma.auditLog.findMany({
-    include: { tenantAdmin: true, tenant: true },
-    orderBy: { createdAt: "desc" },
-    take: 100,
-  });
+  const logs = await getMergedAuditLogs(100);
 
   return (
     <div className="py-4 w-full min-w-0">
@@ -29,7 +25,7 @@ export default async function LogsPage() {
             </thead>
             <tbody>
               {logs.map((l) => (
-                <tr key={l.id} className="border-b border-slate-100 last:border-0">
+                <tr key={l._tenantKey} className="border-b border-slate-100 last:border-0">
                   <td className="py-3 px-4 text-color-text-muted">
                     {new Date(l.createdAt).toLocaleString()}
                   </td>

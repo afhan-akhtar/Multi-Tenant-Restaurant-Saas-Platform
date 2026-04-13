@@ -1,6 +1,6 @@
 import { getToken } from "next-auth/jwt";
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { platformPrisma } from "@/lib/platform-db";
 import { parsePlanPayload } from "@/lib/subscriptionPlans";
 
 async function requireSuperAdmin(req) {
@@ -59,7 +59,7 @@ export async function PATCH(req, { params }) {
       );
     }
 
-    const plan = await prisma.subscriptionPlan.update({
+    const plan = await platformPrisma.subscriptionPlan.update({
       where: { id },
       data: {
         code,
@@ -105,7 +105,7 @@ export async function DELETE(req, { params }) {
       return NextResponse.json({ error: "Invalid plan." }, { status: 400 });
     }
 
-    const activeSubscriptions = await prisma.tenantSubscription.count({
+    const activeSubscriptions = await platformPrisma.tenantSubscription.count({
       where: { planId: id, status: { in: ["TRIALING", "ACTIVE", "GRACE_PERIOD", "PAST_DUE"] } },
     });
 
@@ -116,7 +116,7 @@ export async function DELETE(req, { params }) {
       );
     }
 
-    await prisma.subscriptionPlan.delete({
+    await platformPrisma.subscriptionPlan.delete({
       where: { id },
     });
 

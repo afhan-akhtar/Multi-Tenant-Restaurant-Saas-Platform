@@ -1,5 +1,5 @@
 import { getToken } from "next-auth/jwt";
-import { prisma } from "@/lib/db";
+import { getTenantPrisma } from "@/lib/tenant-db";
 import { recordWithdrawal } from "@/lib/cashbook";
 import { signAndStoreCashbook } from "@/lib/tse/db";
 import { TSE_TYPES } from "@/lib/tse/db";

@@ -1,5 +1,5 @@
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/db";
+import { getTenantPrisma } from "@/lib/tenant-db";
 import { formatEur } from "@/lib/currencyFormat";
 import { redirect } from "next/navigation";
 import CashbookClient from "@/app/components/CashbookClient";

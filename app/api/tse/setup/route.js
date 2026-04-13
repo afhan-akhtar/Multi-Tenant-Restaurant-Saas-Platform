@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { setupFiskalyTSS } from "@/lib/tse/fiskalySetup";
-import { prisma } from "@/lib/db";
+import { getTenantPrisma } from "@/lib/tenant-db";
+import { platformPrisma } from "@/lib/platform-db";
 
 /**
  * POST /api/tse/setup
@@ -25,10 +26,12 @@ export async function POST(req) {
     const result = await setupFiskalyTSS(key, secret, { serialNumber: serialNumber || "pos-1" });
 
     if (tenantId) {
-      await prisma.tenantFiskalyConfig.upsert({
-        where: { tenantId: Number(tenantId) },
+      const tid = Number(tenantId);
+      const tp = await getTenantPrisma(tid);
+      await tp.tenantFiskalyConfig.upsert({
+        where: { tenantId: tid },
         create: {
-          tenantId: Number(tenantId),
+          tenantId: tid,
           apiKey: key,
           apiSecret: secret,
           tssId: result.tssId,
@@ -44,7 +47,7 @@ export async function POST(req) {
         },
       });
     } else {
-      await prisma.fiskalyPlatformConfig.upsert({
+      await platformPrisma.fiskalyPlatformConfig.upsert({
         where: { apiKey: key },
         create: {
           apiKey: key,
@@ -63,7 +66,6 @@ export async function POST(req) {
     return NextResponse.json({
       ...result,
       saved: !!tenantId,
-      // Don't expose adminPin in response if not needed
       adminPin: result.adminPin ? "<set>" : undefined,
     });
   } catch (err) {

@@ -1,5 +1,5 @@
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/db";
+import { getTenantPrisma } from "@/lib/tenant-db";
 import { redirect } from "next/navigation";
 import CategoriesManagement from "@/app/components/CategoriesManagement";
 
@@ -12,6 +12,7 @@ export default async function CategoriesPage() {
   const tenantId = session.user?.tenantId ?? null;
   if (!tenantId) return <div className="py-4 w-full min-w-0"><p>Restaurant context required.</p></div>;
 
+  const prisma = await getTenantPrisma(tenantId);
   const categories = await prisma.category.findMany({
     where: { tenantId },
     include: { _count: { select: { products: true } }, parent: true },

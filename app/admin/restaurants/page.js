@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/db";
+import { getTenantsWithOperationalCounts } from "@/lib/tenant-list-with-counts";
 import { redirect } from "next/navigation";
 import RestaurantsManagement from "@/app/components/RestaurantsManagement";
 
@@ -10,10 +10,7 @@ export default async function AdminRestaurantsPage() {
   const session = await auth();
   if (!session || session.user?.type !== "super_admin") redirect("/admin");
 
-  const tenants = await prisma.tenant.findMany({
-    orderBy: [{ status: "asc" }, { name: "asc" }],
-    include: { _count: { select: { orders: true, tenantAdmins: true } } },
-  });
+  const tenants = await getTenantsWithOperationalCounts();
 
   return (
     <Suspense fallback={<div className="py-8 text-color-text-muted">Loading…</div>}>

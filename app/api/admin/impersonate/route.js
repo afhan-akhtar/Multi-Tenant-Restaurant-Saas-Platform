@@ -1,6 +1,6 @@
 import { getToken } from "next-auth/jwt";
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { getTenantPrisma } from "@/lib/tenant-db";
 import crypto from "crypto";
 import { buildTenantUrl } from "@/lib/tenant-url";
 
@@ -16,14 +16,19 @@ export async function POST(req) {
     }
 
     const body = await req.json();
-    const { staffId } = body;
+    const staffId = Number(body?.staffId);
+    const tenantId = Number(body?.tenantId);
 
-    if (!staffId) {
-      return NextResponse.json({ error: "Tenant admin ID required." }, { status: 400 });
+    if (!staffId || !tenantId) {
+      return NextResponse.json(
+        { error: "Tenant ID and tenant admin ID are required." },
+        { status: 400 }
+      );
     }
 
-    const staff = await prisma.tenantAdmin.findUnique({
-      where: { id: Number(staffId), status: "ACTIVE" },
+    const tenantPrisma = await getTenantPrisma(tenantId);
+    const staff = await tenantPrisma.tenantAdmin.findUnique({
+      where: { id: staffId, status: "ACTIVE" },
       include: { role: true, tenant: true },
     });
 
@@ -33,6 +38,7 @@ export async function POST(req) {
 
     const payload = JSON.stringify({
       staffId: staff.id,
+      tenantId: staff.tenantId,
       exp: Date.now() + 5 * 60 * 1000,
     });
     const payloadB64 = Buffer.from(payload, "utf8").toString("base64url");

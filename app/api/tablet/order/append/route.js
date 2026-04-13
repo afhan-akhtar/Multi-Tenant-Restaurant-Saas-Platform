@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { getTenantPrisma } from "@/lib/tenant-db";
 import { getRequestActor } from "@/lib/device-auth";
 import { assertTenantFeatureAccess } from "@/lib/subscriptions";
 import { getTabletWaiterFromRequest, assertWaiterStaff } from "@/lib/tablet-waiter";
@@ -40,6 +40,7 @@ export async function POST(request) {
       return NextResponse.json({ error: "orderId and items required" }, { status: 400 });
     }
 
+    const prisma = await getTenantPrisma(actor.tenantId);
     const order = await prisma.order.findFirst({
       where: {
         id: orderId,
@@ -112,6 +113,7 @@ export async function POST(request) {
     });
 
     await syncKdsItemsForOrder({
+      tenantId: actor.tenantId,
       orderId: order.id,
       branchId: order.branchId,
       orderStatus: order.status,

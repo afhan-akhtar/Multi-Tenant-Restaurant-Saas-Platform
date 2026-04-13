@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/db";
+import { platformPrisma } from "@/lib/platform-db";
 import DashboardLayout from "@/app/components/DashboardLayout";
 import { buildTenantUrl } from "@/lib/tenant-url";
 
@@ -30,7 +30,7 @@ export default async function MainLayout({ children }) {
 
   let pendingTenantCount = 0;
   if (session.user?.type === "super_admin") {
-    pendingTenantCount = await prisma.tenant.count({ where: { status: "PENDING" } });
+    pendingTenantCount = await platformPrisma.tenant.count({ where: { status: "PENDING" } });
   }
 
   return (

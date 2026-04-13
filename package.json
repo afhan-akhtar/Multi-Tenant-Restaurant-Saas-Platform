@@ -3,11 +3,16 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "prisma generate && node server.js",
-    "build": "prisma generate && next build",
+    "dev": "npm run db:generate && node server.js",
+    "build": "npm run db:generate && next build",
     "start": "node server.js",
     "lint": "next lint",
-    "db:seed": "node prisma/seed.js",
+    "db:generate": "prisma generate --schema=prisma/platform/schema.prisma && prisma generate --schema=prisma/tenant/schema.prisma --config prisma/tenant/prisma.config.ts",
+    "db:platform:push": "prisma db push --schema=prisma/platform/schema.prisma",
+    "db:seed": "node prisma/seed.mjs",
+    "db:provision-tenant": "node scripts/provision-tenant.mjs",
+    "studio:platform": "prisma studio --config=prisma.config.ts --port 5555",
+    "studio:tenant": "prisma studio --config=prisma/tenant/prisma.config.ts --port 5556",
     "cap:set-url": "node scripts/cap-set-dev-url.js",
     "cap:sync": "node scripts/cap-set-dev-url.js && npx cap sync",
     "cap:android": "node scripts/cap-set-dev-url.js && npx cap sync android && npx cap open android",
@@ -16,7 +21,7 @@
     "cap:ios:sim": "CAP_SERVER_HOST=127.0.0.1 node scripts/cap-set-dev-url.js && npx cap sync ios && npx cap open ios"
   },
   "prisma": {
-    "seed": "node prisma/seed.js"
+    "seed": "node prisma/seed.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.3.0",

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { getTenantPrisma } from "@/lib/tenant-db";
 import { getRequestActor } from "@/lib/device-auth";
 import { assertTenantFeatureAccess } from "@/lib/subscriptions";
 import { getKDSOrderById } from "@/lib/kds";
@@ -21,6 +21,7 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url);
     const tableId = searchParams.get("tableId") ? Number(searchParams.get("tableId")) : null;
 
+    const prisma = await getTenantPrisma(actor.tenantId);
     const orders = await prisma.order.findMany({
       where: {
         tenantId: actor.tenantId,

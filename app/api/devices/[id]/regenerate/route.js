@@ -8,7 +8,7 @@ import {
   getAbsoluteDeviceUrl,
   hashDeviceToken,
 } from "@/lib/device-auth";
-import { prisma } from "@/lib/db";
+import { getTenantPrisma } from "@/lib/tenant-db";
 
 function parseId(value) {
   const id = Number.parseInt(String(value || ""), 10);
@@ -27,6 +27,7 @@ export async function POST(request, { params }) {
       return NextResponse.json({ error: "Device ID is required" }, { status: 400 });
     }
 
+    const prisma = await getTenantPrisma(actor.tenantId);
     const existing = await prisma.deviceToken.findFirst({
       where: {
         id,

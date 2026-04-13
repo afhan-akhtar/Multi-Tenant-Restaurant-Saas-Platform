@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/db";
+import { getTenantPrisma } from "@/lib/tenant-db";
 import { notFound } from "next/navigation";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
@@ -19,6 +19,8 @@ export default async function StornoReceiptPage({ params, searchParams }) {
   if (!allowedTenantId) notFound();
 
   if (receiptAccess?.orderId && receiptAccess.orderId !== id) notFound();
+
+  const prisma = await getTenantPrisma(allowedTenantId);
 
   const tsePk = Number.parseInt(String(searchParams?.tse || ""), 10);
   const cancelWhere = {

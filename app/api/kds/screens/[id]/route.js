@@ -4,7 +4,7 @@ import {
   requireTenantStaffActor,
   serializeKdsScreen,
 } from "@/lib/devices";
-import { prisma } from "@/lib/db";
+import { getTenantPrisma } from "@/lib/tenant-db";
 
 const ALLOWED_STATION_TYPES = ["MAIN", "EXPEDITOR", "GRILL", "FRYER", "DRINKS", "PACKING", "DESSERT", "CUSTOM"];
 
@@ -25,6 +25,7 @@ export async function PATCH(request, { params }) {
       return NextResponse.json({ error: "Screen ID is required" }, { status: 400 });
     }
 
+    const prisma = await getTenantPrisma(actor.tenantId);
     const existing = await prisma.kDSScreen.findFirst({
       where: {
         id,
@@ -126,6 +127,7 @@ export async function DELETE(request, { params }) {
       return NextResponse.json({ error: "Screen ID is required" }, { status: 400 });
     }
 
+    const prisma = await getTenantPrisma(actor.tenantId);
     const existing = await prisma.kDSScreen.findFirst({
       where: {
         id,

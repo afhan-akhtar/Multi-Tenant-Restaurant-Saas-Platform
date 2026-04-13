@@ -1,6 +1,6 @@
 import { getToken } from "next-auth/jwt";
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { getTenantPrisma } from "@/lib/tenant-db";
 import {
   normalizeCustomerPhone,
   isValidCustomerPhoneDigits,
@@ -13,6 +13,7 @@ export async function PATCH(req, { params }) {
     if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const tenantId = token.tenantId ?? null;
     if (!tenantId) return NextResponse.json({ error: "Restaurant context required" }, { status: 400 });
+    const prisma = await getTenantPrisma(tenantId);
 
     const id = parseInt(params?.id, 10);
     if (!id) return NextResponse.json({ error: "ID required" }, { status: 400 });

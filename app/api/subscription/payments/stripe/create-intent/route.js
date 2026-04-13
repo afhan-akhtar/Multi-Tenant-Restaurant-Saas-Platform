@@ -1,6 +1,6 @@
 import { getToken } from "next-auth/jwt";
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { platformPrisma } from "@/lib/platform-db";
 import { createSubscriptionPaymentIntent } from "@/lib/payments/stripe";
 
 export async function POST(request) {
@@ -31,7 +31,7 @@ export async function POST(request) {
       return NextResponse.json({ error: "Checkout session ID is required." }, { status: 400 });
     }
 
-    const invoice = await prisma.billingInvoice.findFirst({
+    const invoice = await platformPrisma.billingInvoice.findFirst({
       where: { id: invoiceId, tenantId },
       include: { subscription: true },
     });

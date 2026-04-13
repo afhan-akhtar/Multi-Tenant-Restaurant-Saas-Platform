@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
-import { prisma } from "@/lib/db";
+import { getTenantPrisma } from "@/lib/tenant-db";
 import { getRequestActor } from "@/lib/device-auth";
 import { normalizeLoyaltySettings, DEFAULT_LOYALTY_SETTINGS } from "@/lib/loyalty";
 import { assertTenantFeatureAccess } from "@/lib/subscriptions";
@@ -22,6 +22,7 @@ export async function GET(request) {
     }
 
     const loyaltyAccess = await assertTenantFeatureAccess(tenantId, "LOYALTY");
+    const prisma = await getTenantPrisma(tenantId);
     const tenant = await prisma.tenant.findUnique({
       where: { id: tenantId },
       select: { loyaltySettings: true },
@@ -45,6 +46,7 @@ export async function PATCH(request) {
     if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const tenantId = token.tenantId ?? null;
     if (!tenantId) return NextResponse.json({ error: "Restaurant context required" }, { status: 400 });
+    const prisma = await getTenantPrisma(tenantId);
 
     const loyaltyAccess = await assertTenantFeatureAccess(tenantId, "LOYALTY");
     if (!loyaltyAccess.ok) {

@@ -91,9 +91,15 @@ export default function TabletConnectPage() {
       }
       const target = new URL(raw);
       if (target.origin !== window.location.origin) {
-        setError(
-          "The link must use this same website (same host). Copy it from your restaurant admin on this platform."
-        );
+        const tok = target.searchParams.get("token");
+        if (!tok || String(tok).trim().length < 8) {
+          setError(
+            "For a deployed server (https://…), the link must include ?token=… or use “Device token only” with the token from Admin → Devices."
+          );
+          return;
+        }
+        await persistTabletLaunch(String(tok).trim());
+        window.location.replace(target.toString());
         return;
       }
       const path = target.pathname + target.search;

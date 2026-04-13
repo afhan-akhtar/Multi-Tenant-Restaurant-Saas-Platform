@@ -1,6 +1,6 @@
 import { getToken } from "next-auth/jwt";
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { platformPrisma } from "@/lib/platform-db";
 
 export async function POST(request) {
   try {
@@ -27,15 +27,15 @@ export async function POST(request) {
     }
 
     const [currentSubscription, requestedPlan, existingPending] = await Promise.all([
-      prisma.tenantSubscription.findFirst({
+      platformPrisma.tenantSubscription.findFirst({
         where: {
           tenantId,
           status: { in: ["TRIALING", "ACTIVE", "GRACE_PERIOD", "PAST_DUE"] },
         },
         orderBy: [{ endDate: "desc" }, { createdAt: "desc" }],
       }),
-      prisma.subscriptionPlan.findUnique({ where: { id: requestedPlanId } }),
-      prisma.subscriptionPlanChangeRequest.findFirst({
+      platformPrisma.subscriptionPlan.findUnique({ where: { id: requestedPlanId } }),
+      platformPrisma.subscriptionPlanChangeRequest.findFirst({
         where: { tenantId, status: "PENDING" },
       }),
     ]);
@@ -58,7 +58,7 @@ export async function POST(request) {
       );
     }
 
-    const changeRequest = await prisma.subscriptionPlanChangeRequest.create({
+    const changeRequest = await platformPrisma.subscriptionPlanChangeRequest.create({
       data: {
         tenantId,
         currentSubscriptionId: currentSubscription?.id || null,

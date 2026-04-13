@@ -1,5 +1,5 @@
 import { getToken } from "next-auth/jwt";
-import { prisma } from "@/lib/db";
+import { getTenantPrisma } from "@/lib/tenant-db";
 import { downloadDsfinvkExport, triggerDsfinvkExport } from "@/lib/tse/dsfinvk";
 import { NextResponse } from "next/server";
 

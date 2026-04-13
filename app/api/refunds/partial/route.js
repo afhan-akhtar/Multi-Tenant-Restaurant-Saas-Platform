@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { getTenantPrisma } from "@/lib/tenant-db";
 import { getRequestActor } from "@/lib/device-auth";
 import { assertTenantFeatureAccess } from "@/lib/subscriptions";
 import { broadcastTenantKdsEvent } from "@/lib/realtime";

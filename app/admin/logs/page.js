@@ -1,5 +1,5 @@
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/db";
+import { getMergedAuditLogs } from "@/lib/cross-tenant-aggregates";
 import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
@@ -8,11 +8,7 @@ export default async function AdminLogsPage() {
   const session = await auth();
   if (!session || session.user?.type !== "super_admin") redirect("/admin");
 
-  const logs = await prisma.auditLog.findMany({
-    include: { tenantAdmin: true, tenant: true },
-    orderBy: { createdAt: "desc" },
-    take: 200,
-  });
+  const logs = await getMergedAuditLogs(200);
 
   return (
     <div className="py-4 w-full min-w-0">
@@ -31,7 +27,7 @@ export default async function AdminLogsPage() {
             </thead>
             <tbody>
               {logs.map((l) => (
-                <tr key={l.id} className="border-b border-slate-100 last:border-0">
+                <tr key={l._tenantKey} className="border-b border-slate-100 last:border-0">
                   <td className="py-3 px-4 text-color-text-muted">
                     {new Date(l.createdAt).toLocaleString()}
                   </td>
@@ -39,7 +35,7 @@ export default async function AdminLogsPage() {
                   <td className="py-3 px-4">{l.action}</td>
                   <td className="py-3 px-4">{l.tenant?.name || "—"}</td>
                   <td className="py-3 px-4">
-                    {l.entityType}#{l.entityId}
+                    {l.entityType} #{l.entityId}
                   </td>
                 </tr>
               ))}
@@ -47,7 +43,7 @@ export default async function AdminLogsPage() {
           </table>
         </div>
         {logs.length === 0 && (
-          <div className="py-8 px-6 text-center text-color-text-muted text-[0.95rem]">No audit logs</div>
+          <div className="py-8 px-6 text-center text-color-text-muted text-[0.95rem]">No audit logs yet</div>
         )}
       </div>
     </div>

@@ -1,0 +1,221 @@
+// Platform (control plane) database: tenant registry, billing, super admin, staff login index.
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../generated/prisma-platform"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+//////////////////// ENUMS ////////////////////
+
+enum TenantStatus {
+  PENDING
+  ACTIVE
+  INACTIVE
+  BLOCKED
+}
+
+enum SubscriptionStatus {
+  TRIALING
+  ACTIVE
+  GRACE_PERIOD
+  PAST_DUE
+  EXPIRED
+  CANCELLED
+}
+
+enum BillingInterval {
+  MONTHLY
+  YEARLY
+}
+
+enum BillingInvoiceStatus {
+  OPEN
+  PAID
+  VOID
+  OVERDUE
+}
+
+enum BillingPaymentStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+}
+
+enum BillingPaymentMethod {
+  MANUAL
+  STRIPE
+  CARD
+  BANK_TRANSFER
+  CASH
+}
+
+enum PlanChangeRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+//////////////////// TABLES ////////////////////
+
+model SuperAdmin {
+  id           Int      @id @default(autoincrement())
+  name         String
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+}
+
+/// Registry row: points to the tenant’s dedicated database via `databaseUrl`.
+model Tenant {
+  id          Int          @id @default(autoincrement())
+  name        String
+  subdomain   String       @unique
+  /// PostgreSQL connection string for this tenant’s database (restaurant data).
+  databaseUrl String?
+  country     String       @default("")
+  logoUrl     String?
+  status      TenantStatus @default(ACTIVE)
+  createdAt   DateTime     @default(now())
+
+  staffLoginLookups  StaffLoginLookup[]
+  subscription       TenantSubscription[]
+  billingInvoices    BillingInvoice[]
+  billingPayments    BillingPayment[]
+  planChangeRequests SubscriptionPlanChangeRequest[]
+}
+
+/// Lets restaurant staff sign in with email only (search across tenants) without scanning every DB.
+model StaffLoginLookup {
+  id       Int    @id @default(autoincrement())
+  email    String
+  tenantId Int
+  staffId  Int
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([email, tenantId])
+  @@index([email])
+}
+
+model FiskalyPlatformConfig {
+  id        Int      @id @default(autoincrement())
+  apiKey    String   @unique
+  tssId     String
+  clientId  String
+  adminPuk  String?
+  updatedAt DateTime @updatedAt
+}
+
+model SubscriptionPlan {
+  id                  Int                             @id @default(autoincrement())
+  code                String?                         @unique
+  name                String
+  description         String?
+  billingInterval     BillingInterval                 @default(MONTHLY)
+  monthlyPrice        Decimal
+  commissionPercent   Decimal
+  trialDays           Int                             @default(0)
+  graceDays           Int                             @default(0)
+  sortOrder           Int                             @default(0)
+  features            Json
+  tenantSubscriptions TenantSubscription[]
+  invoices            BillingInvoice[]
+  requestedChanges    SubscriptionPlanChangeRequest[]
+}
+
+model TenantSubscription {
+  id                Int                @id @default(autoincrement())
+  tenantId          Int
+  planId            Int
+  status            SubscriptionStatus
+  startDate         DateTime
+  endDate           DateTime
+  trialStartDate    DateTime?
+  trialEndDate      DateTime?
+  gracePeriodEndsAt DateTime?
+  nextBillingDate   DateTime?
+  autoRenew         Boolean            @default(true)
+  cancelAtPeriodEnd Boolean            @default(false)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  tenant             Tenant                          @relation(fields: [tenantId], references: [id])
+  plan               SubscriptionPlan                @relation(fields: [planId], references: [id])
+  invoices           BillingInvoice[]
+  planChangeRequests SubscriptionPlanChangeRequest[]
+
+  @@index([tenantId])
+}
+
+model BillingInvoice {
+  id             Int                  @id @default(autoincrement())
+  tenantId       Int
+  subscriptionId Int
+  planId         Int
+  invoiceNumber  String               @unique
+  status         BillingInvoiceStatus @default(OPEN)
+  issuedAt       DateTime             @default(now())
+  dueDate        DateTime
+  periodStart    DateTime
+  periodEnd      DateTime
+  subtotal       Decimal
+  taxAmount      Decimal              @default(0)
+  totalAmount    Decimal
+  currency       String               @default("EUR")
+  lineItems      Json
+  notes          String?
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  tenant       Tenant             @relation(fields: [tenantId], references: [id])
+  subscription TenantSubscription @relation(fields: [subscriptionId], references: [id])
+  plan         SubscriptionPlan   @relation(fields: [planId], references: [id])
+  payments     BillingPayment[]
+
+  @@index([tenantId, status])
+  @@index([subscriptionId, periodStart, periodEnd])
+}
+
+model BillingPayment {
+  id        Int                  @id @default(autoincrement())
+  invoiceId Int
+  tenantId  Int
+  amount    Decimal
+  method    BillingPaymentMethod @default(MANUAL)
+  status    BillingPaymentStatus @default(SUCCEEDED)
+  paidAt    DateTime             @default(now())
+  reference String?
+  notes     String?
+  createdAt DateTime             @default(now())
+
+  invoice BillingInvoice @relation(fields: [invoiceId], references: [id])
+  tenant  Tenant         @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId, paidAt])
+  @@index([invoiceId, status])
+}
+
+model SubscriptionPlanChangeRequest {
+  id                    Int                     @id @default(autoincrement())
+  tenantId              Int
+  currentSubscriptionId Int?
+  requestedPlanId       Int
+  status                PlanChangeRequestStatus @default(PENDING)
+  message               String?
+  reviewedNote          String?
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime                @updatedAt
+  reviewedAt            DateTime?
+
+  tenant              Tenant              @relation(fields: [tenantId], references: [id])
+  currentSubscription TenantSubscription? @relation(fields: [currentSubscriptionId], references: [id])
+  requestedPlan       SubscriptionPlan    @relation(fields: [requestedPlanId], references: [id])
+
+  @@index([tenantId, status])
+  @@index([requestedPlanId, status])
+}

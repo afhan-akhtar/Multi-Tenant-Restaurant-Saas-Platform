@@ -1,6 +1,6 @@
 import { getToken } from "next-auth/jwt";
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { platformPrisma } from "@/lib/platform-db";
 import { DEFAULT_SUBSCRIPTION_PLANS } from "@/lib/subscriptionPlans";
 
 export async function POST(req) {
@@ -14,7 +14,7 @@ export async function POST(req) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const existingPlans = await prisma.subscriptionPlan.findMany({
+    const existingPlans = await platformPrisma.subscriptionPlan.findMany({
       select: { name: true, code: true },
     });
     const legacyNameMap = {
@@ -41,7 +41,7 @@ export async function POST(req) {
       });
     }
 
-    await prisma.subscriptionPlan.createMany({
+    await platformPrisma.subscriptionPlan.createMany({
       data: plansToCreate.map((plan) => ({
         code: plan.code,
         name: plan.name,

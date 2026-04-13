@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/db";
+import { platformPrisma } from "@/lib/platform-db";
 import { formatEur } from "@/lib/currencyFormat";
 import { formatDate } from "@/lib/dateFormat";
 
@@ -12,7 +12,7 @@ export default async function InvoicePage({ params }) {
   const session = await auth();
   if (!session) notFound();
 
-  const invoice = await prisma.billingInvoice.findUnique({
+  const invoice = await platformPrisma.billingInvoice.findUnique({
     where: { id },
     include: {
       tenant: true,

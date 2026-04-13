@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { platformPrisma } from "@/lib/platform-db";
+import { getTenantPrisma } from "@/lib/tenant-db";
+import { provisionTenantDatabaseAndMigrate } from "@/lib/provision-tenant-database";
+import { syncStaffLoginLookup } from "@/lib/staff-login-lookup";
 import { hashPassword } from "@/lib/password";
 
 // POST /api/register - Tenant self-registration (creates PENDING tenant)
@@ -22,7 +25,6 @@ export async function POST(req) {
       );
     }
 
-    // Generate slug from restaurant name: lowercase, alphanumeric + hyphen only
     const cleanedSubdomain = restaurantName
       .trim()
       .toLowerCase()
@@ -46,8 +48,7 @@ export async function POST(req) {
 
     const emailTrimmed = email.trim().toLowerCase();
 
-    // Check subdomain uniqueness
-    const existingSubdomain = await prisma.tenant.findUnique({
+    const existingSubdomain = await platformPrisma.tenant.findUnique({
       where: { subdomain: cleanedSubdomain },
     });
     if (existingSubdomain) {
@@ -58,12 +59,34 @@ export async function POST(req) {
     }
 
     const passwordHash = await hashPassword(password);
+    const countryVal = (country || "").trim();
 
-    // Transaction: create tenant, branch, role, staff
-    const result = await prisma.$transaction(async (tx) => {
-      const countryVal = (country || "").trim();
-      const tenant = await tx.tenant.create({
+    const tenant = await platformPrisma.tenant.create({
+      data: {
+        name: restaurantName.trim(),
+        subdomain: cleanedSubdomain,
+        country: countryVal,
+        status: "PENDING",
+      },
+    });
+
+    try {
+      await provisionTenantDatabaseAndMigrate(tenant.id);
+    } catch (provErr) {
+      console.error("[register] provision failed", provErr);
+      await platformPrisma.tenant.delete({ where: { id: tenant.id } }).catch(() => {});
+      return NextResponse.json(
+        { error: "Could not create restaurant database. Check server logs and DATABASE_ADMIN_URL / PostgreSQL access." },
+        { status: 500 }
+      );
+    }
+
+    const tp = await getTenantPrisma(tenant.id);
+
+    const tenantAdmin = await tp.$transaction(async (tx) => {
+      await tx.tenant.create({
         data: {
+          id: tenant.id,
           name: restaurantName.trim(),
           subdomain: cleanedSubdomain,
           country: countryVal,
@@ -88,7 +111,7 @@ export async function POST(req) {
         },
       });
 
-      const tenantAdmin = await tx.tenantAdmin.create({
+      return tx.tenantAdmin.create({
         data: {
           tenantId: tenant.id,
           branchId: branch.id,
@@ -99,14 +122,14 @@ export async function POST(req) {
           status: "ACTIVE",
         },
       });
-
-      return { tenant, branch, role, tenantAdmin };
     });
+
+    await syncStaffLoginLookup(emailTrimmed, tenant.id, tenantAdmin.id);
 
     return NextResponse.json({
       success: true,
       message: "Registration successful. Your restaurant is pending approval. You will be able to log in once approved by the Super Admin.",
-      subdomain: result.tenant.subdomain,
+      subdomain: tenant.subdomain,
     });
   } catch (err) {
     console.error("[register] Error:", err);

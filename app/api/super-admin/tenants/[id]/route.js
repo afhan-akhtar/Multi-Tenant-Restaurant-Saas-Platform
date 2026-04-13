@@ -1,6 +1,8 @@
 import { getToken } from "next-auth/jwt";
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { platformPrisma } from "@/lib/platform-db";
+import { getTenantPrisma } from "@/lib/tenant-db";
+import { provisionTenantDatabaseAndMigrate } from "@/lib/provision-tenant-database";
 import { ensureTenantOnboardingSubscription } from "@/lib/subscriptions";
 
 // PATCH /api/super-admin/tenants/[id] - Update tenant status (approve, block, unblock)
@@ -26,7 +28,7 @@ export async function PATCH(req, { params }) {
       return NextResponse.json({ error: "Invalid action" }, { status: 400 });
     }
 
-    const tenant = await prisma.tenant.findUnique({ where: { id } });
+    const tenant = await platformPrisma.tenant.findUnique({ where: { id } });
     if (!tenant) {
       return NextResponse.json({ error: "Tenant not found" }, { status: 404 });
     }
@@ -43,23 +45,48 @@ export async function PATCH(req, { params }) {
       }
       newStatus = "BLOCKED";
     } else {
-      // unblock
       if (tenant.status !== "BLOCKED") {
         return NextResponse.json({ error: "Only blocked tenants can be unblocked." }, { status: 400 });
       }
       newStatus = "ACTIVE";
     }
 
-    await prisma.$transaction(async (tx) => {
-      await tx.tenant.update({
-        where: { id },
-        data: { status: newStatus },
-      });
-
-      if (action === "approve" || action === "unblock") {
-        await ensureTenantOnboardingSubscription(tx, id);
+    if (!tenant.databaseUrl?.trim() && (action === "approve" || action === "unblock")) {
+      try {
+        await provisionTenantDatabaseAndMigrate(id);
+      } catch (e) {
+        console.error("[super-admin approve] provision failed", e);
+        return NextResponse.json(
+          { error: "Could not provision tenant database. Check logs and DATABASE_ADMIN_URL." },
+          { status: 500 }
+        );
       }
+    }
+
+    await platformPrisma.tenant.update({
+      where: { id },
+      data: { status: newStatus },
     });
+
+    const after = await platformPrisma.tenant.findUnique({
+      where: { id },
+      select: { databaseUrl: true },
+    });
+    if (after?.databaseUrl?.trim()) {
+      try {
+        const tp = await getTenantPrisma(id);
+        await tp.tenant.update({
+          where: { id },
+          data: { status: newStatus },
+        });
+      } catch (e) {
+        console.error("[super-admin tenants] tenant DB status sync", e);
+      }
+    }
+
+    if (action === "approve" || action === "unblock") {
+      await ensureTenantOnboardingSubscription(platformPrisma, id);
+    }
 
     return NextResponse.json({
       success: true,

@@ -1,6 +1,6 @@
 import { getToken } from "next-auth/jwt";
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { platformPrisma } from "@/lib/platform-db";
 import {
   addDays,
   addMonths,
@@ -42,7 +42,7 @@ export async function PATCH(req, { params }) {
     const reference = String(body?.reference || "").trim();
     const notes = String(body?.notes || "").trim();
 
-    const existing = await prisma.tenantSubscription.findUnique({
+    const existing = await platformPrisma.tenantSubscription.findUnique({
       where: { id },
       include: {
         plan: true,
@@ -61,7 +61,7 @@ export async function PATCH(req, { params }) {
     if (action === "renew") {
       const now = new Date();
       const nextEndDate = addMonths(now, 1);
-      const updated = await prisma.tenantSubscription.update({
+      const updated = await platformPrisma.tenantSubscription.update({
         where: { id },
         data: {
           status: existing.plan?.trialDays ? "TRIALING" : "ACTIVE",
@@ -77,20 +77,20 @@ export async function PATCH(req, { params }) {
         include: { plan: true },
       });
 
-      await createInvoiceForSubscription(prisma, updated, {
+      await createInvoiceForSubscription(updated, {
         periodStart: updated.startDate,
         periodEnd: updated.endDate,
         dueDate: updated.endDate,
         notes: "Invoice created during manual subscription renewal.",
       });
 
-      const subscription = await syncSubscriptionState(prisma, updated.id);
+      const subscription = await syncSubscriptionState(platformPrisma, updated.id);
       return NextResponse.json({
         success: true,
         subscription: serializeSubscription(subscription),
       });
     } else if (action === "cancel") {
-      const subscription = await prisma.tenantSubscription.update({
+      const subscription = await platformPrisma.tenantSubscription.update({
         where: { id },
         data: {
           status: "CANCELLED",
@@ -103,11 +103,11 @@ export async function PATCH(req, { params }) {
       return NextResponse.json({
         success: true,
         subscription: serializeSubscription(
-          await syncSubscriptionState(prisma, subscription.id)
+          await syncSubscriptionState(platformPrisma, subscription.id)
         ),
       });
     } else if (action === "cancel_at_period_end") {
-      const subscription = await prisma.tenantSubscription.update({
+      const subscription = await platformPrisma.tenantSubscription.update({
         where: { id },
         data: {
           cancelAtPeriodEnd: true,
@@ -118,11 +118,11 @@ export async function PATCH(req, { params }) {
       return NextResponse.json({
         success: true,
         subscription: serializeSubscription(
-          await syncSubscriptionState(prisma, subscription.id)
+          await syncSubscriptionState(platformPrisma, subscription.id)
         ),
       });
     } else if (action === "expire") {
-      const subscription = await prisma.tenantSubscription.update({
+      const subscription = await platformPrisma.tenantSubscription.update({
         where: { id },
         data: {
           status: "EXPIRED",
@@ -133,7 +133,7 @@ export async function PATCH(req, { params }) {
       return NextResponse.json({
         success: true,
         subscription: serializeSubscription(
-          await syncSubscriptionState(prisma, subscription.id)
+          await syncSubscriptionState(platformPrisma, subscription.id)
         ),
       });
     } else if (action === "switch_plan") {
@@ -141,7 +141,7 @@ export async function PATCH(req, { params }) {
         return NextResponse.json({ error: "Plan is required." }, { status: 400 });
       }
 
-      const plan = await prisma.subscriptionPlan.findUnique({
+      const plan = await platformPrisma.subscriptionPlan.findUnique({
         where: { id: planId },
       });
 
@@ -150,7 +150,7 @@ export async function PATCH(req, { params }) {
       }
 
       const nextGraceEnd = addDays(existing.endDate, Number(plan.graceDays || 0));
-      const subscription = await prisma.tenantSubscription.update({
+      const subscription = await platformPrisma.tenantSubscription.update({
         where: { id },
         data: {
           planId,
@@ -167,18 +167,18 @@ export async function PATCH(req, { params }) {
       return NextResponse.json({
         success: true,
         subscription: serializeSubscription(
-          await syncSubscriptionState(prisma, subscription.id)
+          await syncSubscriptionState(platformPrisma, subscription.id)
         ),
       });
     } else if (action === "generate_invoice") {
-      await createInvoiceForSubscription(prisma, existing, {
+      await createInvoiceForSubscription(existing, {
         notes: notes || "Manual invoice generation from Super Admin.",
       });
 
       return NextResponse.json({
         success: true,
         subscription: serializeSubscription(
-          await syncSubscriptionState(prisma, existing.id)
+          await syncSubscriptionState(platformPrisma, existing.id)
         ),
       });
     } else if (action === "record_payment") {
@@ -186,7 +186,7 @@ export async function PATCH(req, { params }) {
         return NextResponse.json({ error: "Invoice is required." }, { status: 400 });
       }
 
-      const subscription = await prisma.$transaction((tx) =>
+      const subscription = await platformPrisma.$transaction((tx) =>
         recordInvoicePayment(tx, {
           invoiceId,
           amount,

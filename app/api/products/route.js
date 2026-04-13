@@ -1,6 +1,6 @@
 import { getToken } from "next-auth/jwt";
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { getTenantPrisma } from "@/lib/tenant-db";
 
 export async function POST(req) {
   try {
@@ -8,6 +8,7 @@ export async function POST(req) {
     if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const tenantId = token.tenantId ?? null;
     if (!tenantId) return NextResponse.json({ error: "Restaurant context required" }, { status: 400 });
+    const prisma = await getTenantPrisma(tenantId);
 
     const body = await req.json();
     const { name, description, plu, basePrice, taxRate, categoryId, imageUrl } = body;
@@ -47,6 +48,7 @@ export async function DELETE(req) {
     if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const tenantId = token.tenantId ?? null;
     if (!tenantId) return NextResponse.json({ error: "Restaurant context required" }, { status: 400 });
+    const prisma = await getTenantPrisma(tenantId);
 
     const { searchParams } = new URL(req.url);
     const id = parseInt(searchParams.get("id"), 10);

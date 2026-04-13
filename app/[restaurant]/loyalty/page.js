@@ -1,5 +1,5 @@
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/db";
+import { getTenantPrisma } from "@/lib/tenant-db";
 import { redirect } from "next/navigation";
 import LoyaltyClient from "@/app/components/LoyaltyClient";
 import { normalizeLoyaltySettings } from "@/lib/loyalty";

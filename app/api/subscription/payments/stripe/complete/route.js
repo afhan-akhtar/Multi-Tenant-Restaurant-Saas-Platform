@@ -1,6 +1,6 @@
 import { getToken } from "next-auth/jwt";
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { platformPrisma } from "@/lib/platform-db";
 import { verifySubscriptionPaymentIntent } from "@/lib/payments/stripe";
 import { recordInvoicePayment, serializeSubscription } from "@/lib/subscriptions";
 
@@ -32,7 +32,7 @@ export async function POST(request) {
       );
     }
 
-    const invoice = await prisma.billingInvoice.findFirst({
+    const invoice = await platformPrisma.billingInvoice.findFirst({
       where: { id: invoiceId, tenantId },
       include: {
         subscription: true,
@@ -56,7 +56,7 @@ export async function POST(request) {
       checkoutSessionId,
     });
 
-    const subscription = await prisma.$transaction((tx) =>
+    const subscription = await platformPrisma.$transaction((tx) =>
       recordInvoicePayment(tx, {
         invoiceId: invoice.id,
         amount: Number(invoice.totalAmount),

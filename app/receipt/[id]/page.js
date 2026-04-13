@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/db";
+import { getTenantPrisma } from "@/lib/tenant-db";
 import { notFound } from "next/navigation";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
@@ -21,6 +21,7 @@ export default async function ReceiptPage({ params, searchParams }) {
 
   if (receiptAccess?.orderId && receiptAccess.orderId !== id) notFound();
 
+  const prisma = await getTenantPrisma(allowedTenantId);
   const order = await prisma.order.findUnique({
     where: { id },
     include: {
@@ -43,7 +44,7 @@ export default async function ReceiptPage({ params, searchParams }) {
   const rawPayload = (tseTx?.rawPayload && typeof tseTx.rawPayload === "object") ? tseTx.rawPayload : {};
 
   const { isOrderTseQueued } = await import("@/lib/tse/db");
-  const tseQueued = await isOrderTseQueued(id);
+  const tseQueued = await isOrderTseQueued(allowedTenantId, id);
 
   const h = await headers();
   const host = h.get("host") || "localhost:3000";

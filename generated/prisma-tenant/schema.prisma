@@ -1,0 +1,560 @@
+// Per-tenant database: one deployment of this schema per restaurant tenant.
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../generated/prisma-tenant"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+//////////////////// ENUMS ////////////////////
+
+enum TenantStatus {
+  PENDING
+  ACTIVE
+  INACTIVE
+  BLOCKED
+}
+
+enum TenantAdminStatus {
+  ACTIVE
+  INACTIVE
+
+  @@map("StaffStatus")
+}
+
+enum OrderType {
+  DINE_IN
+  TAKEAWAY
+}
+
+enum OrderStatus {
+  OPEN
+  CONFIRMED
+  PREPARING
+  READY
+  PACK
+  COMPLETED
+  PARTIAL_REFUND
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  PARTIALLY_REFUNDED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  CASH
+  STRIPE
+  PAYPAL
+  CARD
+}
+
+enum TableStatus {
+  AVAILABLE
+  OCCUPIED
+  RESERVED
+}
+
+enum KDSStatus {
+  CREATED
+  COOKING
+  READY
+  DISPATCHED
+}
+
+enum DeviceType {
+  POS
+  KDS
+  TABLET
+}
+
+enum DeviceStatus {
+  ACTIVE
+  DISABLED
+}
+
+enum KDSStationType {
+  MAIN
+  EXPEDITOR
+  GRILL
+  FRYER
+  DRINKS
+  PACKING
+  DESSERT
+  CUSTOM
+}
+
+//////////////////// TABLES ////////////////////
+
+/// Single row per database; `id` matches the platform Tenant.id.
+model Tenant {
+  id              Int          @id
+  name            String
+  subdomain       String       @unique
+  country         String       @default("")
+  logoUrl         String?
+  status          TenantStatus @default(ACTIVE)
+  createdAt       DateTime     @default(now())
+  /// { pointsPerEuro, redemptionRate, tier1Threshold, tier2Threshold }
+  loyaltySettings Json?
+  /// { waiterPinHash?: string, fcmTokens?: string[], otaManifestUrl?: string }
+  tabletSettings  Json?
+
+  fiskalyConfig   TenantFiskalyConfig?
+  branches        Branch[]
+  roles           Role[]
+  tenantAdmins    TenantAdmin[]
+  categories      Category[]
+  products        Product[]
+  addonGroups     AddonGroup[]
+  diningTables    DiningTable[]
+  sessions        Session[]
+  customers       Customer[]
+  segments        Segment[]
+  emailCampaigns  EmailCampaign[]
+  orders          Order[]
+  refunds         Refund[]
+  cashbookEntries CashbookEntry[]
+  tseQueues       TSEQueue[]
+  auditLogs       AuditLog[]
+  deviceTokens    DeviceToken[]
+}
+
+model TenantFiskalyConfig {
+  id        Int      @id @default(autoincrement())
+  tenantId  Int      @unique
+  apiKey    String
+  apiSecret String
+  tssId     String?
+  clientId  String?
+  adminPuk  String?
+  vatId     String?
+  taxNumber String?
+  wIdNr     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+}
+
+model Branch {
+  id       Int    @id @default(autoincrement())
+  tenantId Int
+  name     String
+  address  String
+  city     String
+  country  String
+
+  tenant       Tenant        @relation(fields: [tenantId], references: [id])
+  tenantAdmins TenantAdmin[]
+  diningTables DiningTable[]
+  sessions     Session[]
+  orders       Order[]
+  kdsScreens   KDSScreen[]
+  deviceTokens DeviceToken[]
+
+  @@index([tenantId])
+}
+
+model Role {
+  id       Int    @id @default(autoincrement())
+  tenantId Int
+  name     String
+
+  tenant          Tenant           @relation(fields: [tenantId], references: [id])
+  tenantAdmins    TenantAdmin[]
+  rolePermissions RolePermission[]
+
+  @@index([tenantId])
+}
+
+model Permission {
+  id              Int              @id @default(autoincrement())
+  code            String           @unique
+  rolePermissions RolePermission[]
+}
+
+model RolePermission {
+  id           Int @id @default(autoincrement())
+  roleId       Int
+  permissionId Int
+
+  role       Role       @relation(fields: [roleId], references: [id])
+  permission Permission @relation(fields: [permissionId], references: [id])
+
+  @@unique([roleId, permissionId])
+}
+
+model TenantAdmin {
+  id            Int               @id @default(autoincrement())
+  tenantId      Int
+  branchId      Int
+  roleId        Int
+  name          String
+  email         String
+  passwordHash  String
+  refundPinHash String?
+  status        TenantAdminStatus @default(ACTIVE)
+  createdAt     DateTime          @default(now())
+
+  tenant    Tenant     @relation(fields: [tenantId], references: [id])
+  branch    Branch     @relation(fields: [branchId], references: [id])
+  role      Role       @relation(fields: [roleId], references: [id])
+  sessions  Session[]  @relation("WaiterSessions")
+  refunds   Refund[]
+  auditLogs AuditLog[]
+
+  @@index([tenantId])
+  @@map("Staff")
+}
+
+model Category {
+  id       Int    @id @default(autoincrement())
+  tenantId Int
+  name     String
+  parentId Int?
+
+  tenant   Tenant     @relation(fields: [tenantId], references: [id])
+  parent   Category?  @relation("CategoryToCategory", fields: [parentId], references: [id])
+  children Category[] @relation("CategoryToCategory")
+
+  products Product[]
+
+  @@index([tenantId])
+}
+
+model Product {
+  id           Int             @id @default(autoincrement())
+  tenantId     Int
+  categoryId   Int
+  name         String
+  description  String
+  plu          String
+  basePrice    Decimal
+  taxRate      Decimal
+  imageUrl     String?
+  allergens    Json?
+  dietaryFlags Json?
+  isActive     Boolean         @default(true)
+  kdsStation   KDSStationType?
+
+  tenant     Tenant           @relation(fields: [tenantId], references: [id])
+  category   Category         @relation(fields: [categoryId], references: [id])
+  variants   ProductVariant[]
+  orderItems OrderItem[]
+
+  @@index([tenantId])
+}
+
+model ProductVariant {
+  id        Int     @id @default(autoincrement())
+  productId Int
+  name      String
+  price     Decimal
+
+  product Product @relation(fields: [productId], references: [id])
+}
+
+model AddonGroup {
+  id        Int    @id @default(autoincrement())
+  tenantId  Int
+  name      String
+  minSelect Int
+  maxSelect Int
+
+  tenant     Tenant      @relation(fields: [tenantId], references: [id])
+  addonItems AddonItem[]
+}
+
+model AddonItem {
+  id      Int     @id @default(autoincrement())
+  groupId Int
+  name    String
+  price   Decimal
+
+  group AddonGroup @relation(fields: [groupId], references: [id])
+}
+
+model DiningTable {
+  id       Int         @id @default(autoincrement())
+  tenantId Int
+  branchId Int
+  name     String
+  seats    Int
+  status   TableStatus
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id])
+  branch   Branch    @relation(fields: [branchId], references: [id])
+  sessions Session[]
+  orders   Order[]
+}
+
+model Session {
+  id       Int       @id @default(autoincrement())
+  tenantId Int
+  branchId Int
+  tableId  Int
+  waiterId Int
+  openedAt DateTime
+  closedAt DateTime?
+
+  tenant Tenant      @relation(fields: [tenantId], references: [id])
+  branch Branch      @relation(fields: [branchId], references: [id])
+  table  DiningTable @relation(fields: [tableId], references: [id])
+  waiter TenantAdmin @relation("WaiterSessions", fields: [waiterId], references: [id])
+  orders Order[]
+}
+
+model Customer {
+  id            Int    @id @default(autoincrement())
+  tenantId      Int
+  name          String
+  phone         String
+  email         String
+  loyaltyPoints Int    @default(0)
+
+  tenant Tenant  @relation(fields: [tenantId], references: [id])
+  orders Order[]
+
+  @@unique([tenantId, phone])
+}
+
+model Segment {
+  id       Int    @id @default(autoincrement())
+  tenantId Int
+  name     String
+  rules    Json
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+}
+
+model EmailCampaign {
+  id          Int      @id @default(autoincrement())
+  tenantId    Int
+  subject     String
+  content     Json
+  scheduledAt DateTime
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+}
+
+model Order {
+  id                    Int         @id @default(autoincrement())
+  tenantId              Int
+  branchId              Int
+  sessionId             Int
+  tableId               Int
+  customerId            Int
+  orderNumber           String
+  offlineCheckoutId     String?     @db.VarChar(64)
+  orderType             OrderType
+  status                OrderStatus
+  subtotal              Decimal
+  taxAmount             Decimal
+  discountAmount        Decimal
+  loyaltyDiscountAmount Decimal     @default(0)
+  tipAmount             Decimal
+  totalAmount           Decimal     @default(0)
+  grandTotal            Decimal
+  loyaltyPointsEarned   Int         @default(0)
+  loyaltyPointsRedeemed Int         @default(0)
+  refundedAmount        Decimal     @default(0)
+  lastRefundAt          DateTime?
+  createdAt             DateTime    @default(now())
+
+  tenant          Tenant           @relation(fields: [tenantId], references: [id])
+  branch          Branch           @relation(fields: [branchId], references: [id])
+  session         Session          @relation(fields: [sessionId], references: [id])
+  table           DiningTable      @relation(fields: [tableId], references: [id])
+  customer        Customer         @relation(fields: [customerId], references: [id])
+  orderItems      OrderItem[]
+  payments        Payment[]
+  refunds         Refund[]
+  tseTransactions TSETransaction[]
+
+  @@unique([tenantId, offlineCheckoutId])
+}
+
+model OrderItem {
+  id          Int         @id @default(autoincrement())
+  orderId     Int
+  productId   Int
+  productName String
+  name        String?
+  unitPrice   Decimal
+  price       Decimal?
+  taxRate     Decimal
+  quantity    Int
+  totalAmount Decimal
+  status      OrderStatus
+  refunded    Boolean     @default(false)
+
+  order    Order     @relation(fields: [orderId], references: [id])
+  product  Product   @relation(fields: [productId], references: [id])
+  refunds  Refund[]
+  kdsItems KDSItem[]
+}
+
+model Payment {
+  id             Int           @id @default(autoincrement())
+  orderId        Int
+  method         PaymentMethod
+  status         PaymentStatus
+  amount         Decimal
+  refundedAmount Decimal       @default(0)
+  refundedAt     DateTime?
+  transactionId  String?
+  providerRef    String?
+  metadata       Json?
+  createdAt      DateTime      @default(now())
+
+  order   Order    @relation(fields: [orderId], references: [id])
+  refunds Refund[]
+}
+
+model Refund {
+  id               Int            @id @default(autoincrement())
+  tenantId         Int
+  orderId          Int
+  paymentId        Int?
+  itemId           Int?
+  actorId          Int?
+  batchKey         String?
+  amount           Decimal
+  reason           String
+  paymentMethod    PaymentMethod?
+  refundType       String         @default("ITEM")
+  externalRefundId String?
+  metadata         Json?
+  createdAt        DateTime       @default(now())
+
+  tenant  Tenant       @relation(fields: [tenantId], references: [id])
+  order   Order        @relation(fields: [orderId], references: [id])
+  payment Payment?     @relation(fields: [paymentId], references: [id])
+  item    OrderItem?   @relation(fields: [itemId], references: [id])
+  actor   TenantAdmin? @relation(fields: [actorId], references: [id])
+
+  @@index([tenantId, createdAt])
+  @@index([orderId, createdAt])
+  @@index([batchKey])
+  @@index([itemId])
+  @@index([paymentId])
+}
+
+model TSETransaction {
+  id              Int      @id @default(autoincrement())
+  orderId         Int?
+  cashbookEntryId Int?     @unique
+  transactionType String   @default("ORDER")
+  signature       String
+  fiskalyTxId     String
+  signedAt        DateTime
+  rawPayload      Json?
+
+  order         Order?         @relation(fields: [orderId], references: [id])
+  cashbookEntry CashbookEntry? @relation(fields: [cashbookEntryId], references: [id])
+
+  @@index([orderId])
+  @@index([cashbookEntryId])
+}
+
+model TSEQueue {
+  id         Int       @id @default(autoincrement())
+  tenantId   Int
+  entityType String
+  entityId   Int
+  payload    Json
+  status     String    @default("PENDING")
+  errorMsg   String?
+  createdAt  DateTime  @default(now())
+  migratedAt DateTime?
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId, status])
+}
+
+model CashbookEntry {
+  id          Int      @id @default(autoincrement())
+  tenantId    Int
+  type        String
+  amount      Decimal
+  referenceId Int?
+  createdAt   DateTime @default(now())
+
+  tenant         Tenant          @relation(fields: [tenantId], references: [id])
+  tseTransaction TSETransaction?
+}
+
+model KDSScreen {
+  id          Int            @id @default(autoincrement())
+  branchId    Int
+  name        String
+  code        String?
+  stationType KDSStationType @default(MAIN)
+  isActive    Boolean        @default(true)
+  isDefault   Boolean        @default(false)
+
+  branch       Branch        @relation(fields: [branchId], references: [id])
+  kdsItems     KDSItem[]
+  deviceTokens DeviceToken[]
+
+  @@unique([branchId, name])
+  @@index([branchId, stationType, isActive])
+}
+
+model KDSItem {
+  id          Int       @id @default(autoincrement())
+  orderItemId Int
+  screenId    Int
+  status      KDSStatus
+
+  orderItem OrderItem @relation(fields: [orderItemId], references: [id])
+  screen    KDSScreen @relation(fields: [screenId], references: [id])
+}
+
+model DeviceToken {
+  id         Int          @id @default(autoincrement())
+  tenantId   Int
+  branchId   Int?
+  screenId   Int?
+  name       String
+  deviceType DeviceType
+  status     DeviceStatus @default(ACTIVE)
+  tokenHash  String       @unique
+  lastSeenAt DateTime?
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  tenant Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  branch Branch?    @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  screen KDSScreen? @relation(fields: [screenId], references: [id], onDelete: SetNull)
+
+  @@unique([tenantId, name])
+  @@index([tenantId, deviceType])
+  @@index([branchId])
+  @@index([screenId])
+}
+
+model AuditLog {
+  id         Int      @id @default(autoincrement())
+  tenantId   Int
+  actorId    Int
+  action     String
+  entityType String
+  entityId   Int
+  createdAt  DateTime @default(now())
+
+  tenant      Tenant      @relation(fields: [tenantId], references: [id])
+  tenantAdmin TenantAdmin @relation(fields: [actorId], references: [id])
+}

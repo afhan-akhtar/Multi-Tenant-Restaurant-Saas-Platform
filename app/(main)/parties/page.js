@@ -1,5 +1,5 @@
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/db";
+import { getTenantPrisma } from "@/lib/tenant-db";
 import { redirect } from "next/navigation";
 import CustomersManagement from "@/app/components/CustomersManagement";
 
@@ -10,10 +10,17 @@ export default async function PartiesPage() {
   if (!session) redirect("/login");
 
   const tenantId = session.user?.tenantId ?? null;
-  const where = tenantId ? { tenantId } : {};
+  if (!tenantId) {
+    return (
+      <div className="py-4 w-full min-w-0">
+        <p className="text-color-text-muted">Restaurant context required.</p>
+      </div>
+    );
+  }
 
+  const prisma = await getTenantPrisma(tenantId);
   const customers = await prisma.customer.findMany({
-    where,
+    where: { tenantId },
     orderBy: { name: "asc" },
   });
 

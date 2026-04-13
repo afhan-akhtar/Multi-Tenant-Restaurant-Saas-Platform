@@ -1,5 +1,5 @@
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/db";
+import { platformPrisma } from "@/lib/platform-db";
 import { redirect } from "next/navigation";
 import SettingsClient from "@/app/components/SettingsClient";
 
@@ -10,8 +10,8 @@ export default async function AdminSettingsPage() {
   if (!session || session.user?.type !== "super_admin") redirect("/admin");
 
   const [tenantsCount, plansCount] = await Promise.all([
-    prisma.tenant.count(),
-    prisma.subscriptionPlan.count(),
+    platformPrisma.tenant.count(),
+    platformPrisma.subscriptionPlan.count(),
   ]);
 
   return (

@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/db";
+import { getTenantPrisma } from "@/lib/tenant-db";
 import { signAndStoreOrder, getOrderSignature } from "@/lib/tse/db";
 import { NextResponse } from "next/server";
 import { assertTenantFeatureAccess } from "@/lib/subscriptions";
@@ -21,6 +21,8 @@ export async function PATCH(request) {
     if (!tenantId) {
       return NextResponse.json({ error: "Restaurant context required" }, { status: 400 });
     }
+
+    const prisma = await getTenantPrisma(tenantId);
 
     const featureCode = actor.deviceType === "TABLET" ? "TABLET" : "KDS";
     const featureAccess = await assertTenantFeatureAccess(tenantId, featureCode);
@@ -48,7 +50,7 @@ export async function PATCH(request) {
     }
 
     if (status === "COMPLETED") {
-      const existingSig = await getOrderSignature(order.id);
+      const existingSig = await getOrderSignature(tenantId, order.id);
       if (!existingSig) {
         await signAndStoreOrder(tenantId, order.id, order.orderNumber, Number(order.grandTotal));
       }
@@ -58,7 +60,7 @@ export async function PATCH(request) {
       where: { id: orderId },
       data: { status },
     });
-    await syncOrderKdsItemStatus(orderId, status);
+    await syncOrderKdsItemStatus(tenantId, orderId, status);
 
     if (status === "COMPLETED") {
       await syncDiningTableAvailabilityForTable(tenantId, order.tableId);

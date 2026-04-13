@@ -6,14 +6,14 @@ export default function ImpersonationClient({ staff }) {
   const [loading, setLoading] = useState(null);
   const [error, setError] = useState("");
 
-  async function handleImpersonate(staffId) {
+  async function handleImpersonate(tenantId, staffId) {
     setError("");
-    setLoading(staffId);
+    setLoading(`${tenantId}-${staffId}`);
     try {
       const res = await fetch("/api/admin/impersonate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ staffId }),
+        body: JSON.stringify({ tenantId, staffId }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -27,6 +27,10 @@ export default function ImpersonationClient({ staff }) {
       setError("Something went wrong");
       setLoading(null);
     }
+  }
+
+  function staffKey(s) {
+    return `${s.tenantId}-${s.id}`;
   }
 
   return (
@@ -49,18 +53,18 @@ export default function ImpersonationClient({ staff }) {
             </thead>
             <tbody>
               {staff.map((s) => (
-                <tr key={s.id} className="border-b border-slate-100 last:border-0">
+                <tr key={staffKey(s)} className="border-b border-slate-100 last:border-0">
                   <td className="py-3 px-4">{s.name} ({s.email})</td>
                   <td className="py-3 px-4">{s.tenant?.name} ({s.tenant?.subdomain})</td>
                   <td className="py-3 px-4">{s.role?.name}</td>
                   <td className="py-3 px-4">
                     <button
                       type="button"
-                      onClick={() => handleImpersonate(s.id)}
-                      disabled={loading === s.id}
+                      onClick={() => handleImpersonate(s.tenantId, s.id)}
+                      disabled={loading === staffKey(s)}
                       className="py-1.5 px-3 bg-primary text-white rounded-md text-xs font-medium border-0 cursor-pointer hover:opacity-90 disabled:opacity-70"
                     >
-                      {loading === s.id ? "Logging in…" : "Impersonate"}
+                      {loading === staffKey(s) ? "Logging in…" : "Impersonate"}
                     </button>
                   </td>
                 </tr>

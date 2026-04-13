@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/db";
+import { getTenantPrisma } from "@/lib/tenant-db";
 import { getNextOrderNumber } from "@/lib/pos";
 import { recordCashSale } from "@/lib/cashbook";
 import { signAndStoreOrder, signAndStorePayment, getOrderTseData, isOrderTseQueued } from "@/lib/tse/db";
@@ -123,6 +123,8 @@ export async function POST(request) {
     if (!tenantId || !branchId) {
       return NextResponse.json({ error: "Restaurant context required" }, { status: 400 });
     }
+
+    const prisma = await getTenantPrisma(tenantId);
 
     if (actor.deviceType === "TABLET") {
       const waiterHeader = request.headers.get("x-tablet-waiter-session");
@@ -443,6 +445,7 @@ export async function POST(request) {
     }
 
     await syncKdsItemsForOrder({
+      tenantId,
       orderId: order.id,
       branchId,
       orderStatus: order.status,
@@ -528,8 +531,8 @@ export async function POST(request) {
           log_time_end: tseResult.log_time_end ?? null,
           qrCodeData: tseResult.qrCodeData ?? null,
         }
-      : (await getOrderTseData(order.id));
-    const tseQueued = !tseResult && (await isOrderTseQueued(order.id));
+      : (await getOrderTseData(tenantId, order.id));
+    const tseQueued = !tseResult && (await isOrderTseQueued(tenantId, order.id));
 
     const host = request.headers.get("host") || "localhost:3000";
     const proto = request.headers.get("x-forwarded-proto") || "http";

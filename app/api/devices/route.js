@@ -9,7 +9,7 @@ import {
   requireTenantStaffActor,
   serializeDeviceToken,
 } from "@/lib/devices";
-import { prisma } from "@/lib/db";
+import { getTenantPrisma } from "@/lib/tenant-db";
 
 export async function GET(request) {
   try {
@@ -59,11 +59,12 @@ export async function POST(request) {
     if (deviceType === "KDS") {
       screen =
         (requestedScreenId ? await ensureTenantKdsScreen(actor.tenantId, requestedScreenId, branch.id) : null) ||
-        (await getDefaultKdsScreen(branch.id));
+        (await getDefaultKdsScreen(actor.tenantId, branch.id));
     }
 
     const rawToken = generateDeviceTokenValue();
 
+    const prisma = await getTenantPrisma(actor.tenantId);
     const device = await prisma.deviceToken.create({
       data: {
         tenantId: actor.tenantId,

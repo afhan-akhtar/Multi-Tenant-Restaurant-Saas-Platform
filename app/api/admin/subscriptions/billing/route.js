@@ -1,6 +1,6 @@
 import { getToken } from "next-auth/jwt";
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { platformPrisma } from "@/lib/platform-db";
 import { runSubscriptionBillingCycle } from "@/lib/subscriptions";
 
 export async function POST(req) {
@@ -14,7 +14,7 @@ export async function POST(req) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const subscriptions = await runSubscriptionBillingCycle(prisma);
+    const subscriptions = await runSubscriptionBillingCycle(platformPrisma);
 
     return NextResponse.json({
       success: true,

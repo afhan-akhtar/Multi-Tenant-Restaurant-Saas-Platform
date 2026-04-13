@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/db";
+import { platformPrisma } from "@/lib/platform-db";
+import { getTenantPrisma } from "@/lib/tenant-db";
 import { redirect } from "next/navigation";
 import SettingsClient from "@/app/components/SettingsClient";
 
@@ -13,8 +14,8 @@ export default async function SettingsPage() {
 
   if (isSuperAdmin) {
     const [tenantsCount, plansCount] = await Promise.all([
-      prisma.tenant.count(),
-      prisma.subscriptionPlan.count(),
+      platformPrisma.tenant.count(),
+      platformPrisma.subscriptionPlan.count(),
     ]);
     return (
       <SettingsClient
@@ -33,6 +34,7 @@ export default async function SettingsPage() {
     );
   }
 
+  const prisma = await getTenantPrisma(tenantId);
   const tenant = await prisma.tenant.findUnique({
     where: { id: tenantId },
     select: { id: true, name: true, subdomain: true, country: true, status: true },

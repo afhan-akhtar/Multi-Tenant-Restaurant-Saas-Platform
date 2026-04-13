@@ -5,7 +5,7 @@ import {
   requireTenantStaffActor,
   serializeKdsScreen,
 } from "@/lib/devices";
-import { prisma } from "@/lib/db";
+import { getTenantPrisma } from "@/lib/tenant-db";
 
 const ALLOWED_STATION_TYPES = ["MAIN", "EXPEDITOR", "GRILL", "FRYER", "DRINKS", "PACKING", "DESSERT", "CUSTOM"];
 

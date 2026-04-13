@@ -1,16 +1,12 @@
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/db";
+import { listAllTenantAdmins } from "@/lib/tenant-staff-list";
 import { redirect } from "next/navigation";
 
 export default async function ImpersonationPage() {
   const session = await auth();
   if (!session || session.user?.type !== "super_admin") redirect("/");
 
-  const staff = await prisma.tenantAdmin.findMany({
-    include: { tenant: true, role: true },
-    orderBy: { name: "asc" },
-    take: 50,
-  });
+  const staff = (await listAllTenantAdmins()).slice(0, 50);
 
   return (
     <div className="py-4 w-full min-w-0">
@@ -31,7 +27,7 @@ export default async function ImpersonationPage() {
             </thead>
             <tbody>
               {staff.map((s) => (
-                <tr key={s.id} className="border-b border-slate-100 last:border-0">
+                <tr key={`${s.tenantId}-${s.id}`} className="border-b border-slate-100 last:border-0">
                   <td className="py-3 px-4">{s.name} ({s.email})</td>
                   <td className="py-3 px-4">{s.tenant?.name} ({s.tenant?.subdomain})</td>
                   <td className="py-3 px-4">{s.role?.name}</td>

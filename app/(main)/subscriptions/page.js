@@ -1,6 +1,6 @@
 import { auth } from "@/lib/auth";
 import { formatEur } from "@/lib/currencyFormat";
-import { prisma } from "@/lib/db";
+import { platformPrisma } from "@/lib/platform-db";
 import { formatDate } from "@/lib/dateFormat";
 import { redirect } from "next/navigation";
 
@@ -9,8 +9,8 @@ export default async function SubscriptionsPage() {
   if (!session || session.user?.type !== "super_admin") redirect("/");
 
   const [plans, subscriptions] = await Promise.all([
-    prisma.subscriptionPlan.findMany({ orderBy: { name: "asc" } }),
-    prisma.tenantSubscription.findMany({
+    platformPrisma.subscriptionPlan.findMany({ orderBy: { name: "asc" } }),
+    platformPrisma.tenantSubscription.findMany({
       include: { tenant: true, plan: true },
       orderBy: { startDate: "desc" },
       take: 20,

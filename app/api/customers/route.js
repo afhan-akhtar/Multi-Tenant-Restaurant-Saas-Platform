@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { getTenantPrisma } from "@/lib/tenant-db";
 import { getRequestActor } from "@/lib/device-auth";
 import {
   normalizeCustomerPhone,
@@ -14,6 +14,7 @@ export async function POST(req) {
     if (!actor?.tenantId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const tenantId = actor.tenantId ?? null;
     if (!tenantId) return NextResponse.json({ error: "Restaurant context required" }, { status: 400 });
+    const prisma = await getTenantPrisma(tenantId);
 
     const body = await req.json();
     const { name, email, phone } = body;
@@ -60,6 +61,7 @@ export async function DELETE(req) {
     if (!actor?.tenantId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const tenantId = actor.tenantId ?? null;
     if (!tenantId) return NextResponse.json({ error: "Restaurant context required" }, { status: 400 });
+    const prisma = await getTenantPrisma(tenantId);
 
     const { searchParams } = new URL(req.url);
     const id = parseInt(searchParams.get("id"), 10);

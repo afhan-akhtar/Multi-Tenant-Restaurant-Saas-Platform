@@ -1,6 +1,6 @@
 import { getToken } from "next-auth/jwt";
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { getTenantPrisma } from "@/lib/tenant-db";
 
 // GET /api/settings - Get current user's tenant or platform settings
 export async function GET(req) {
@@ -20,6 +20,7 @@ export async function GET(req) {
 
     const tenantId = token.tenantId ?? null;
     if (!tenantId) return NextResponse.json({ error: "Restaurant context required" }, { status: 400 });
+    const prisma = await getTenantPrisma(tenantId);
 
     const tenant = await prisma.tenant.findUnique({
       where: { id: tenantId },
@@ -46,6 +47,7 @@ export async function PATCH(req) {
 
     const tenantId = token.tenantId ?? null;
     if (!tenantId) return NextResponse.json({ error: "Restaurant context required" }, { status: 400 });
+    const prisma = await getTenantPrisma(tenantId);
 
     const body = await req.json();
     const { name, country } = body;

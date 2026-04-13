@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { findTabletDeviceByToken, createDeviceSocketTicket } from "@/lib/device-auth";
 import { getPOSData } from "@/lib/pos";
-import { prisma } from "@/lib/db";
+import { getTenantPrisma } from "@/lib/tenant-db";
 import TabletApp from "./components/TabletApp";
 import TabletAccessRecovery from "./components/TabletAccessRecovery";
 import TabletTokenPersister from "./components/TabletTokenPersister";
@@ -23,9 +23,10 @@ export default async function TabletTokenPage({ searchParams }) {
     return <TabletAccessRecovery initialToken={token} invalid />;
   }
 
+  const tenantPrisma = await getTenantPrisma(device.tenantId);
   const [data, tenantRow] = await Promise.all([
     getPOSData(device.tenantId, device.branchId),
-    prisma.tenant.findUnique({
+    tenantPrisma.tenant.findUnique({
       where: { id: device.tenantId },
       select: { name: true },
     }),

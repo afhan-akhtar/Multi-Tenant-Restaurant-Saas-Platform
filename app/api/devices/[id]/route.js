@@ -6,7 +6,7 @@ import {
   requireTenantStaffActor,
   serializeDeviceToken,
 } from "@/lib/devices";
-import { prisma } from "@/lib/db";
+import { getTenantPrisma } from "@/lib/tenant-db";
 
 function parseId(value) {
   const id = Number.parseInt(String(value || ""), 10);
@@ -14,6 +14,7 @@ function parseId(value) {
 }
 
 async function loadTenantDevice(tenantId, id) {
+  const prisma = await getTenantPrisma(tenantId);
   return prisma.deviceToken.findFirst({
     where: { id, tenantId },
     include: {
@@ -80,9 +81,10 @@ export async function PATCH(request, { params }) {
       const branchIdForScreen = branch?.id ?? existing.branchId ?? null;
       screen =
         (nextScreenId ? await ensureTenantKdsScreen(actor.tenantId, nextScreenId, branchIdForScreen) : null) ||
-        (nextScreenId === null ? null : await getDefaultKdsScreen(branchIdForScreen));
+        (nextScreenId === null ? null : await getDefaultKdsScreen(actor.tenantId, branchIdForScreen));
     }
 
+    const prisma = await getTenantPrisma(actor.tenantId);
     const device = await prisma.deviceToken.update({
       where: { id: existing.id },
       data: {
@@ -131,6 +133,7 @@ export async function DELETE(request, { params }) {
       return NextResponse.json({ error: "Device ID is required" }, { status: 400 });
     }
 
+    const prisma = await getTenantPrisma(actor.tenantId);
     const existing = await prisma.deviceToken.findFirst({
       where: { id, tenantId: actor.tenantId },
       select: { id: true },

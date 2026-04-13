@@ -118,18 +118,24 @@ npm install
 
 ### 2. Environment Variables
 
-Copy `.env.example` to `.env`:
-
 ```bash
 cp .env.example .env
 ```
 
-Edit `.env` with your values:
+Edit `.env` with your local credentials.
+
+**Database (two logical databases on PostgreSQL)**
+
+| Variable | Required | Purpose |
+|----------|----------|---------|
+| `PLATFORM_DATABASE_URL` | **Yes** (or use `DATABASE_URL`) | Control-plane DB: tenant registry, billing, super admin, staff login index. |
+| `DATABASE_URL` | Fallback | If `PLATFORM_DATABASE_URL` is unset, used for the platform DB and as a base URL for deriving per-tenant DB names in dev. |
+| `TENANT_DATABASE_URL` | For CLI only | Used by `prisma db push` / `migrate` for the **tenant** schema (`prisma/tenant/prisma.config.ts`). Point at any tenant database URL when running those commands. |
+| `DATABASE_ADMIN_URL` | Optional | Connection to the `postgres` maintenance database (same host/user as platform). Used by `CREATE DATABASE` when provisioning tenant DBs. Defaults from `PLATFORM_DATABASE_URL` / `DATABASE_URL`. |
+
+**Auth and app**
 
 ```env
-# Database (required)
-DATABASE_URL="postgresql://user:password@localhost:5432/restaurant_saas"
-
 # NextAuth (required)
 NEXTAUTH_URL="http://localhost:3000"
 NEXTAUTH_SECRET="your-secret-here"
@@ -145,6 +151,13 @@ PAYPAL_CLIENT_SECRET=""
 # Fiskaly TSE (German KassenSichV compliance) – see lib/tse/README.md
 # FISKALY_API_KEY=
 # FISKALY_API_SECRET=
+```
+
+Example local URLs (adjust user, password, host, port):
+
+```env
+PLATFORM_DATABASE_URL="postgresql://postgres:password@localhost:5432/restaurant_platform"
+# Tenant DBs are separate databases on the same server, e.g. restaurant_tenant_1
 ```
 
 Generate a secure `NEXTAUTH_SECRET`:
@@ -164,12 +177,37 @@ Stripe and PayPal are now fully wired into the POS flow instead of being saved a
 
 When provider credentials are missing, the POS automatically disables the related payment option and continues to allow Cash/Card checkout.
 
-### 3. Database Setup
+### 3. Database setup (local)
+
+The app uses a **platform** database plus **one database per restaurant tenant**.
+
+1. **Generate Prisma clients** (required after install or schema changes):
 
 ```bash
-npx prisma migrate deploy
+npm run db:generate
+```
+
+2. **Create the platform database** and apply the platform schema (this repo may not include migration folders yet; `db push` is fine for development):
+
+```bash
+npm run db:platform:push
+```
+
+3. **Seed** — creates the super admin, registers the `demo` tenant, **provisions** the tenant database (`restaurant_tenant_<id>`), mirrors the tenant row, loads demo menu/orders, and inserts subscription/billing rows on the platform:
+
+```bash
 npm run db:seed
 ```
+
+If you only need to (re)create a tenant database and apply the tenant schema without running the full seed, use:
+
+```bash
+npm run db:provision-tenant -- 1
+```
+
+(`1` is the platform `Tenant.id`.)
+
+When you add proper `prisma/platform/migrations` and `prisma/tenant/migrations`, replace `db push` with `npx prisma migrate deploy` using the same `--schema` / `--config` as in `package.json` scripts.
 
 ### 4. Run Development Server
 
@@ -192,10 +230,13 @@ Restaurant Admin redirects to `/demo` after login.
 
 | Command | Description |
 |---------|-------------|
-| `npm run dev` | Start development server (Prisma generate + Next dev) |
-| `npm run build` | Build for production |
+| `npm run dev` | Generate Prisma clients and start the dev server |
+| `npm run build` | Generate clients and production build |
 | `npm run start` | Start production server |
-| `npm run db:seed` | Seed database with demo data |
+| `npm run db:generate` | Generate both platform and tenant Prisma clients |
+| `npm run db:platform:push` | Push platform schema to `PLATFORM_DATABASE_URL` |
+| `npm run db:seed` | Seed platform + demo tenant DB (provisions tenant DB if missing) |
+| `npm run db:provision-tenant` | Create/migrate a single tenant database by platform tenant id |
 | `npm run lint` | Run ESLint |
 
 ## Project Structure
@@ -211,7 +252,7 @@ Restaurant Admin redirects to `/demo` after login.
 │   └── go/              # Post-login redirect handler
 ├── app/components/      # React components (POS, KDS, Dashboard, etc.)
 ├── lib/                 # Auth, DB, POS logic, dashboard, etc.
-├── prisma/              # Schema, migrations, seed
+├── prisma/              # `platform/` + `tenant/` schemas; `seed.mjs`
 └── public/
 ```
 
@@ -241,6 +282,16 @@ Restaurant Admin redirects to `/demo` after login.
 ## Mobile Apps (Capacitor)
 
 Build Android and iOS apps from the same Next.js web app using [Capacitor](https://capacitorjs.com). Offline mode (IndexedDB) works in the WebView without any code changes.
+
+### Stable tablet URL (recommended — no LAN IP in the app)
+
+The Capacitor **`server.url`** should point at a **fixed HTTPS host** (your deployed Next app), not a changing `192.168.x.x` address:
+
+1. Deploy the app (e.g. Vercel) so you have something like `https://your-project.vercel.app`.
+2. Set `server.url` to **`https://your-project.vercel.app/tablet/connect`** (sync into `capacitor.config.json` or edit by hand), then `npx cap sync` and rebuild the APK/IPA.
+3. On first open, staff use **Admin → Devices → TABLET** and paste either the **full link** or **device token only** on the connect screen. The token is stored on the device; you are not tied to a local IP for daily use.
+
+For **local Wi‑Fi testing**, run `npm run cap:sync` so `scripts/cap-set-dev-url.js` writes your current LAN IP; the default path is now **`/tablet/connect`** (not a hardcoded `/tablet?token=…`). Paste the **device token** once; avoid relying on a bookmarked LAN URL.
 
 ### Setup
 
@@ -286,6 +337,19 @@ npx cap sync
 npx cap open android   # or: npx cap open ios
 ```
 
+### Real Android/iPhone on the same Wi‑Fi (dev server)
+
+`ERR_CONNECTION_REFUSED` means the phone could not open a TCP connection to your computer on port 3000. Check:
+
+1. **Start the Next dev server** on your machine: `npm run dev` (uses `server.js` and listens on `0.0.0.0:3000`).
+2. **Same network:** phone and computer on the same Wi‑Fi (not guest/cellular-only).
+3. **Refresh the URL in the app:** run `npm run cap:sync` (it runs `scripts/cap-set-dev-url.js`, which writes your current LAN IP into `capacitor.config.json`). Then open Android Studio / reinstall the app if needed.
+4. **Quick test:** on the phone’s browser, open `http://YOUR_LAN_IP:3000` — you should see the site. If that fails, fix IP/firewall before debugging the Capacitor app.
+5. **macOS Firewall:** allow incoming connections for **Node** (or temporarily turn the firewall off to test).
+6. **`.env` and `HOST`:** If you have **`HOST=localhost`** or **`HOST=127.0.0.1`**, remove it for LAN testing (older setups used that for the HTTP bind and blocked other devices). This project’s `server.js` uses **`LISTEN_HOST=0.0.0.0`** by default so phones can connect; Next.js uses **`NEXT_DEV_HOSTNAME=localhost`** internally.
+
+**Android emulator:** the script falls back to `10.0.2.2` when no LAN IP is found (emulator → host). Override with `CAP_SERVER_HOST=10.0.2.2 npm run cap:sync`.
+
 ### Offline mode in Capacitor
 
 - IndexedDB is supported in the WebView.
@@ -295,23 +359,26 @@ npx cap open android   # or: npx cap open ios
 ## Production
 
 1. Set environment variables on your host (Vercel, Railway, etc.):
-   - `DATABASE_URL` – production PostgreSQL
+   - `PLATFORM_DATABASE_URL` – production PostgreSQL database for the control plane (or `DATABASE_URL` as fallback)
    - `NEXTAUTH_URL` – your domain (e.g. `https://your-domain.com`)
-   - `NEXTAUTH_SECRET` – same or new strong secret
+   - `NEXTAUTH_SECRET` – strong secret
+   - `DATABASE_ADMIN_URL` – optional; needed if the app creates tenant databases at runtime
 
-2. Run migrations and optional seed:
+2. Run migrations for **platform** and **tenant** schemas (when migration folders exist), provision per-tenant databases, then build:
 
 ```bash
-npx prisma migrate deploy
-# npm run db:seed  # only if you want demo data
+npx prisma migrate deploy --schema=prisma/platform/schema.prisma
+# For each tenant DB, set TENANT_DATABASE_URL and run migrate deploy with prisma/tenant config — see lib/provision-tenant-database.js
+npm run build
 ```
 
-3. Build and start:
+3. Start:
 
 ```bash
-npm run build
 npm run start
 ```
+
+Do not run `db:seed` in production unless you intend to load demo accounts and data.
 
 ## License
 

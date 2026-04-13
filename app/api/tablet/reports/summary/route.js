@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { getTenantPrisma } from "@/lib/tenant-db";
 import { getRequestActor } from "@/lib/device-auth";
 import { assertTenantFeatureAccess } from "@/lib/subscriptions";
 import { getTabletWaiterFromRequest, assertWaiterStaff } from "@/lib/tablet-waiter";
@@ -32,6 +32,7 @@ export async function GET(request) {
     const start = new Date();
     start.setHours(0, 0, 0, 0);
 
+    const prisma = await getTenantPrisma(actor.tenantId);
     const orders = await prisma.order.findMany({
       where: {
         tenantId: actor.tenantId,

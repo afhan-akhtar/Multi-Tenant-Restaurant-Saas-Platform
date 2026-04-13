@@ -1,6 +1,6 @@
 import { getToken } from "next-auth/jwt";
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { platformPrisma } from "@/lib/platform-db";
 import { assignSubscriptionToTenant, serializeSubscription } from "@/lib/subscriptions";
 
 // POST /api/admin/subscriptions - Assign plan to tenant (Super Admin only)
@@ -25,7 +25,7 @@ export async function POST(req) {
       );
     }
 
-    const tenant = await prisma.tenant.findUnique({ where: { id: tenantId } });
+    const tenant = await platformPrisma.tenant.findUnique({ where: { id: tenantId } });
 
     if (!tenant) {
       return NextResponse.json({ error: "Tenant not found." }, { status: 404 });
@@ -37,7 +37,7 @@ export async function POST(req) {
       );
     }
 
-    const sub = await prisma.$transaction((tx) =>
+    const sub = await platformPrisma.$transaction((tx) =>
       assignSubscriptionToTenant(tx, {
         tenantId: tenant.id,
         planId,

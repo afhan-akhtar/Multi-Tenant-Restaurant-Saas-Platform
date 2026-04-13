@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { platformPrisma } from "@/lib/platform-db";
 import { runSubscriptionBillingCycle } from "@/lib/subscriptions";
 
 /**
@@ -8,7 +8,7 @@ import { runSubscriptionBillingCycle } from "@/lib/subscriptions";
  */
 export async function GET() {
   try {
-    const subscriptions = await runSubscriptionBillingCycle(prisma);
+    const subscriptions = await runSubscriptionBillingCycle(platformPrisma);
     return NextResponse.json({ ok: true, processed: subscriptions.length });
   } catch (error) {
     console.error("[subscription billing cron]", error);
