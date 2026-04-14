@@ -23,6 +23,7 @@ export async function POST(request) {
       return NextResponse.json({ error: "token required" }, { status: 400 });
     }
 
+    const prisma = await getTenantPrisma(actor.tenantId);
     const tenant = await prisma.tenant.findUnique({
       where: { id: actor.tenantId },
       select: { tabletSettings: true },

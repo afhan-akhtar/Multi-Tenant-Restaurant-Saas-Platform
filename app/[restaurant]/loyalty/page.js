@@ -19,6 +19,7 @@ export default async function LoyaltyPage() {
     );
   }
 
+  const prisma = await getTenantPrisma(tenantId);
   const [customers, orderStats, tenantRow] = await Promise.all([
     prisma.customer.findMany({
       where: { tenantId },

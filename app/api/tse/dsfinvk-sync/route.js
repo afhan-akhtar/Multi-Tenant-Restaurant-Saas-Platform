@@ -1,4 +1,5 @@
 import { getToken } from "next-auth/jwt";
+import { platformPrisma } from "@/lib/platform-db";
 import { getTenantPrisma } from "@/lib/tenant-db";
 import { submitCashPointClosing } from "@/lib/tse/dsfinvk";
 import { NextResponse } from "next/server";
@@ -33,6 +34,7 @@ export async function POST(request) {
     const start = new Date(dateStr + "T00:00:00.000Z");
     const end = new Date(dateStr + "T23:59:59.999Z");
 
+    const prisma = await getTenantPrisma(tenantId);
     const [tseOrder, tseCashbook, cashbookEntries] = await Promise.all([
       prisma.tSETransaction.findMany({
         where: { orderId: { not: null }, order: { tenantId }, signedAt: { gte: start, lte: end } },
@@ -65,7 +67,7 @@ export async function POST(request) {
     let clientId = process.env.DSFINVK_CLIENT_ID?.trim?.() || "pos-1";
     const apiKey = process.env.FISKALY_API_KEY?.trim?.();
     if (apiKey && !process.env.DSFINVK_CLIENT_ID) {
-      const platformConfig = await prisma.fiskalyPlatformConfig.findUnique({ where: { apiKey } });
+      const platformConfig = await platformPrisma.fiskalyPlatformConfig.findUnique({ where: { apiKey } });
       if (platformConfig?.clientId) clientId = platformConfig.clientId;
     }
     const tenantConfig = tenantId && (await prisma.tenantFiskalyConfig.findUnique({ where: { tenantId } }));

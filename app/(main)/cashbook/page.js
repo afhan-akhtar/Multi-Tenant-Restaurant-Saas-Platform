@@ -4,15 +4,24 @@ import { formatEur } from "@/lib/currencyFormat";
 import { redirect } from "next/navigation";
 import CashbookClient from "@/app/components/CashbookClient";
 
+export const dynamic = "force-dynamic";
+
 export default async function CashbookPage() {
   const session = await auth();
   if (!session) redirect("/login");
 
   const tenantId = session.user?.tenantId ?? null;
-  const where = tenantId ? { tenantId } : {};
+  if (!tenantId) {
+    return (
+      <div className="py-4 w-full min-w-0">
+        <p className="text-color-text-muted">Restaurant context required.</p>
+      </div>
+    );
+  }
 
+  const prisma = await getTenantPrisma(tenantId);
   const entries = await prisma.cashbookEntry.findMany({
-    where,
+    where: { tenantId },
     orderBy: { createdAt: "desc" },
     take: 100,
   });

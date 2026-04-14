@@ -26,6 +26,8 @@ export async function POST(request) {
       return NextResponse.json({ error: featureAccess.error }, { status: featureAccess.status });
     }
 
+    const prisma = await getTenantPrisma(actor.tenantId);
+
     const body = await request.json();
     const sessionId = Number(body?.sessionId);
     const newWaiterId = Number(body?.newWaiterId);

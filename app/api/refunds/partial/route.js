@@ -18,6 +18,8 @@ export async function POST(request) {
       return NextResponse.json({ error: posAccess.error }, { status: posAccess.status });
     }
 
+    const prisma = await getTenantPrisma(actor.tenantId);
+
     const body = await request.json();
     const result = await refundOrderItems({
       tenantId: actor.tenantId,

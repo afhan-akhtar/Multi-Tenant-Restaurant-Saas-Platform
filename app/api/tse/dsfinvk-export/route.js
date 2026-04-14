@@ -1,4 +1,5 @@
 import { getToken } from "next-auth/jwt";
+import { platformPrisma } from "@/lib/platform-db";
 import { getTenantPrisma } from "@/lib/tenant-db";
 import { downloadDsfinvkExport, triggerDsfinvkExport } from "@/lib/tse/dsfinvk";
 import { NextResponse } from "next/server";
@@ -18,6 +19,8 @@ export async function POST(request) {
     const tenantId = token.tenantId ?? null;
     if (!tenantId) return NextResponse.json({ error: "Missing tenant context" }, { status: 400 });
 
+    const prisma = await getTenantPrisma(tenantId);
+
     let body = {};
     try {
       body = await request.json().catch(() => ({}));
@@ -31,7 +34,7 @@ export async function POST(request) {
     let clientId = process.env.DSFINVK_CLIENT_ID?.trim?.() || "pos-1";
     const apiKey = process.env.FISKALY_API_KEY?.trim?.();
     if (apiKey && !process.env.DSFINVK_CLIENT_ID) {
-      const platformConfig = await prisma.fiskalyPlatformConfig.findUnique({ where: { apiKey } });
+      const platformConfig = await platformPrisma.fiskalyPlatformConfig.findUnique({ where: { apiKey } });
       if (platformConfig?.clientId) clientId = platformConfig.clientId;
     }
     const tenantConfig = await prisma.tenantFiskalyConfig.findUnique({ where: { tenantId } });

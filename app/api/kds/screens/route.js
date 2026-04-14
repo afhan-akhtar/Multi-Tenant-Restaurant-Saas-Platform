@@ -55,6 +55,7 @@ export async function POST(request) {
       return NextResponse.json({ error: "Branch not found" }, { status: 404 });
     }
 
+    const prisma = await getTenantPrisma(actor.tenantId);
     const screen = await prisma.$transaction(async (tx) => {
       if (isDefault) {
         await tx.kDSScreen.updateMany({

@@ -31,6 +31,7 @@ export async function GET(request) {
     const start = startStr ? new Date(startStr) : new Date(new Date().setHours(0, 0, 0, 0));
     const end = endStr ? new Date(endStr) : new Date();
 
+    const prisma = await getTenantPrisma(tenantId);
     const [tseOrder, tseCashbook, cashbookEntries, orders] = await Promise.all([
       prisma.tSETransaction.findMany({
         where: { orderId: { not: null }, order: { tenantId }, signedAt: { gte: start, lte: end } },

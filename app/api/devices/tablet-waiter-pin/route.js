@@ -21,6 +21,7 @@ export async function GET(request) {
     const access = await getTenantSubscriptionAccess(actor.tenantId);
     const tabletFeatureAvailable = hasTabletFeature(access);
 
+    const prisma = await getTenantPrisma(actor.tenantId);
     const tenant = await prisma.tenant.findUnique({
       where: { id: actor.tenantId },
       select: { tabletSettings: true },
@@ -54,6 +55,7 @@ export async function PATCH(request) {
       return NextResponse.json({ error: featureAccess.error }, { status: featureAccess.status });
     }
 
+    const prisma = await getTenantPrisma(actor.tenantId);
     const body = await request.json().catch(() => ({}));
     const clear = Boolean(body?.clear);
 

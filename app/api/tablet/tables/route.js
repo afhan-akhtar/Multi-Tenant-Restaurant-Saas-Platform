@@ -17,6 +17,8 @@ export async function GET(request) {
       return NextResponse.json({ error: featureAccess.error }, { status: featureAccess.status });
     }
 
+    const prisma = await getTenantPrisma(actor.tenantId);
+
     const tables = await prisma.diningTable.findMany({
       where: {
         tenantId: actor.tenantId,

@@ -1,11 +1,11 @@
-import { getTenantPrisma } from "@/lib/tenant-db";
+import { platformPrisma } from "@/lib/platform-db";
 import { verifyPassword } from "@/lib/password";
 
 export async function GET() {
   const result = { ok: false, steps: [] };
   try {
     // 1. Check if SuperAdmin exists
-    const admin = await prisma.superAdmin.findUnique({
+    const admin = await platformPrisma.superAdmin.findUnique({
       where: { email: "admin@platform.com" },
     });
     result.steps.push({

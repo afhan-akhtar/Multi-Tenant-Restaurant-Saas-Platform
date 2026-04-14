@@ -1,5 +1,5 @@
 import { auth } from "@/lib/auth";
-import { getTenantPrisma } from "@/lib/tenant-db";
+import { platformPrisma } from "@/lib/platform-db";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { formatEur } from "@/lib/currencyFormat";
@@ -35,10 +35,10 @@ export default async function RestaurantSubscriptionPage() {
 
   const [access, plans, planChangeRequests] = await Promise.all([
     getTenantSubscriptionAccess(tenantId),
-    prisma.subscriptionPlan.findMany({
+    platformPrisma.subscriptionPlan.findMany({
       orderBy: [{ sortOrder: "asc" }, { monthlyPrice: "asc" }],
     }),
-    prisma.subscriptionPlanChangeRequest.findMany({
+    platformPrisma.subscriptionPlanChangeRequest.findMany({
       where: { tenantId },
       include: {
         requestedPlan: true,

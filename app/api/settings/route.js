@@ -1,5 +1,6 @@
 import { getToken } from "next-auth/jwt";
 import { NextResponse } from "next/server";
+import { platformPrisma } from "@/lib/platform-db";
 import { getTenantPrisma } from "@/lib/tenant-db";
 
 // GET /api/settings - Get current user's tenant or platform settings
@@ -9,8 +10,8 @@ export async function GET(req) {
     if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     if (token.type === "super_admin") {
-      const tenants = await prisma.tenant.count();
-      const plans = await prisma.subscriptionPlan.count();
+      const tenants = await platformPrisma.tenant.count();
+      const plans = await platformPrisma.subscriptionPlan.count();
       return NextResponse.json({
         type: "platform",
         tenantsCount: tenants,

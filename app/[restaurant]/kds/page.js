@@ -4,6 +4,8 @@ import { createDeviceSocketTicket } from "@/lib/device-auth";
 import { redirect } from "next/navigation";
 import KDS from "@/app/components/KDS";
 
+export const dynamic = "force-dynamic";
+
 export default async function KDSPage() {
   const session = await auth();
   if (!session) redirect("/login");
