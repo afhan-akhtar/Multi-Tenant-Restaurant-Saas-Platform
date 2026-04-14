@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import POSPaymentModal from "./POSPaymentModal";
@@ -10,12 +10,15 @@ import { printReceipt } from "./Receipt";
 import { formatEur } from "@/lib/currencyFormat";
 import { getDeviceHeaders } from "@/lib/device-client";
 import { formatPhoneDigitsForDisplay, normalizeCustomerPhone } from "@/lib/customerPhone";
+import { runCashPaymentHardware } from "@/lib/pos-hardware-client";
+import { useBarcodeScanner } from "@/app/components/pos/useBarcodeScanner";
 
 const CATEGORY_COLORS = ["#1a202c", "#3182ce", "#4299e1", "#48bb78", "#ed64a6"];
 
 export default function POS({ data, deviceAuth = null }) {
   const router = useRouter();
   const {
+    tenantId: dataTenantId = null,
     categories = [],
     products = [],
     addonGroups = [],
@@ -139,6 +142,52 @@ export default function POS({ data, deviceAuth = null }) {
     }
   };
 
+  const productsRef = useRef(products);
+  productsRef.current = products;
+  const openAddonModalRef = useRef(openAddonModal);
+  openAddonModalRef.current = openAddonModal;
+
+  const handleBarcodeScan = useCallback(
+    async (code) => {
+      const list = productsRef.current;
+      let match = list.find((p) => String(p.plu) === code || String(p.id) === code);
+      if (!match) {
+        try {
+          const res = await fetch(`/api/pos/products/lookup?code=${encodeURIComponent(code)}`, {
+            cache: "no-store",
+            headers: { ...getDeviceHeaders(deviceAuth) },
+          });
+          const data = await res.json().catch(() => ({}));
+          if (res.ok && data.found && data.product) {
+            const api = data.product;
+            match =
+              list.find((p) => p.id === api.id) || {
+                id: api.id,
+                name: api.name,
+                plu: api.plu,
+                basePrice: Number(api.basePrice),
+                taxRate: Number(api.taxRate),
+                categoryId: api.categoryId,
+                category: api.category,
+                variants: api.variants || [],
+              };
+          }
+        } catch {
+          setToast({ type: "error", message: "Barcode lookup failed" });
+          return;
+        }
+      }
+      if (!match) {
+        setToast({ type: "error", message: `No product for code ${code}` });
+        return;
+      }
+      openAddonModalRef.current(match);
+    },
+    [deviceAuth]
+  );
+
+  useBarcodeScanner(handleBarcodeScan, { enabled: Boolean(dataTenantId) });
+
   const toggleAddon = (groupId, item) => {
     setSelectedAddons((prev) => {
       const group = prev[groupId] || [];
@@ -201,6 +250,10 @@ export default function POS({ data, deviceAuth = null }) {
       setToast({ type: "success", message: `Order ${result?.orderNumber} paid successfully!${extra}` });
     }
     router.refresh();
+
+    if (dataTenantId && result && !result.queued) {
+      void runCashPaymentHardware(result, { tenantId: dataTenantId, deviceAuth });
+    }
   };
 
   const handlePrintReceipt = () => {

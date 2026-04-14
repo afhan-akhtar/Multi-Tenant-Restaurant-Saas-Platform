@@ -107,6 +107,8 @@ model Tenant {
   loyaltySettings Json?
   /// { waiterPinHash?: string, fcmTokens?: string[], otaManifestUrl?: string }
   tabletSettings Json?
+  /// POS hardware: { localAgentBaseUrl?, agentBaseUrl?, agentSecret?, printer?: { type, host?, port?, devicePath? }, drawer?: { pin } }
+  posHardwareSettings Json?
 
   fiskalyConfig      TenantFiskalyConfig?
   branches           Branch[]

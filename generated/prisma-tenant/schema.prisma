@@ -96,17 +96,19 @@ enum KDSStationType {
 
 /// Single row per database; `id` matches the platform Tenant.id.
 model Tenant {
-  id              Int          @id
-  name            String
-  subdomain       String       @unique
-  country         String       @default("")
-  logoUrl         String?
-  status          TenantStatus @default(ACTIVE)
-  createdAt       DateTime     @default(now())
+  id                  Int          @id
+  name                String
+  subdomain           String       @unique
+  country             String       @default("")
+  logoUrl             String?
+  status              TenantStatus @default(ACTIVE)
+  createdAt           DateTime     @default(now())
   /// { pointsPerEuro, redemptionRate, tier1Threshold, tier2Threshold }
-  loyaltySettings Json?
+  loyaltySettings     Json?
   /// { waiterPinHash?: string, fcmTokens?: string[], otaManifestUrl?: string }
-  tabletSettings  Json?
+  tabletSettings      Json?
+  /// POS hardware: { localAgentBaseUrl?, agentBaseUrl?, agentSecret?, printer?: { type, host?, port?, devicePath? }, drawer?: { pin } }
+  posHardwareSettings Json?
 
   fiskalyConfig   TenantFiskalyConfig?
   branches        Branch[]

@@ -1,0 +1,13 @@
+{
+  "name": "restaurant-pos-agent",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Local POS Agent for thermal printer and cash drawer (ESC/POS)",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

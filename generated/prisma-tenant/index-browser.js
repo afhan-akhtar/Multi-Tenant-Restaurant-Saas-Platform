@@ -129,7 +129,8 @@ exports.Prisma.TenantScalarFieldEnum = {
   status: 'status',
   createdAt: 'createdAt',
   loyaltySettings: 'loyaltySettings',
-  tabletSettings: 'tabletSettings'
+  tabletSettings: 'tabletSettings',
+  posHardwareSettings: 'posHardwareSettings'
 };
 
 exports.Prisma.TenantFiskalyConfigScalarFieldEnum = {

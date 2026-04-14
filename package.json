@@ -9,6 +9,8 @@
     "lint": "next lint",
     "db:generate": "prisma generate --schema=prisma/platform/schema.prisma && prisma generate --schema=prisma/tenant/schema.prisma --config prisma/tenant/prisma.config.ts",
     "db:platform:push": "prisma db push --schema=prisma/platform/schema.prisma",
+    "db:tenant:push": "prisma db push --schema=prisma/tenant/schema.prisma --config prisma/tenant/prisma.config.ts",
+    "db:sync": "node scripts/db-sync.mjs",
     "db:seed": "node prisma/seed.mjs",
     "db:provision-tenant": "node scripts/provision-tenant.mjs",
     "studio:platform": "prisma studio --config=prisma.config.ts --port 5555",
@@ -18,7 +20,8 @@
     "cap:android": "node scripts/cap-set-dev-url.js && npx cap sync android && npx cap open android",
     "cap:android:emu": "CAP_SERVER_HOST=10.0.2.2 node scripts/cap-set-dev-url.js && npx cap sync android && npx cap open android",
     "cap:ios": "node scripts/cap-set-dev-url.js && npx cap sync ios && npx cap open ios",
-    "cap:ios:sim": "CAP_SERVER_HOST=127.0.0.1 node scripts/cap-set-dev-url.js && npx cap sync ios && npx cap open ios"
+    "cap:ios:sim": "CAP_SERVER_HOST=127.0.0.1 node scripts/cap-set-dev-url.js && npx cap sync ios && npx cap open ios",
+    "pos-agent": "node pos-agent/index.js"
   },
   "prisma": {
     "seed": "node prisma/seed.mjs"

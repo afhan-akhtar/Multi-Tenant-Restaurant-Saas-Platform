@@ -12,6 +12,7 @@ import {
   KDSOrderCard,
 } from "@/app/components/kds/KDSShared";
 import { getDeviceHeaders, getTabletWaiterHeaders } from "@/lib/device-client";
+import { runCashPaymentHardware } from "@/lib/pos-hardware-client";
 import { formatEur } from "@/lib/currencyFormat";
 import { buildEscPosReceipt } from "../lib/escpos";
 import POSPaymentModal from "@/app/components/POSPaymentModal";
@@ -371,6 +372,10 @@ export default function TabletApp({ data, deviceAuth }) {
     setOrderSeq((s) => s + 1);
     refreshOrders();
     refreshTables();
+
+    if (data?.tenantId && result && !result?.queued) {
+      void runCashPaymentHardware(result, { tenantId: data.tenantId, deviceAuth });
+    }
   };
 
   const unlockWaiter = async () => {

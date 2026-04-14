@@ -4282,6 +4282,7 @@ export namespace Prisma {
     createdAt: number
     loyaltySettings: number
     tabletSettings: number
+    posHardwareSettings: number
     _all: number
   }
 
@@ -4324,6 +4325,7 @@ export namespace Prisma {
     createdAt?: true
     loyaltySettings?: true
     tabletSettings?: true
+    posHardwareSettings?: true
     _all?: true
   }
 
@@ -4423,6 +4425,7 @@ export namespace Prisma {
     createdAt: Date
     loyaltySettings: JsonValue | null
     tabletSettings: JsonValue | null
+    posHardwareSettings: JsonValue | null
     _count: TenantCountAggregateOutputType | null
     _avg: TenantAvgAggregateOutputType | null
     _sum: TenantSumAggregateOutputType | null
@@ -4454,6 +4457,7 @@ export namespace Prisma {
     createdAt?: boolean
     loyaltySettings?: boolean
     tabletSettings?: boolean
+    posHardwareSettings?: boolean
     fiskalyConfig?: boolean | Tenant$fiskalyConfigArgs<ExtArgs>
     branches?: boolean | Tenant$branchesArgs<ExtArgs>
     roles?: boolean | Tenant$rolesArgs<ExtArgs>
@@ -4485,6 +4489,7 @@ export namespace Prisma {
     createdAt?: boolean
     loyaltySettings?: boolean
     tabletSettings?: boolean
+    posHardwareSettings?: boolean
   }, ExtArgs["result"]["tenant"]>
 
   export type TenantSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -4497,6 +4502,7 @@ export namespace Prisma {
     createdAt?: boolean
     loyaltySettings?: boolean
     tabletSettings?: boolean
+    posHardwareSettings?: boolean
   }, ExtArgs["result"]["tenant"]>
 
   export type TenantSelectScalar = {
@@ -4509,9 +4515,10 @@ export namespace Prisma {
     createdAt?: boolean
     loyaltySettings?: boolean
     tabletSettings?: boolean
+    posHardwareSettings?: boolean
   }
 
-  export type TenantOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "subdomain" | "country" | "logoUrl" | "status" | "createdAt" | "loyaltySettings" | "tabletSettings", ExtArgs["result"]["tenant"]>
+  export type TenantOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "subdomain" | "country" | "logoUrl" | "status" | "createdAt" | "loyaltySettings" | "tabletSettings" | "posHardwareSettings", ExtArgs["result"]["tenant"]>
   export type TenantInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     fiskalyConfig?: boolean | Tenant$fiskalyConfigArgs<ExtArgs>
     branches?: boolean | Tenant$branchesArgs<ExtArgs>
@@ -4574,6 +4581,10 @@ export namespace Prisma {
        * { waiterPinHash?: string, fcmTokens?: string[], otaManifestUrl?: string }
        */
       tabletSettings: Prisma.JsonValue | null
+      /**
+       * POS hardware: { localAgentBaseUrl?, agentBaseUrl?, agentSecret?, printer?: { type, host?, port?, devicePath? }, drawer?: { pin } }
+       */
+      posHardwareSettings: Prisma.JsonValue | null
     }, ExtArgs["result"]["tenant"]>
     composites: {}
   }
@@ -5024,6 +5035,7 @@ export namespace Prisma {
     readonly createdAt: FieldRef<"Tenant", 'DateTime'>
     readonly loyaltySettings: FieldRef<"Tenant", 'Json'>
     readonly tabletSettings: FieldRef<"Tenant", 'Json'>
+    readonly posHardwareSettings: FieldRef<"Tenant", 'Json'>
   }
     
 
@@ -37767,7 +37779,8 @@ export namespace Prisma {
     status: 'status',
     createdAt: 'createdAt',
     loyaltySettings: 'loyaltySettings',
-    tabletSettings: 'tabletSettings'
+    tabletSettings: 'tabletSettings',
+    posHardwareSettings: 'posHardwareSettings'
   };
 
   export type TenantScalarFieldEnum = (typeof TenantScalarFieldEnum)[keyof typeof TenantScalarFieldEnum]
@@ -38454,6 +38467,7 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"Tenant"> | Date | string
     loyaltySettings?: JsonNullableFilter<"Tenant">
     tabletSettings?: JsonNullableFilter<"Tenant">
+    posHardwareSettings?: JsonNullableFilter<"Tenant">
     fiskalyConfig?: XOR<TenantFiskalyConfigNullableScalarRelationFilter, TenantFiskalyConfigWhereInput> | null
     branches?: BranchListRelationFilter
     roles?: RoleListRelationFilter
@@ -38484,6 +38498,7 @@ export namespace Prisma {
     createdAt?: SortOrder
     loyaltySettings?: SortOrderInput | SortOrder
     tabletSettings?: SortOrderInput | SortOrder
+    posHardwareSettings?: SortOrderInput | SortOrder
     fiskalyConfig?: TenantFiskalyConfigOrderByWithRelationInput
     branches?: BranchOrderByRelationAggregateInput
     roles?: RoleOrderByRelationAggregateInput
@@ -38517,6 +38532,7 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"Tenant"> | Date | string
     loyaltySettings?: JsonNullableFilter<"Tenant">
     tabletSettings?: JsonNullableFilter<"Tenant">
+    posHardwareSettings?: JsonNullableFilter<"Tenant">
     fiskalyConfig?: XOR<TenantFiskalyConfigNullableScalarRelationFilter, TenantFiskalyConfigWhereInput> | null
     branches?: BranchListRelationFilter
     roles?: RoleListRelationFilter
@@ -38547,6 +38563,7 @@ export namespace Prisma {
     createdAt?: SortOrder
     loyaltySettings?: SortOrderInput | SortOrder
     tabletSettings?: SortOrderInput | SortOrder
+    posHardwareSettings?: SortOrderInput | SortOrder
     _count?: TenantCountOrderByAggregateInput
     _avg?: TenantAvgOrderByAggregateInput
     _max?: TenantMaxOrderByAggregateInput
@@ -38567,6 +38584,7 @@ export namespace Prisma {
     createdAt?: DateTimeWithAggregatesFilter<"Tenant"> | Date | string
     loyaltySettings?: JsonNullableWithAggregatesFilter<"Tenant">
     tabletSettings?: JsonNullableWithAggregatesFilter<"Tenant">
+    posHardwareSettings?: JsonNullableWithAggregatesFilter<"Tenant">
   }
 
   export type TenantFiskalyConfigWhereInput = {
@@ -40632,6 +40650,7 @@ export namespace Prisma {
     createdAt?: Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     fiskalyConfig?: TenantFiskalyConfigCreateNestedOneWithoutTenantInput
     branches?: BranchCreateNestedManyWithoutTenantInput
     roles?: RoleCreateNestedManyWithoutTenantInput
@@ -40662,6 +40681,7 @@ export namespace Prisma {
     createdAt?: Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     fiskalyConfig?: TenantFiskalyConfigUncheckedCreateNestedOneWithoutTenantInput
     branches?: BranchUncheckedCreateNestedManyWithoutTenantInput
     roles?: RoleUncheckedCreateNestedManyWithoutTenantInput
@@ -40692,6 +40712,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     fiskalyConfig?: TenantFiskalyConfigUpdateOneWithoutTenantNestedInput
     branches?: BranchUpdateManyWithoutTenantNestedInput
     roles?: RoleUpdateManyWithoutTenantNestedInput
@@ -40722,6 +40743,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     fiskalyConfig?: TenantFiskalyConfigUncheckedUpdateOneWithoutTenantNestedInput
     branches?: BranchUncheckedUpdateManyWithoutTenantNestedInput
     roles?: RoleUncheckedUpdateManyWithoutTenantNestedInput
@@ -40752,6 +40774,7 @@ export namespace Prisma {
     createdAt?: Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
   }
 
   export type TenantUpdateManyMutationInput = {
@@ -40764,6 +40787,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
   }
 
   export type TenantUncheckedUpdateManyInput = {
@@ -40776,6 +40800,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
   }
 
   export type TenantFiskalyConfigCreateInput = {
@@ -43047,6 +43072,7 @@ export namespace Prisma {
     createdAt?: SortOrder
     loyaltySettings?: SortOrder
     tabletSettings?: SortOrder
+    posHardwareSettings?: SortOrder
   }
 
   export type TenantAvgOrderByAggregateInput = {
@@ -49492,6 +49518,7 @@ export namespace Prisma {
     createdAt?: Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     branches?: BranchCreateNestedManyWithoutTenantInput
     roles?: RoleCreateNestedManyWithoutTenantInput
     tenantAdmins?: TenantAdminCreateNestedManyWithoutTenantInput
@@ -49521,6 +49548,7 @@ export namespace Prisma {
     createdAt?: Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     branches?: BranchUncheckedCreateNestedManyWithoutTenantInput
     roles?: RoleUncheckedCreateNestedManyWithoutTenantInput
     tenantAdmins?: TenantAdminUncheckedCreateNestedManyWithoutTenantInput
@@ -49566,6 +49594,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     branches?: BranchUpdateManyWithoutTenantNestedInput
     roles?: RoleUpdateManyWithoutTenantNestedInput
     tenantAdmins?: TenantAdminUpdateManyWithoutTenantNestedInput
@@ -49595,6 +49624,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     branches?: BranchUncheckedUpdateManyWithoutTenantNestedInput
     roles?: RoleUncheckedUpdateManyWithoutTenantNestedInput
     tenantAdmins?: TenantAdminUncheckedUpdateManyWithoutTenantNestedInput
@@ -49624,6 +49654,7 @@ export namespace Prisma {
     createdAt?: Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     fiskalyConfig?: TenantFiskalyConfigCreateNestedOneWithoutTenantInput
     roles?: RoleCreateNestedManyWithoutTenantInput
     tenantAdmins?: TenantAdminCreateNestedManyWithoutTenantInput
@@ -49653,6 +49684,7 @@ export namespace Prisma {
     createdAt?: Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     fiskalyConfig?: TenantFiskalyConfigUncheckedCreateNestedOneWithoutTenantInput
     roles?: RoleUncheckedCreateNestedManyWithoutTenantInput
     tenantAdmins?: TenantAdminUncheckedCreateNestedManyWithoutTenantInput
@@ -49926,6 +49958,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     fiskalyConfig?: TenantFiskalyConfigUpdateOneWithoutTenantNestedInput
     roles?: RoleUpdateManyWithoutTenantNestedInput
     tenantAdmins?: TenantAdminUpdateManyWithoutTenantNestedInput
@@ -49955,6 +49988,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     fiskalyConfig?: TenantFiskalyConfigUncheckedUpdateOneWithoutTenantNestedInput
     roles?: RoleUncheckedUpdateManyWithoutTenantNestedInput
     tenantAdmins?: TenantAdminUncheckedUpdateManyWithoutTenantNestedInput
@@ -50093,6 +50127,7 @@ export namespace Prisma {
     createdAt?: Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     fiskalyConfig?: TenantFiskalyConfigCreateNestedOneWithoutTenantInput
     branches?: BranchCreateNestedManyWithoutTenantInput
     tenantAdmins?: TenantAdminCreateNestedManyWithoutTenantInput
@@ -50122,6 +50157,7 @@ export namespace Prisma {
     createdAt?: Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     fiskalyConfig?: TenantFiskalyConfigUncheckedCreateNestedOneWithoutTenantInput
     branches?: BranchUncheckedCreateNestedManyWithoutTenantInput
     tenantAdmins?: TenantAdminUncheckedCreateNestedManyWithoutTenantInput
@@ -50225,6 +50261,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     fiskalyConfig?: TenantFiskalyConfigUpdateOneWithoutTenantNestedInput
     branches?: BranchUpdateManyWithoutTenantNestedInput
     tenantAdmins?: TenantAdminUpdateManyWithoutTenantNestedInput
@@ -50254,6 +50291,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     fiskalyConfig?: TenantFiskalyConfigUncheckedUpdateOneWithoutTenantNestedInput
     branches?: BranchUncheckedUpdateManyWithoutTenantNestedInput
     tenantAdmins?: TenantAdminUncheckedUpdateManyWithoutTenantNestedInput
@@ -50435,6 +50473,7 @@ export namespace Prisma {
     createdAt?: Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     fiskalyConfig?: TenantFiskalyConfigCreateNestedOneWithoutTenantInput
     branches?: BranchCreateNestedManyWithoutTenantInput
     roles?: RoleCreateNestedManyWithoutTenantInput
@@ -50464,6 +50503,7 @@ export namespace Prisma {
     createdAt?: Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     fiskalyConfig?: TenantFiskalyConfigUncheckedCreateNestedOneWithoutTenantInput
     branches?: BranchUncheckedCreateNestedManyWithoutTenantInput
     roles?: RoleUncheckedCreateNestedManyWithoutTenantInput
@@ -50656,6 +50696,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     fiskalyConfig?: TenantFiskalyConfigUpdateOneWithoutTenantNestedInput
     branches?: BranchUpdateManyWithoutTenantNestedInput
     roles?: RoleUpdateManyWithoutTenantNestedInput
@@ -50685,6 +50726,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     fiskalyConfig?: TenantFiskalyConfigUncheckedUpdateOneWithoutTenantNestedInput
     branches?: BranchUncheckedUpdateManyWithoutTenantNestedInput
     roles?: RoleUncheckedUpdateManyWithoutTenantNestedInput
@@ -50824,6 +50866,7 @@ export namespace Prisma {
     createdAt?: Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     fiskalyConfig?: TenantFiskalyConfigCreateNestedOneWithoutTenantInput
     branches?: BranchCreateNestedManyWithoutTenantInput
     roles?: RoleCreateNestedManyWithoutTenantInput
@@ -50853,6 +50896,7 @@ export namespace Prisma {
     createdAt?: Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     fiskalyConfig?: TenantFiskalyConfigUncheckedCreateNestedOneWithoutTenantInput
     branches?: BranchUncheckedCreateNestedManyWithoutTenantInput
     roles?: RoleUncheckedCreateNestedManyWithoutTenantInput
@@ -50986,6 +51030,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     fiskalyConfig?: TenantFiskalyConfigUpdateOneWithoutTenantNestedInput
     branches?: BranchUpdateManyWithoutTenantNestedInput
     roles?: RoleUpdateManyWithoutTenantNestedInput
@@ -51015,6 +51060,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     fiskalyConfig?: TenantFiskalyConfigUncheckedUpdateOneWithoutTenantNestedInput
     branches?: BranchUncheckedUpdateManyWithoutTenantNestedInput
     roles?: RoleUncheckedUpdateManyWithoutTenantNestedInput
@@ -51102,6 +51148,7 @@ export namespace Prisma {
     createdAt?: Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     fiskalyConfig?: TenantFiskalyConfigCreateNestedOneWithoutTenantInput
     branches?: BranchCreateNestedManyWithoutTenantInput
     roles?: RoleCreateNestedManyWithoutTenantInput
@@ -51131,6 +51178,7 @@ export namespace Prisma {
     createdAt?: Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     fiskalyConfig?: TenantFiskalyConfigUncheckedCreateNestedOneWithoutTenantInput
     branches?: BranchUncheckedCreateNestedManyWithoutTenantInput
     roles?: RoleUncheckedCreateNestedManyWithoutTenantInput
@@ -51258,6 +51306,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     fiskalyConfig?: TenantFiskalyConfigUpdateOneWithoutTenantNestedInput
     branches?: BranchUpdateManyWithoutTenantNestedInput
     roles?: RoleUpdateManyWithoutTenantNestedInput
@@ -51287,6 +51336,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     fiskalyConfig?: TenantFiskalyConfigUncheckedUpdateOneWithoutTenantNestedInput
     branches?: BranchUncheckedUpdateManyWithoutTenantNestedInput
     roles?: RoleUncheckedUpdateManyWithoutTenantNestedInput
@@ -51484,6 +51534,7 @@ export namespace Prisma {
     createdAt?: Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     fiskalyConfig?: TenantFiskalyConfigCreateNestedOneWithoutTenantInput
     branches?: BranchCreateNestedManyWithoutTenantInput
     roles?: RoleCreateNestedManyWithoutTenantInput
@@ -51513,6 +51564,7 @@ export namespace Prisma {
     createdAt?: Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     fiskalyConfig?: TenantFiskalyConfigUncheckedCreateNestedOneWithoutTenantInput
     branches?: BranchUncheckedCreateNestedManyWithoutTenantInput
     roles?: RoleUncheckedCreateNestedManyWithoutTenantInput
@@ -51579,6 +51631,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     fiskalyConfig?: TenantFiskalyConfigUpdateOneWithoutTenantNestedInput
     branches?: BranchUpdateManyWithoutTenantNestedInput
     roles?: RoleUpdateManyWithoutTenantNestedInput
@@ -51608,6 +51661,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     fiskalyConfig?: TenantFiskalyConfigUncheckedUpdateOneWithoutTenantNestedInput
     branches?: BranchUncheckedUpdateManyWithoutTenantNestedInput
     roles?: RoleUncheckedUpdateManyWithoutTenantNestedInput
@@ -51709,6 +51763,7 @@ export namespace Prisma {
     createdAt?: Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     fiskalyConfig?: TenantFiskalyConfigCreateNestedOneWithoutTenantInput
     branches?: BranchCreateNestedManyWithoutTenantInput
     roles?: RoleCreateNestedManyWithoutTenantInput
@@ -51738,6 +51793,7 @@ export namespace Prisma {
     createdAt?: Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     fiskalyConfig?: TenantFiskalyConfigUncheckedCreateNestedOneWithoutTenantInput
     branches?: BranchUncheckedCreateNestedManyWithoutTenantInput
     roles?: RoleUncheckedCreateNestedManyWithoutTenantInput
@@ -51909,6 +51965,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     fiskalyConfig?: TenantFiskalyConfigUpdateOneWithoutTenantNestedInput
     branches?: BranchUpdateManyWithoutTenantNestedInput
     roles?: RoleUpdateManyWithoutTenantNestedInput
@@ -51938,6 +51995,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     fiskalyConfig?: TenantFiskalyConfigUncheckedUpdateOneWithoutTenantNestedInput
     branches?: BranchUncheckedUpdateManyWithoutTenantNestedInput
     roles?: RoleUncheckedUpdateManyWithoutTenantNestedInput
@@ -52037,6 +52095,7 @@ export namespace Prisma {
     createdAt?: Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     fiskalyConfig?: TenantFiskalyConfigCreateNestedOneWithoutTenantInput
     branches?: BranchCreateNestedManyWithoutTenantInput
     roles?: RoleCreateNestedManyWithoutTenantInput
@@ -52066,6 +52125,7 @@ export namespace Prisma {
     createdAt?: Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     fiskalyConfig?: TenantFiskalyConfigUncheckedCreateNestedOneWithoutTenantInput
     branches?: BranchUncheckedCreateNestedManyWithoutTenantInput
     roles?: RoleUncheckedCreateNestedManyWithoutTenantInput
@@ -52266,6 +52326,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     fiskalyConfig?: TenantFiskalyConfigUpdateOneWithoutTenantNestedInput
     branches?: BranchUpdateManyWithoutTenantNestedInput
     roles?: RoleUpdateManyWithoutTenantNestedInput
@@ -52295,6 +52356,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     fiskalyConfig?: TenantFiskalyConfigUncheckedUpdateOneWithoutTenantNestedInput
     branches?: BranchUncheckedUpdateManyWithoutTenantNestedInput
     roles?: RoleUncheckedUpdateManyWithoutTenantNestedInput
@@ -52448,6 +52510,7 @@ export namespace Prisma {
     createdAt?: Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     fiskalyConfig?: TenantFiskalyConfigCreateNestedOneWithoutTenantInput
     branches?: BranchCreateNestedManyWithoutTenantInput
     roles?: RoleCreateNestedManyWithoutTenantInput
@@ -52477,6 +52540,7 @@ export namespace Prisma {
     createdAt?: Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     fiskalyConfig?: TenantFiskalyConfigUncheckedCreateNestedOneWithoutTenantInput
     branches?: BranchUncheckedCreateNestedManyWithoutTenantInput
     roles?: RoleUncheckedCreateNestedManyWithoutTenantInput
@@ -52587,6 +52651,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     fiskalyConfig?: TenantFiskalyConfigUpdateOneWithoutTenantNestedInput
     branches?: BranchUpdateManyWithoutTenantNestedInput
     roles?: RoleUpdateManyWithoutTenantNestedInput
@@ -52616,6 +52681,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     fiskalyConfig?: TenantFiskalyConfigUncheckedUpdateOneWithoutTenantNestedInput
     branches?: BranchUncheckedUpdateManyWithoutTenantNestedInput
     roles?: RoleUncheckedUpdateManyWithoutTenantNestedInput
@@ -52661,6 +52727,7 @@ export namespace Prisma {
     createdAt?: Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     fiskalyConfig?: TenantFiskalyConfigCreateNestedOneWithoutTenantInput
     branches?: BranchCreateNestedManyWithoutTenantInput
     roles?: RoleCreateNestedManyWithoutTenantInput
@@ -52690,6 +52757,7 @@ export namespace Prisma {
     createdAt?: Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     fiskalyConfig?: TenantFiskalyConfigUncheckedCreateNestedOneWithoutTenantInput
     branches?: BranchUncheckedCreateNestedManyWithoutTenantInput
     roles?: RoleUncheckedCreateNestedManyWithoutTenantInput
@@ -52735,6 +52803,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     fiskalyConfig?: TenantFiskalyConfigUpdateOneWithoutTenantNestedInput
     branches?: BranchUpdateManyWithoutTenantNestedInput
     roles?: RoleUpdateManyWithoutTenantNestedInput
@@ -52764,6 +52833,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     fiskalyConfig?: TenantFiskalyConfigUncheckedUpdateOneWithoutTenantNestedInput
     branches?: BranchUncheckedUpdateManyWithoutTenantNestedInput
     roles?: RoleUncheckedUpdateManyWithoutTenantNestedInput
@@ -52793,6 +52863,7 @@ export namespace Prisma {
     createdAt?: Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     fiskalyConfig?: TenantFiskalyConfigCreateNestedOneWithoutTenantInput
     branches?: BranchCreateNestedManyWithoutTenantInput
     roles?: RoleCreateNestedManyWithoutTenantInput
@@ -52822,6 +52893,7 @@ export namespace Prisma {
     createdAt?: Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     fiskalyConfig?: TenantFiskalyConfigUncheckedCreateNestedOneWithoutTenantInput
     branches?: BranchUncheckedCreateNestedManyWithoutTenantInput
     roles?: RoleUncheckedCreateNestedManyWithoutTenantInput
@@ -52867,6 +52939,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     fiskalyConfig?: TenantFiskalyConfigUpdateOneWithoutTenantNestedInput
     branches?: BranchUpdateManyWithoutTenantNestedInput
     roles?: RoleUpdateManyWithoutTenantNestedInput
@@ -52896,6 +52969,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     fiskalyConfig?: TenantFiskalyConfigUncheckedUpdateOneWithoutTenantNestedInput
     branches?: BranchUncheckedUpdateManyWithoutTenantNestedInput
     roles?: RoleUncheckedUpdateManyWithoutTenantNestedInput
@@ -52925,6 +52999,7 @@ export namespace Prisma {
     createdAt?: Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     fiskalyConfig?: TenantFiskalyConfigCreateNestedOneWithoutTenantInput
     branches?: BranchCreateNestedManyWithoutTenantInput
     roles?: RoleCreateNestedManyWithoutTenantInput
@@ -52954,6 +53029,7 @@ export namespace Prisma {
     createdAt?: Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     fiskalyConfig?: TenantFiskalyConfigUncheckedCreateNestedOneWithoutTenantInput
     branches?: BranchUncheckedCreateNestedManyWithoutTenantInput
     roles?: RoleUncheckedCreateNestedManyWithoutTenantInput
@@ -53249,6 +53325,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     fiskalyConfig?: TenantFiskalyConfigUpdateOneWithoutTenantNestedInput
     branches?: BranchUpdateManyWithoutTenantNestedInput
     roles?: RoleUpdateManyWithoutTenantNestedInput
@@ -53278,6 +53355,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     fiskalyConfig?: TenantFiskalyConfigUncheckedUpdateOneWithoutTenantNestedInput
     branches?: BranchUncheckedUpdateManyWithoutTenantNestedInput
     roles?: RoleUncheckedUpdateManyWithoutTenantNestedInput
@@ -54023,6 +54101,7 @@ export namespace Prisma {
     createdAt?: Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     fiskalyConfig?: TenantFiskalyConfigCreateNestedOneWithoutTenantInput
     branches?: BranchCreateNestedManyWithoutTenantInput
     roles?: RoleCreateNestedManyWithoutTenantInput
@@ -54052,6 +54131,7 @@ export namespace Prisma {
     createdAt?: Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     fiskalyConfig?: TenantFiskalyConfigUncheckedCreateNestedOneWithoutTenantInput
     branches?: BranchUncheckedCreateNestedManyWithoutTenantInput
     roles?: RoleUncheckedCreateNestedManyWithoutTenantInput
@@ -54259,6 +54339,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     fiskalyConfig?: TenantFiskalyConfigUpdateOneWithoutTenantNestedInput
     branches?: BranchUpdateManyWithoutTenantNestedInput
     roles?: RoleUpdateManyWithoutTenantNestedInput
@@ -54288,6 +54369,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     fiskalyConfig?: TenantFiskalyConfigUncheckedUpdateOneWithoutTenantNestedInput
     branches?: BranchUncheckedUpdateManyWithoutTenantNestedInput
     roles?: RoleUncheckedUpdateManyWithoutTenantNestedInput
@@ -54679,6 +54761,7 @@ export namespace Prisma {
     createdAt?: Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     fiskalyConfig?: TenantFiskalyConfigCreateNestedOneWithoutTenantInput
     branches?: BranchCreateNestedManyWithoutTenantInput
     roles?: RoleCreateNestedManyWithoutTenantInput
@@ -54708,6 +54791,7 @@ export namespace Prisma {
     createdAt?: Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     fiskalyConfig?: TenantFiskalyConfigUncheckedCreateNestedOneWithoutTenantInput
     branches?: BranchUncheckedCreateNestedManyWithoutTenantInput
     roles?: RoleUncheckedCreateNestedManyWithoutTenantInput
@@ -54753,6 +54837,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     fiskalyConfig?: TenantFiskalyConfigUpdateOneWithoutTenantNestedInput
     branches?: BranchUpdateManyWithoutTenantNestedInput
     roles?: RoleUpdateManyWithoutTenantNestedInput
@@ -54782,6 +54867,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     fiskalyConfig?: TenantFiskalyConfigUncheckedUpdateOneWithoutTenantNestedInput
     branches?: BranchUncheckedUpdateManyWithoutTenantNestedInput
     roles?: RoleUncheckedUpdateManyWithoutTenantNestedInput
@@ -54811,6 +54897,7 @@ export namespace Prisma {
     createdAt?: Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     fiskalyConfig?: TenantFiskalyConfigCreateNestedOneWithoutTenantInput
     branches?: BranchCreateNestedManyWithoutTenantInput
     roles?: RoleCreateNestedManyWithoutTenantInput
@@ -54840,6 +54927,7 @@ export namespace Prisma {
     createdAt?: Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     fiskalyConfig?: TenantFiskalyConfigUncheckedCreateNestedOneWithoutTenantInput
     branches?: BranchUncheckedCreateNestedManyWithoutTenantInput
     roles?: RoleUncheckedCreateNestedManyWithoutTenantInput
@@ -54909,6 +54997,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     fiskalyConfig?: TenantFiskalyConfigUpdateOneWithoutTenantNestedInput
     branches?: BranchUpdateManyWithoutTenantNestedInput
     roles?: RoleUpdateManyWithoutTenantNestedInput
@@ -54938,6 +55027,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     fiskalyConfig?: TenantFiskalyConfigUncheckedUpdateOneWithoutTenantNestedInput
     branches?: BranchUncheckedUpdateManyWithoutTenantNestedInput
     roles?: RoleUncheckedUpdateManyWithoutTenantNestedInput
@@ -55291,6 +55381,7 @@ export namespace Prisma {
     createdAt?: Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     fiskalyConfig?: TenantFiskalyConfigCreateNestedOneWithoutTenantInput
     branches?: BranchCreateNestedManyWithoutTenantInput
     roles?: RoleCreateNestedManyWithoutTenantInput
@@ -55320,6 +55411,7 @@ export namespace Prisma {
     createdAt?: Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     fiskalyConfig?: TenantFiskalyConfigUncheckedCreateNestedOneWithoutTenantInput
     branches?: BranchUncheckedCreateNestedManyWithoutTenantInput
     roles?: RoleUncheckedCreateNestedManyWithoutTenantInput
@@ -55423,6 +55515,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     fiskalyConfig?: TenantFiskalyConfigUpdateOneWithoutTenantNestedInput
     branches?: BranchUpdateManyWithoutTenantNestedInput
     roles?: RoleUpdateManyWithoutTenantNestedInput
@@ -55452,6 +55545,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     fiskalyConfig?: TenantFiskalyConfigUncheckedUpdateOneWithoutTenantNestedInput
     branches?: BranchUncheckedUpdateManyWithoutTenantNestedInput
     roles?: RoleUncheckedUpdateManyWithoutTenantNestedInput
@@ -55551,6 +55645,7 @@ export namespace Prisma {
     createdAt?: Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     fiskalyConfig?: TenantFiskalyConfigCreateNestedOneWithoutTenantInput
     branches?: BranchCreateNestedManyWithoutTenantInput
     roles?: RoleCreateNestedManyWithoutTenantInput
@@ -55580,6 +55675,7 @@ export namespace Prisma {
     createdAt?: Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     fiskalyConfig?: TenantFiskalyConfigUncheckedCreateNestedOneWithoutTenantInput
     branches?: BranchUncheckedCreateNestedManyWithoutTenantInput
     roles?: RoleUncheckedCreateNestedManyWithoutTenantInput
@@ -55659,6 +55755,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     fiskalyConfig?: TenantFiskalyConfigUpdateOneWithoutTenantNestedInput
     branches?: BranchUpdateManyWithoutTenantNestedInput
     roles?: RoleUpdateManyWithoutTenantNestedInput
@@ -55688,6 +55785,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     loyaltySettings?: NullableJsonNullValueInput | InputJsonValue
     tabletSettings?: NullableJsonNullValueInput | InputJsonValue
+    posHardwareSettings?: NullableJsonNullValueInput | InputJsonValue
     fiskalyConfig?: TenantFiskalyConfigUncheckedUpdateOneWithoutTenantNestedInput
     branches?: BranchUncheckedUpdateManyWithoutTenantNestedInput
     roles?: RoleUncheckedUpdateManyWithoutTenantNestedInput
