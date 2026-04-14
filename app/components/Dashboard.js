@@ -17,6 +17,7 @@ import {
   Line,
 } from "recharts";
 import { formatEur } from "@/lib/currencyFormat";
+import QRDashboardFeed from "@/app/components/QRDashboardFeed";
 
 // Per Module B: Real-time revenue, tax, and waiter performance analytics
 const METRIC_CONFIG = [
@@ -163,6 +164,8 @@ export default function Dashboard({ data = defaultData }) {
 
   return (
     <div className="flex flex-col gap-4 sm:gap-6">
+      <QRDashboardFeed />
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
         {metricCards.map((card) => (
           <MetricCard key={card.key} label={card.label} value={card.value} icon={card.icon} color={card.color} />

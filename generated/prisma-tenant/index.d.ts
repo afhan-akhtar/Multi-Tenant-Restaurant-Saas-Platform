@@ -24389,6 +24389,9 @@ export namespace Prisma {
     refundedAmount: Decimal | null
     lastRefundAt: Date | null
     createdAt: Date | null
+    orderSource: string | null
+    guestNotes: string | null
+    qrClientToken: string | null
   }
 
   export type OrderMaxAggregateOutputType = {
@@ -24414,6 +24417,9 @@ export namespace Prisma {
     refundedAmount: Decimal | null
     lastRefundAt: Date | null
     createdAt: Date | null
+    orderSource: string | null
+    guestNotes: string | null
+    qrClientToken: string | null
   }
 
   export type OrderCountAggregateOutputType = {
@@ -24439,6 +24445,9 @@ export namespace Prisma {
     refundedAmount: number
     lastRefundAt: number
     createdAt: number
+    orderSource: number
+    guestNotes: number
+    qrClientToken: number
     _all: number
   }
 
@@ -24504,6 +24513,9 @@ export namespace Prisma {
     refundedAmount?: true
     lastRefundAt?: true
     createdAt?: true
+    orderSource?: true
+    guestNotes?: true
+    qrClientToken?: true
   }
 
   export type OrderMaxAggregateInputType = {
@@ -24529,6 +24541,9 @@ export namespace Prisma {
     refundedAmount?: true
     lastRefundAt?: true
     createdAt?: true
+    orderSource?: true
+    guestNotes?: true
+    qrClientToken?: true
   }
 
   export type OrderCountAggregateInputType = {
@@ -24554,6 +24569,9 @@ export namespace Prisma {
     refundedAmount?: true
     lastRefundAt?: true
     createdAt?: true
+    orderSource?: true
+    guestNotes?: true
+    qrClientToken?: true
     _all?: true
   }
 
@@ -24666,6 +24684,9 @@ export namespace Prisma {
     refundedAmount: Decimal
     lastRefundAt: Date | null
     createdAt: Date
+    orderSource: string | null
+    guestNotes: string | null
+    qrClientToken: string | null
     _count: OrderCountAggregateOutputType | null
     _avg: OrderAvgAggregateOutputType | null
     _sum: OrderSumAggregateOutputType | null
@@ -24710,6 +24731,9 @@ export namespace Prisma {
     refundedAmount?: boolean
     lastRefundAt?: boolean
     createdAt?: boolean
+    orderSource?: boolean
+    guestNotes?: boolean
+    qrClientToken?: boolean
     tenant?: boolean | TenantDefaultArgs<ExtArgs>
     branch?: boolean | BranchDefaultArgs<ExtArgs>
     session?: boolean | SessionDefaultArgs<ExtArgs>
@@ -24745,6 +24769,9 @@ export namespace Prisma {
     refundedAmount?: boolean
     lastRefundAt?: boolean
     createdAt?: boolean
+    orderSource?: boolean
+    guestNotes?: boolean
+    qrClientToken?: boolean
     tenant?: boolean | TenantDefaultArgs<ExtArgs>
     branch?: boolean | BranchDefaultArgs<ExtArgs>
     session?: boolean | SessionDefaultArgs<ExtArgs>
@@ -24775,6 +24802,9 @@ export namespace Prisma {
     refundedAmount?: boolean
     lastRefundAt?: boolean
     createdAt?: boolean
+    orderSource?: boolean
+    guestNotes?: boolean
+    qrClientToken?: boolean
     tenant?: boolean | TenantDefaultArgs<ExtArgs>
     branch?: boolean | BranchDefaultArgs<ExtArgs>
     session?: boolean | SessionDefaultArgs<ExtArgs>
@@ -24805,9 +24835,12 @@ export namespace Prisma {
     refundedAmount?: boolean
     lastRefundAt?: boolean
     createdAt?: boolean
+    orderSource?: boolean
+    guestNotes?: boolean
+    qrClientToken?: boolean
   }
 
-  export type OrderOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "tenantId" | "branchId" | "sessionId" | "tableId" | "customerId" | "orderNumber" | "offlineCheckoutId" | "orderType" | "status" | "subtotal" | "taxAmount" | "discountAmount" | "loyaltyDiscountAmount" | "tipAmount" | "totalAmount" | "grandTotal" | "loyaltyPointsEarned" | "loyaltyPointsRedeemed" | "refundedAmount" | "lastRefundAt" | "createdAt", ExtArgs["result"]["order"]>
+  export type OrderOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "tenantId" | "branchId" | "sessionId" | "tableId" | "customerId" | "orderNumber" | "offlineCheckoutId" | "orderType" | "status" | "subtotal" | "taxAmount" | "discountAmount" | "loyaltyDiscountAmount" | "tipAmount" | "totalAmount" | "grandTotal" | "loyaltyPointsEarned" | "loyaltyPointsRedeemed" | "refundedAmount" | "lastRefundAt" | "createdAt" | "orderSource" | "guestNotes" | "qrClientToken", ExtArgs["result"]["order"]>
   export type OrderInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     tenant?: boolean | TenantDefaultArgs<ExtArgs>
     branch?: boolean | BranchDefaultArgs<ExtArgs>
@@ -24871,6 +24904,18 @@ export namespace Prisma {
       refundedAmount: Prisma.Decimal
       lastRefundAt: Date | null
       createdAt: Date
+      /**
+       * POS | QR | TABLET — how the order was placed (QR = customer menu scan).
+       */
+      orderSource: string | null
+      /**
+       * Optional guest-facing notes (e.g. QR customer name + special requests).
+       */
+      guestNotes: string | null
+      /**
+       * Opaque token for the guest to poll order status without auth.
+       */
+      qrClientToken: string | null
     }, ExtArgs["result"]["order"]>
     composites: {}
   }
@@ -25325,6 +25370,9 @@ export namespace Prisma {
     readonly refundedAmount: FieldRef<"Order", 'Decimal'>
     readonly lastRefundAt: FieldRef<"Order", 'DateTime'>
     readonly createdAt: FieldRef<"Order", 'DateTime'>
+    readonly orderSource: FieldRef<"Order", 'String'>
+    readonly guestNotes: FieldRef<"Order", 'String'>
+    readonly qrClientToken: FieldRef<"Order", 'String'>
   }
     
 
@@ -37998,7 +38046,10 @@ export namespace Prisma {
     loyaltyPointsRedeemed: 'loyaltyPointsRedeemed',
     refundedAmount: 'refundedAmount',
     lastRefundAt: 'lastRefundAt',
-    createdAt: 'createdAt'
+    createdAt: 'createdAt',
+    orderSource: 'orderSource',
+    guestNotes: 'guestNotes',
+    qrClientToken: 'qrClientToken'
   };
 
   export type OrderScalarFieldEnum = (typeof OrderScalarFieldEnum)[keyof typeof OrderScalarFieldEnum]
@@ -39684,6 +39735,9 @@ export namespace Prisma {
     refundedAmount?: DecimalFilter<"Order"> | Decimal | DecimalJsLike | number | string
     lastRefundAt?: DateTimeNullableFilter<"Order"> | Date | string | null
     createdAt?: DateTimeFilter<"Order"> | Date | string
+    orderSource?: StringNullableFilter<"Order"> | string | null
+    guestNotes?: StringNullableFilter<"Order"> | string | null
+    qrClientToken?: StringNullableFilter<"Order"> | string | null
     tenant?: XOR<TenantScalarRelationFilter, TenantWhereInput>
     branch?: XOR<BranchScalarRelationFilter, BranchWhereInput>
     session?: XOR<SessionScalarRelationFilter, SessionWhereInput>
@@ -39718,6 +39772,9 @@ export namespace Prisma {
     refundedAmount?: SortOrder
     lastRefundAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
+    orderSource?: SortOrderInput | SortOrder
+    guestNotes?: SortOrderInput | SortOrder
+    qrClientToken?: SortOrderInput | SortOrder
     tenant?: TenantOrderByWithRelationInput
     branch?: BranchOrderByWithRelationInput
     session?: SessionOrderByWithRelationInput
@@ -39731,6 +39788,7 @@ export namespace Prisma {
 
   export type OrderWhereUniqueInput = Prisma.AtLeast<{
     id?: number
+    qrClientToken?: string
     tenantId_offlineCheckoutId?: OrderTenantIdOfflineCheckoutIdCompoundUniqueInput
     AND?: OrderWhereInput | OrderWhereInput[]
     OR?: OrderWhereInput[]
@@ -39756,6 +39814,8 @@ export namespace Prisma {
     refundedAmount?: DecimalFilter<"Order"> | Decimal | DecimalJsLike | number | string
     lastRefundAt?: DateTimeNullableFilter<"Order"> | Date | string | null
     createdAt?: DateTimeFilter<"Order"> | Date | string
+    orderSource?: StringNullableFilter<"Order"> | string | null
+    guestNotes?: StringNullableFilter<"Order"> | string | null
     tenant?: XOR<TenantScalarRelationFilter, TenantWhereInput>
     branch?: XOR<BranchScalarRelationFilter, BranchWhereInput>
     session?: XOR<SessionScalarRelationFilter, SessionWhereInput>
@@ -39765,7 +39825,7 @@ export namespace Prisma {
     payments?: PaymentListRelationFilter
     refunds?: RefundListRelationFilter
     tseTransactions?: TSETransactionListRelationFilter
-  }, "id" | "tenantId_offlineCheckoutId">
+  }, "id" | "qrClientToken" | "tenantId_offlineCheckoutId">
 
   export type OrderOrderByWithAggregationInput = {
     id?: SortOrder
@@ -39790,6 +39850,9 @@ export namespace Prisma {
     refundedAmount?: SortOrder
     lastRefundAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
+    orderSource?: SortOrderInput | SortOrder
+    guestNotes?: SortOrderInput | SortOrder
+    qrClientToken?: SortOrderInput | SortOrder
     _count?: OrderCountOrderByAggregateInput
     _avg?: OrderAvgOrderByAggregateInput
     _max?: OrderMaxOrderByAggregateInput
@@ -39823,6 +39886,9 @@ export namespace Prisma {
     refundedAmount?: DecimalWithAggregatesFilter<"Order"> | Decimal | DecimalJsLike | number | string
     lastRefundAt?: DateTimeNullableWithAggregatesFilter<"Order"> | Date | string | null
     createdAt?: DateTimeWithAggregatesFilter<"Order"> | Date | string
+    orderSource?: StringNullableWithAggregatesFilter<"Order"> | string | null
+    guestNotes?: StringNullableWithAggregatesFilter<"Order"> | string | null
+    qrClientToken?: StringNullableWithAggregatesFilter<"Order"> | string | null
   }
 
   export type OrderItemWhereInput = {
@@ -41827,6 +41893,9 @@ export namespace Prisma {
     refundedAmount?: Decimal | DecimalJsLike | number | string
     lastRefundAt?: Date | string | null
     createdAt?: Date | string
+    orderSource?: string | null
+    guestNotes?: string | null
+    qrClientToken?: string | null
     tenant: TenantCreateNestedOneWithoutOrdersInput
     branch: BranchCreateNestedOneWithoutOrdersInput
     session: SessionCreateNestedOneWithoutOrdersInput
@@ -41861,6 +41930,9 @@ export namespace Prisma {
     refundedAmount?: Decimal | DecimalJsLike | number | string
     lastRefundAt?: Date | string | null
     createdAt?: Date | string
+    orderSource?: string | null
+    guestNotes?: string | null
+    qrClientToken?: string | null
     orderItems?: OrderItemUncheckedCreateNestedManyWithoutOrderInput
     payments?: PaymentUncheckedCreateNestedManyWithoutOrderInput
     refunds?: RefundUncheckedCreateNestedManyWithoutOrderInput
@@ -41884,6 +41956,9 @@ export namespace Prisma {
     refundedAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     lastRefundAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    orderSource?: NullableStringFieldUpdateOperationsInput | string | null
+    guestNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    qrClientToken?: NullableStringFieldUpdateOperationsInput | string | null
     tenant?: TenantUpdateOneRequiredWithoutOrdersNestedInput
     branch?: BranchUpdateOneRequiredWithoutOrdersNestedInput
     session?: SessionUpdateOneRequiredWithoutOrdersNestedInput
@@ -41918,6 +41993,9 @@ export namespace Prisma {
     refundedAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     lastRefundAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    orderSource?: NullableStringFieldUpdateOperationsInput | string | null
+    guestNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    qrClientToken?: NullableStringFieldUpdateOperationsInput | string | null
     orderItems?: OrderItemUncheckedUpdateManyWithoutOrderNestedInput
     payments?: PaymentUncheckedUpdateManyWithoutOrderNestedInput
     refunds?: RefundUncheckedUpdateManyWithoutOrderNestedInput
@@ -41947,6 +42025,9 @@ export namespace Prisma {
     refundedAmount?: Decimal | DecimalJsLike | number | string
     lastRefundAt?: Date | string | null
     createdAt?: Date | string
+    orderSource?: string | null
+    guestNotes?: string | null
+    qrClientToken?: string | null
   }
 
   export type OrderUpdateManyMutationInput = {
@@ -41966,6 +42047,9 @@ export namespace Prisma {
     refundedAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     lastRefundAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    orderSource?: NullableStringFieldUpdateOperationsInput | string | null
+    guestNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    qrClientToken?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type OrderUncheckedUpdateManyInput = {
@@ -41991,6 +42075,9 @@ export namespace Prisma {
     refundedAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     lastRefundAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    orderSource?: NullableStringFieldUpdateOperationsInput | string | null
+    guestNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    qrClientToken?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type OrderItemCreateInput = {
@@ -44189,6 +44276,9 @@ export namespace Prisma {
     refundedAmount?: SortOrder
     lastRefundAt?: SortOrder
     createdAt?: SortOrder
+    orderSource?: SortOrder
+    guestNotes?: SortOrder
+    qrClientToken?: SortOrder
   }
 
   export type OrderAvgOrderByAggregateInput = {
@@ -44233,6 +44323,9 @@ export namespace Prisma {
     refundedAmount?: SortOrder
     lastRefundAt?: SortOrder
     createdAt?: SortOrder
+    orderSource?: SortOrder
+    guestNotes?: SortOrder
+    qrClientToken?: SortOrder
   }
 
   export type OrderMinOrderByAggregateInput = {
@@ -44258,6 +44351,9 @@ export namespace Prisma {
     refundedAmount?: SortOrder
     lastRefundAt?: SortOrder
     createdAt?: SortOrder
+    orderSource?: SortOrder
+    guestNotes?: SortOrder
+    qrClientToken?: SortOrder
   }
 
   export type OrderSumOrderByAggregateInput = {
@@ -48749,6 +48845,9 @@ export namespace Prisma {
     refundedAmount?: Decimal | DecimalJsLike | number | string
     lastRefundAt?: Date | string | null
     createdAt?: Date | string
+    orderSource?: string | null
+    guestNotes?: string | null
+    qrClientToken?: string | null
     branch: BranchCreateNestedOneWithoutOrdersInput
     session: SessionCreateNestedOneWithoutOrdersInput
     table: DiningTableCreateNestedOneWithoutOrdersInput
@@ -48781,6 +48880,9 @@ export namespace Prisma {
     refundedAmount?: Decimal | DecimalJsLike | number | string
     lastRefundAt?: Date | string | null
     createdAt?: Date | string
+    orderSource?: string | null
+    guestNotes?: string | null
+    qrClientToken?: string | null
     orderItems?: OrderItemUncheckedCreateNestedManyWithoutOrderInput
     payments?: PaymentUncheckedCreateNestedManyWithoutOrderInput
     refunds?: RefundUncheckedCreateNestedManyWithoutOrderInput
@@ -49349,6 +49451,9 @@ export namespace Prisma {
     refundedAmount?: DecimalFilter<"Order"> | Decimal | DecimalJsLike | number | string
     lastRefundAt?: DateTimeNullableFilter<"Order"> | Date | string | null
     createdAt?: DateTimeFilter<"Order"> | Date | string
+    orderSource?: StringNullableFilter<"Order"> | string | null
+    guestNotes?: StringNullableFilter<"Order"> | string | null
+    qrClientToken?: StringNullableFilter<"Order"> | string | null
   }
 
   export type RefundUpsertWithWhereUniqueWithoutTenantInput = {
@@ -49823,6 +49928,9 @@ export namespace Prisma {
     refundedAmount?: Decimal | DecimalJsLike | number | string
     lastRefundAt?: Date | string | null
     createdAt?: Date | string
+    orderSource?: string | null
+    guestNotes?: string | null
+    qrClientToken?: string | null
     tenant: TenantCreateNestedOneWithoutOrdersInput
     session: SessionCreateNestedOneWithoutOrdersInput
     table: DiningTableCreateNestedOneWithoutOrdersInput
@@ -49855,6 +49963,9 @@ export namespace Prisma {
     refundedAmount?: Decimal | DecimalJsLike | number | string
     lastRefundAt?: Date | string | null
     createdAt?: Date | string
+    orderSource?: string | null
+    guestNotes?: string | null
+    qrClientToken?: string | null
     orderItems?: OrderItemUncheckedCreateNestedManyWithoutOrderInput
     payments?: PaymentUncheckedCreateNestedManyWithoutOrderInput
     refunds?: RefundUncheckedCreateNestedManyWithoutOrderInput
@@ -51896,6 +52007,9 @@ export namespace Prisma {
     refundedAmount?: Decimal | DecimalJsLike | number | string
     lastRefundAt?: Date | string | null
     createdAt?: Date | string
+    orderSource?: string | null
+    guestNotes?: string | null
+    qrClientToken?: string | null
     tenant: TenantCreateNestedOneWithoutOrdersInput
     branch: BranchCreateNestedOneWithoutOrdersInput
     session: SessionCreateNestedOneWithoutOrdersInput
@@ -51928,6 +52042,9 @@ export namespace Prisma {
     refundedAmount?: Decimal | DecimalJsLike | number | string
     lastRefundAt?: Date | string | null
     createdAt?: Date | string
+    orderSource?: string | null
+    guestNotes?: string | null
+    qrClientToken?: string | null
     orderItems?: OrderItemUncheckedCreateNestedManyWithoutOrderInput
     payments?: PaymentUncheckedCreateNestedManyWithoutOrderInput
     refunds?: RefundUncheckedCreateNestedManyWithoutOrderInput
@@ -52257,6 +52374,9 @@ export namespace Prisma {
     refundedAmount?: Decimal | DecimalJsLike | number | string
     lastRefundAt?: Date | string | null
     createdAt?: Date | string
+    orderSource?: string | null
+    guestNotes?: string | null
+    qrClientToken?: string | null
     tenant: TenantCreateNestedOneWithoutOrdersInput
     branch: BranchCreateNestedOneWithoutOrdersInput
     table: DiningTableCreateNestedOneWithoutOrdersInput
@@ -52289,6 +52409,9 @@ export namespace Prisma {
     refundedAmount?: Decimal | DecimalJsLike | number | string
     lastRefundAt?: Date | string | null
     createdAt?: Date | string
+    orderSource?: string | null
+    guestNotes?: string | null
+    qrClientToken?: string | null
     orderItems?: OrderItemUncheckedCreateNestedManyWithoutOrderInput
     payments?: PaymentUncheckedCreateNestedManyWithoutOrderInput
     refunds?: RefundUncheckedCreateNestedManyWithoutOrderInput
@@ -52582,6 +52705,9 @@ export namespace Prisma {
     refundedAmount?: Decimal | DecimalJsLike | number | string
     lastRefundAt?: Date | string | null
     createdAt?: Date | string
+    orderSource?: string | null
+    guestNotes?: string | null
+    qrClientToken?: string | null
     tenant: TenantCreateNestedOneWithoutOrdersInput
     branch: BranchCreateNestedOneWithoutOrdersInput
     session: SessionCreateNestedOneWithoutOrdersInput
@@ -52614,6 +52740,9 @@ export namespace Prisma {
     refundedAmount?: Decimal | DecimalJsLike | number | string
     lastRefundAt?: Date | string | null
     createdAt?: Date | string
+    orderSource?: string | null
+    guestNotes?: string | null
+    qrClientToken?: string | null
     orderItems?: OrderItemUncheckedCreateNestedManyWithoutOrderInput
     payments?: PaymentUncheckedCreateNestedManyWithoutOrderInput
     refunds?: RefundUncheckedCreateNestedManyWithoutOrderInput
@@ -53613,6 +53742,9 @@ export namespace Prisma {
     refundedAmount?: Decimal | DecimalJsLike | number | string
     lastRefundAt?: Date | string | null
     createdAt?: Date | string
+    orderSource?: string | null
+    guestNotes?: string | null
+    qrClientToken?: string | null
     tenant: TenantCreateNestedOneWithoutOrdersInput
     branch: BranchCreateNestedOneWithoutOrdersInput
     session: SessionCreateNestedOneWithoutOrdersInput
@@ -53646,6 +53778,9 @@ export namespace Prisma {
     refundedAmount?: Decimal | DecimalJsLike | number | string
     lastRefundAt?: Date | string | null
     createdAt?: Date | string
+    orderSource?: string | null
+    guestNotes?: string | null
+    qrClientToken?: string | null
     payments?: PaymentUncheckedCreateNestedManyWithoutOrderInput
     refunds?: RefundUncheckedCreateNestedManyWithoutOrderInput
     tseTransactions?: TSETransactionUncheckedCreateNestedManyWithoutOrderInput
@@ -53784,6 +53919,9 @@ export namespace Prisma {
     refundedAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     lastRefundAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    orderSource?: NullableStringFieldUpdateOperationsInput | string | null
+    guestNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    qrClientToken?: NullableStringFieldUpdateOperationsInput | string | null
     tenant?: TenantUpdateOneRequiredWithoutOrdersNestedInput
     branch?: BranchUpdateOneRequiredWithoutOrdersNestedInput
     session?: SessionUpdateOneRequiredWithoutOrdersNestedInput
@@ -53817,6 +53955,9 @@ export namespace Prisma {
     refundedAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     lastRefundAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    orderSource?: NullableStringFieldUpdateOperationsInput | string | null
+    guestNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    qrClientToken?: NullableStringFieldUpdateOperationsInput | string | null
     payments?: PaymentUncheckedUpdateManyWithoutOrderNestedInput
     refunds?: RefundUncheckedUpdateManyWithoutOrderNestedInput
     tseTransactions?: TSETransactionUncheckedUpdateManyWithoutOrderNestedInput
@@ -53925,6 +54066,9 @@ export namespace Prisma {
     refundedAmount?: Decimal | DecimalJsLike | number | string
     lastRefundAt?: Date | string | null
     createdAt?: Date | string
+    orderSource?: string | null
+    guestNotes?: string | null
+    qrClientToken?: string | null
     tenant: TenantCreateNestedOneWithoutOrdersInput
     branch: BranchCreateNestedOneWithoutOrdersInput
     session: SessionCreateNestedOneWithoutOrdersInput
@@ -53958,6 +54102,9 @@ export namespace Prisma {
     refundedAmount?: Decimal | DecimalJsLike | number | string
     lastRefundAt?: Date | string | null
     createdAt?: Date | string
+    orderSource?: string | null
+    guestNotes?: string | null
+    qrClientToken?: string | null
     orderItems?: OrderItemUncheckedCreateNestedManyWithoutOrderInput
     refunds?: RefundUncheckedCreateNestedManyWithoutOrderInput
     tseTransactions?: TSETransactionUncheckedCreateNestedManyWithoutOrderInput
@@ -54037,6 +54184,9 @@ export namespace Prisma {
     refundedAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     lastRefundAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    orderSource?: NullableStringFieldUpdateOperationsInput | string | null
+    guestNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    qrClientToken?: NullableStringFieldUpdateOperationsInput | string | null
     tenant?: TenantUpdateOneRequiredWithoutOrdersNestedInput
     branch?: BranchUpdateOneRequiredWithoutOrdersNestedInput
     session?: SessionUpdateOneRequiredWithoutOrdersNestedInput
@@ -54070,6 +54220,9 @@ export namespace Prisma {
     refundedAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     lastRefundAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    orderSource?: NullableStringFieldUpdateOperationsInput | string | null
+    guestNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    qrClientToken?: NullableStringFieldUpdateOperationsInput | string | null
     orderItems?: OrderItemUncheckedUpdateManyWithoutOrderNestedInput
     refunds?: RefundUncheckedUpdateManyWithoutOrderNestedInput
     tseTransactions?: TSETransactionUncheckedUpdateManyWithoutOrderNestedInput
@@ -54173,6 +54326,9 @@ export namespace Prisma {
     refundedAmount?: Decimal | DecimalJsLike | number | string
     lastRefundAt?: Date | string | null
     createdAt?: Date | string
+    orderSource?: string | null
+    guestNotes?: string | null
+    qrClientToken?: string | null
     tenant: TenantCreateNestedOneWithoutOrdersInput
     branch: BranchCreateNestedOneWithoutOrdersInput
     session: SessionCreateNestedOneWithoutOrdersInput
@@ -54206,6 +54362,9 @@ export namespace Prisma {
     refundedAmount?: Decimal | DecimalJsLike | number | string
     lastRefundAt?: Date | string | null
     createdAt?: Date | string
+    orderSource?: string | null
+    guestNotes?: string | null
+    qrClientToken?: string | null
     orderItems?: OrderItemUncheckedCreateNestedManyWithoutOrderInput
     payments?: PaymentUncheckedCreateNestedManyWithoutOrderInput
     tseTransactions?: TSETransactionUncheckedCreateNestedManyWithoutOrderInput
@@ -54417,6 +54576,9 @@ export namespace Prisma {
     refundedAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     lastRefundAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    orderSource?: NullableStringFieldUpdateOperationsInput | string | null
+    guestNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    qrClientToken?: NullableStringFieldUpdateOperationsInput | string | null
     tenant?: TenantUpdateOneRequiredWithoutOrdersNestedInput
     branch?: BranchUpdateOneRequiredWithoutOrdersNestedInput
     session?: SessionUpdateOneRequiredWithoutOrdersNestedInput
@@ -54450,6 +54612,9 @@ export namespace Prisma {
     refundedAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     lastRefundAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    orderSource?: NullableStringFieldUpdateOperationsInput | string | null
+    guestNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    qrClientToken?: NullableStringFieldUpdateOperationsInput | string | null
     orderItems?: OrderItemUncheckedUpdateManyWithoutOrderNestedInput
     payments?: PaymentUncheckedUpdateManyWithoutOrderNestedInput
     tseTransactions?: TSETransactionUncheckedUpdateManyWithoutOrderNestedInput
@@ -54592,6 +54757,9 @@ export namespace Prisma {
     refundedAmount?: Decimal | DecimalJsLike | number | string
     lastRefundAt?: Date | string | null
     createdAt?: Date | string
+    orderSource?: string | null
+    guestNotes?: string | null
+    qrClientToken?: string | null
     tenant: TenantCreateNestedOneWithoutOrdersInput
     branch: BranchCreateNestedOneWithoutOrdersInput
     session: SessionCreateNestedOneWithoutOrdersInput
@@ -54625,6 +54793,9 @@ export namespace Prisma {
     refundedAmount?: Decimal | DecimalJsLike | number | string
     lastRefundAt?: Date | string | null
     createdAt?: Date | string
+    orderSource?: string | null
+    guestNotes?: string | null
+    qrClientToken?: string | null
     orderItems?: OrderItemUncheckedCreateNestedManyWithoutOrderInput
     payments?: PaymentUncheckedCreateNestedManyWithoutOrderInput
     refunds?: RefundUncheckedCreateNestedManyWithoutOrderInput
@@ -54685,6 +54856,9 @@ export namespace Prisma {
     refundedAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     lastRefundAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    orderSource?: NullableStringFieldUpdateOperationsInput | string | null
+    guestNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    qrClientToken?: NullableStringFieldUpdateOperationsInput | string | null
     tenant?: TenantUpdateOneRequiredWithoutOrdersNestedInput
     branch?: BranchUpdateOneRequiredWithoutOrdersNestedInput
     session?: SessionUpdateOneRequiredWithoutOrdersNestedInput
@@ -54718,6 +54892,9 @@ export namespace Prisma {
     refundedAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     lastRefundAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    orderSource?: NullableStringFieldUpdateOperationsInput | string | null
+    guestNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    qrClientToken?: NullableStringFieldUpdateOperationsInput | string | null
     orderItems?: OrderItemUncheckedUpdateManyWithoutOrderNestedInput
     payments?: PaymentUncheckedUpdateManyWithoutOrderNestedInput
     refunds?: RefundUncheckedUpdateManyWithoutOrderNestedInput
@@ -55958,6 +56135,9 @@ export namespace Prisma {
     refundedAmount?: Decimal | DecimalJsLike | number | string
     lastRefundAt?: Date | string | null
     createdAt?: Date | string
+    orderSource?: string | null
+    guestNotes?: string | null
+    qrClientToken?: string | null
   }
 
   export type RefundCreateManyTenantInput = {
@@ -56336,6 +56516,9 @@ export namespace Prisma {
     refundedAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     lastRefundAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    orderSource?: NullableStringFieldUpdateOperationsInput | string | null
+    guestNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    qrClientToken?: NullableStringFieldUpdateOperationsInput | string | null
     branch?: BranchUpdateOneRequiredWithoutOrdersNestedInput
     session?: SessionUpdateOneRequiredWithoutOrdersNestedInput
     table?: DiningTableUpdateOneRequiredWithoutOrdersNestedInput
@@ -56368,6 +56551,9 @@ export namespace Prisma {
     refundedAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     lastRefundAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    orderSource?: NullableStringFieldUpdateOperationsInput | string | null
+    guestNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    qrClientToken?: NullableStringFieldUpdateOperationsInput | string | null
     orderItems?: OrderItemUncheckedUpdateManyWithoutOrderNestedInput
     payments?: PaymentUncheckedUpdateManyWithoutOrderNestedInput
     refunds?: RefundUncheckedUpdateManyWithoutOrderNestedInput
@@ -56396,6 +56582,9 @@ export namespace Prisma {
     refundedAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     lastRefundAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    orderSource?: NullableStringFieldUpdateOperationsInput | string | null
+    guestNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    qrClientToken?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type RefundUpdateWithoutTenantInput = {
@@ -56617,6 +56806,9 @@ export namespace Prisma {
     refundedAmount?: Decimal | DecimalJsLike | number | string
     lastRefundAt?: Date | string | null
     createdAt?: Date | string
+    orderSource?: string | null
+    guestNotes?: string | null
+    qrClientToken?: string | null
   }
 
   export type KDSScreenCreateManyBranchInput = {
@@ -56754,6 +56946,9 @@ export namespace Prisma {
     refundedAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     lastRefundAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    orderSource?: NullableStringFieldUpdateOperationsInput | string | null
+    guestNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    qrClientToken?: NullableStringFieldUpdateOperationsInput | string | null
     tenant?: TenantUpdateOneRequiredWithoutOrdersNestedInput
     session?: SessionUpdateOneRequiredWithoutOrdersNestedInput
     table?: DiningTableUpdateOneRequiredWithoutOrdersNestedInput
@@ -56786,6 +56981,9 @@ export namespace Prisma {
     refundedAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     lastRefundAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    orderSource?: NullableStringFieldUpdateOperationsInput | string | null
+    guestNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    qrClientToken?: NullableStringFieldUpdateOperationsInput | string | null
     orderItems?: OrderItemUncheckedUpdateManyWithoutOrderNestedInput
     payments?: PaymentUncheckedUpdateManyWithoutOrderNestedInput
     refunds?: RefundUncheckedUpdateManyWithoutOrderNestedInput
@@ -56814,6 +57012,9 @@ export namespace Prisma {
     refundedAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     lastRefundAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    orderSource?: NullableStringFieldUpdateOperationsInput | string | null
+    guestNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    qrClientToken?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type KDSScreenUpdateWithoutBranchInput = {
@@ -57336,6 +57537,9 @@ export namespace Prisma {
     refundedAmount?: Decimal | DecimalJsLike | number | string
     lastRefundAt?: Date | string | null
     createdAt?: Date | string
+    orderSource?: string | null
+    guestNotes?: string | null
+    qrClientToken?: string | null
   }
 
   export type SessionUpdateWithoutTableInput = {
@@ -57383,6 +57587,9 @@ export namespace Prisma {
     refundedAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     lastRefundAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    orderSource?: NullableStringFieldUpdateOperationsInput | string | null
+    guestNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    qrClientToken?: NullableStringFieldUpdateOperationsInput | string | null
     tenant?: TenantUpdateOneRequiredWithoutOrdersNestedInput
     branch?: BranchUpdateOneRequiredWithoutOrdersNestedInput
     session?: SessionUpdateOneRequiredWithoutOrdersNestedInput
@@ -57415,6 +57622,9 @@ export namespace Prisma {
     refundedAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     lastRefundAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    orderSource?: NullableStringFieldUpdateOperationsInput | string | null
+    guestNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    qrClientToken?: NullableStringFieldUpdateOperationsInput | string | null
     orderItems?: OrderItemUncheckedUpdateManyWithoutOrderNestedInput
     payments?: PaymentUncheckedUpdateManyWithoutOrderNestedInput
     refunds?: RefundUncheckedUpdateManyWithoutOrderNestedInput
@@ -57443,6 +57653,9 @@ export namespace Prisma {
     refundedAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     lastRefundAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    orderSource?: NullableStringFieldUpdateOperationsInput | string | null
+    guestNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    qrClientToken?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type OrderCreateManySessionInput = {
@@ -57467,6 +57680,9 @@ export namespace Prisma {
     refundedAmount?: Decimal | DecimalJsLike | number | string
     lastRefundAt?: Date | string | null
     createdAt?: Date | string
+    orderSource?: string | null
+    guestNotes?: string | null
+    qrClientToken?: string | null
   }
 
   export type OrderUpdateWithoutSessionInput = {
@@ -57486,6 +57702,9 @@ export namespace Prisma {
     refundedAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     lastRefundAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    orderSource?: NullableStringFieldUpdateOperationsInput | string | null
+    guestNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    qrClientToken?: NullableStringFieldUpdateOperationsInput | string | null
     tenant?: TenantUpdateOneRequiredWithoutOrdersNestedInput
     branch?: BranchUpdateOneRequiredWithoutOrdersNestedInput
     table?: DiningTableUpdateOneRequiredWithoutOrdersNestedInput
@@ -57518,6 +57737,9 @@ export namespace Prisma {
     refundedAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     lastRefundAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    orderSource?: NullableStringFieldUpdateOperationsInput | string | null
+    guestNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    qrClientToken?: NullableStringFieldUpdateOperationsInput | string | null
     orderItems?: OrderItemUncheckedUpdateManyWithoutOrderNestedInput
     payments?: PaymentUncheckedUpdateManyWithoutOrderNestedInput
     refunds?: RefundUncheckedUpdateManyWithoutOrderNestedInput
@@ -57546,6 +57768,9 @@ export namespace Prisma {
     refundedAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     lastRefundAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    orderSource?: NullableStringFieldUpdateOperationsInput | string | null
+    guestNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    qrClientToken?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type OrderCreateManyCustomerInput = {
@@ -57570,6 +57795,9 @@ export namespace Prisma {
     refundedAmount?: Decimal | DecimalJsLike | number | string
     lastRefundAt?: Date | string | null
     createdAt?: Date | string
+    orderSource?: string | null
+    guestNotes?: string | null
+    qrClientToken?: string | null
   }
 
   export type OrderUpdateWithoutCustomerInput = {
@@ -57589,6 +57817,9 @@ export namespace Prisma {
     refundedAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     lastRefundAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    orderSource?: NullableStringFieldUpdateOperationsInput | string | null
+    guestNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    qrClientToken?: NullableStringFieldUpdateOperationsInput | string | null
     tenant?: TenantUpdateOneRequiredWithoutOrdersNestedInput
     branch?: BranchUpdateOneRequiredWithoutOrdersNestedInput
     session?: SessionUpdateOneRequiredWithoutOrdersNestedInput
@@ -57621,6 +57852,9 @@ export namespace Prisma {
     refundedAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     lastRefundAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    orderSource?: NullableStringFieldUpdateOperationsInput | string | null
+    guestNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    qrClientToken?: NullableStringFieldUpdateOperationsInput | string | null
     orderItems?: OrderItemUncheckedUpdateManyWithoutOrderNestedInput
     payments?: PaymentUncheckedUpdateManyWithoutOrderNestedInput
     refunds?: RefundUncheckedUpdateManyWithoutOrderNestedInput
@@ -57649,6 +57883,9 @@ export namespace Prisma {
     refundedAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     lastRefundAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    orderSource?: NullableStringFieldUpdateOperationsInput | string | null
+    guestNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    qrClientToken?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type OrderItemCreateManyOrderInput = {

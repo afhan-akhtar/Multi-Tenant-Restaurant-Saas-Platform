@@ -373,6 +373,12 @@ model Order {
   refundedAmount        Decimal       @default(0)
   lastRefundAt          DateTime?
   createdAt             DateTime      @default(now())
+  /// POS | QR | TABLET — how the order was placed (QR = customer menu scan).
+  orderSource           String?       @default("POS") @db.VarChar(32)
+  /// Optional guest-facing notes (e.g. QR customer name + special requests).
+  guestNotes            String?       @db.Text
+  /// Opaque token for the guest to poll order status without auth.
+  qrClientToken         String?       @unique @db.VarChar(64)
 
   tenant            Tenant             @relation(fields: [tenantId], references: [id])
   branch            Branch             @relation(fields: [branchId], references: [id])

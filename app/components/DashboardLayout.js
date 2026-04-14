@@ -40,6 +40,7 @@ const RESTAURANT_ITEMS = [
   ]},
   { section: "FLOOR", items: [
     { href: "/tables", label: "Floor & Tables", icon: "table" },
+    { href: "/table-qr", label: "Table QR codes", icon: "table" },
   ]},
   { section: "BILLING", items: [
     { href: "/subscription", label: "My Subscription", icon: "subscription" },

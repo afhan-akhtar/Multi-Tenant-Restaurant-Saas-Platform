@@ -90,6 +90,7 @@ export async function middleware(request) {
 
   // Public routes
   const isPublic =
+    pathname === "/menu" ||
     pathname === "/login" ||
     pathname === "/go" ||
     pathname === "/admin" ||

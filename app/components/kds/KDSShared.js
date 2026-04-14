@@ -157,7 +157,12 @@ export function KDSOrderCard({
 }) {
   const customerLine = customerPhoneUiLabel(order.customer);
   const tableName = order.table?.name || "";
-  const typeLabel = order.orderType === "DINE_IN" ? (tableName || "Dine-in") : "Takeaway";
+  const typeLabel =
+    order.orderSource === "QR"
+      ? [tableName || "Dine-in", "QR order"].filter(Boolean).join(" · ")
+      : order.orderType === "DINE_IN"
+        ? tableName || "Dine-in"
+        : "Takeaway";
 
   const handlePrintReceipt = () => {
     const accessQuery = order.receiptAccessToken

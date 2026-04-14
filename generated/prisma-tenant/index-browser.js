@@ -297,7 +297,10 @@ exports.Prisma.OrderScalarFieldEnum = {
   loyaltyPointsRedeemed: 'loyaltyPointsRedeemed',
   refundedAmount: 'refundedAmount',
   lastRefundAt: 'lastRefundAt',
-  createdAt: 'createdAt'
+  createdAt: 'createdAt',
+  orderSource: 'orderSource',
+  guestNotes: 'guestNotes',
+  qrClientToken: 'qrClientToken'
 };
 
 exports.Prisma.OrderItemScalarFieldEnum = {
