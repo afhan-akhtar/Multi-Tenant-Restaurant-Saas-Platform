@@ -49,22 +49,49 @@ function LoginFormInner() {
     }
 
     setLoading(true);
+    try {
+      // Validate subdomain before redirecting (better UX than generic invalid login).
+      try {
+        const statusRes = await fetch(
+          `/api/public/tenant-status?subdomain=${encodeURIComponent(cleanedSubdomain)}`
+        );
+        const statusData = await statusRes.json().catch(() => ({}));
+        if (statusRes.ok) {
+          if (!statusData.exists) {
+            setError("Subdomain invalid. No restaurant found for this subdomain.");
+            return;
+          }
+          if (statusData.status === "PENDING") {
+            setError("Your restaurant is pending approval. Please wait for Super Admin to approve.");
+            return;
+          }
+          if (statusData.status === "BLOCKED" || statusData.status === "INACTIVE") {
+            setError("This restaurant is not active. Please contact support.");
+            return;
+          }
+        }
+      } catch {
+        // If status check fails, still allow redirect attempt.
+      }
 
-    const tenantLoginUrl = new URL(
-      buildTenantUrl({
-        host: window.location.host,
-        protocol: window.location.protocol.replace(":", ""),
-        subdomain: cleanedSubdomain,
-        pathname: "/login",
-      })
-    );
+      const tenantLoginUrl = new URL(
+        buildTenantUrl({
+          host: window.location.host,
+          protocol: window.location.protocol.replace(":", ""),
+          subdomain: cleanedSubdomain,
+          pathname: "/login",
+        })
+      );
 
-    if (callbackUrl) {
-      tenantLoginUrl.searchParams.set("callbackUrl", callbackUrl);
+      if (callbackUrl) {
+        tenantLoginUrl.searchParams.set("callbackUrl", callbackUrl);
+      }
+      tenantLoginUrl.searchParams.set("forceLogin", "1");
+
+      window.location.assign(tenantLoginUrl.toString());
+    } finally {
+      setLoading(false);
     }
-    tenantLoginUrl.searchParams.set("forceLogin", "1");
-
-    window.location.assign(tenantLoginUrl.toString());
   }
 
   async function handleSignUp(e) {
