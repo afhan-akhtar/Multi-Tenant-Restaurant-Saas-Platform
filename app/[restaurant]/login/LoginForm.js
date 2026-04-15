@@ -3,7 +3,8 @@
 import { Suspense, useEffect, useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams, useParams } from "next/navigation";
-import Spinner, { PageLoader } from "@/app/components/Spinner";
+import Spinner from "@/app/components/Spinner";
+import { AuthShell, auth, authDisplayFont } from "@/app/components/auth/AuthShell";
 import { buildRootUrl } from "@/lib/tenant-url";
 
 function LoginFormInner() {
@@ -111,20 +112,20 @@ function LoginFormInner() {
   }
 
   return (
-    <main className="min-h-screen min-h-[100dvh] flex items-center justify-center p-4 sm:p-6 bg-gradient-to-br from-[#1a1a2e] to-[#16213e] box-border">
-      <div className="w-full max-w-[400px] bg-white/5 rounded-xl p-6 sm:p-8 border border-white/10">
-        <h1 className="m-0 mb-2 text-2xl text-white">Restaurant Admin</h1>
-        <p className="m-0 mb-6 text-sm text-white/60">Sign in to {restaurant || "your restaurant"}</p>
+    <AuthShell>
+      <div className={`${auth.cardNarrow} mx-auto w-full`}>
+        <h1 className={`${authDisplayFont} ${auth.title}`}>Restaurant Admin</h1>
+        <p className={auth.subtitle}>Sign in to {restaurant || "your restaurant"}</p>
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
-            <label htmlFor="email" className="block mb-1 text-sm text-white/80">
+            <label htmlFor="tenant-email" className={auth.label}>
               Email
             </label>
             <input
-              id="email"
+              id="tenant-email"
               type="email"
               placeholder="you@example.com"
-              className="w-full py-3 px-4 border border-white/20 rounded-lg bg-black/20 text-white text-base box-border placeholder:text-white/40"
+              className={auth.input}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -132,13 +133,13 @@ function LoginFormInner() {
             />
           </div>
           <div className="mb-4">
-            <label htmlFor="password" className="block mb-1 text-sm text-white/80">
+            <label htmlFor="tenant-password" className={auth.label}>
               Password
             </label>
             <input
-              id="password"
+              id="tenant-password"
               type="password"
-              className="w-full py-3 px-4 border border-white/20 rounded-lg bg-black/20 text-white text-base box-border placeholder:text-white/40"
+              className={auth.input}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Enter your password"
@@ -146,29 +147,10 @@ function LoginFormInner() {
               autoComplete="current-password"
             />
           </div>
-          {error && <p className="text-primary text-sm mt-2 mb-0">{error}</p>}
-          <p className="mt-4 text-center text-sm text-white/60">
-            <button
-              type="button"
-              onClick={handleSuperAdminClick}
-              className="bg-transparent border-0 p-0 text-primary cursor-pointer hover:underline font-inherit text-inherit"
-            >
-              Super Admin
-            </button>
-          </p>
-          <p className="mt-2 text-center text-sm text-white/60">
-            New restaurant?{" "}
-            <button
-              type="button"
-              onClick={handleSignUpClick}
-              className="bg-transparent border-0 p-0 text-primary cursor-pointer hover:underline font-inherit text-inherit"
-            >
-              Sign Up
-            </button>
-          </p>
+          {error ? <p className={`${auth.error} mt-2 mb-0`}>{error}</p> : null}
           <button
             type="submit"
-            className="w-full py-3 mt-2 bg-primary text-white border-none rounded-lg text-base font-semibold cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center"
+            className={`${auth.btnPrimary} mt-4`}
             disabled={loading || Boolean(impersonateToken)}
           >
             {loading ? (
@@ -180,15 +162,42 @@ function LoginFormInner() {
               "Sign in"
             )}
           </button>
+          <p className={`mt-4 text-center ${auth.muted}`}>
+            <button
+              type="button"
+              onClick={handleSuperAdminClick}
+              className={`${auth.link} cursor-pointer border-0 bg-transparent p-0 font-inherit`}
+            >
+              Super Admin
+            </button>
+          </p>
+          <p className={`mt-2 text-center ${auth.muted}`}>
+            New restaurant?{" "}
+            <button
+              type="button"
+              onClick={handleSignUpClick}
+              className={`${auth.link} cursor-pointer border-0 bg-transparent p-0 font-inherit`}
+            >
+              Sign Up
+            </button>
+          </p>
         </form>
       </div>
-    </main>
+    </AuthShell>
+  );
+}
+
+function TenantLoginFallback() {
+  return (
+    <div className="flex min-h-screen min-h-[100dvh] items-center justify-center bg-[#f6f4f0]">
+      <Spinner size="xl" className="text-teal-600" />
+    </div>
   );
 }
 
 export default function RestaurantLoginForm() {
   return (
-    <Suspense fallback={<PageLoader />}>
+    <Suspense fallback={<TenantLoginFallback />}>
       <LoginFormInner />
     </Suspense>
   );

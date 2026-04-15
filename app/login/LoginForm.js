@@ -3,7 +3,8 @@
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { COUNTRIES } from "@/lib/countries";
-import Spinner, { PageLoader } from "@/app/components/Spinner";
+import Spinner from "@/app/components/Spinner";
+import { AuthShell, auth, authDisplayFont } from "@/app/components/auth/AuthShell";
 import { buildTenantUrl } from "@/lib/tenant-url";
 
 function LoginFormInner() {
@@ -108,20 +109,20 @@ function LoginFormInner() {
   }
 
   return (
-    <main className="min-h-screen min-h-[100dvh] flex items-center justify-center p-4 sm:p-6 bg-gradient-to-br from-[#1a1a2e] to-[#16213e] box-border">
-      <div className="w-full max-w-[400px] bg-white/5 rounded-xl p-6 sm:p-8 border border-white/10">
-        <h1 className="m-0 mb-2 text-2xl text-white">Restaurant Admin</h1>
-        <p className="m-0 mb-6 text-sm text-white/60">Enter your restaurant subdomain to continue</p>
+    <AuthShell>
+      <div className={`${auth.cardNarrow} mx-auto w-full`}>
+        <h1 className={`${authDisplayFont} ${auth.title}`}>Restaurant Admin</h1>
+        <p className={auth.subtitle}>Enter your restaurant subdomain to continue</p>
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
-            <label htmlFor="subdomain" className="block mb-1 text-sm text-white/80">
+            <label htmlFor="subdomain" className={auth.label}>
               Restaurant subdomain
             </label>
             <input
               id="subdomain"
               type="text"
               placeholder="demo"
-              className="w-full py-3 px-4 border border-white/20 rounded-lg bg-black/20 text-white text-base box-border placeholder:text-white/40"
+              className={auth.input}
               value={subdomain}
               onChange={(e) => setSubdomain(e.target.value)}
               required
@@ -130,28 +131,24 @@ function LoginFormInner() {
               spellCheck={false}
             />
           </div>
-          {error && <p className="text-primary text-sm mt-2 mb-0">{error}</p>}
-          <p className="mt-4 text-center text-sm text-white/60">
+          {error && <p className={`${auth.error} mt-2 mb-0`}>{error}</p>}
+          <p className={`mt-4 text-center ${auth.muted}`}>
             Super Admin?{" "}
-            <a href="/admin" className="text-primary hover:underline">
+            <a href="/admin" className={auth.link}>
               Sign in as Super Admin
             </a>
           </p>
-          <p className="mt-2 text-center text-sm text-white/60">
+          <p className={`mt-2 text-center ${auth.muted}`}>
             New restaurant?{" "}
             <button
               type="button"
               onClick={() => setSignUpOpen(true)}
-              className="bg-transparent border-0 p-0 text-primary cursor-pointer hover:underline font-inherit text-inherit"
+              className={`${auth.link} cursor-pointer border-0 bg-transparent p-0 font-inherit`}
             >
               Sign Up
             </button>
           </p>
-          <button
-            type="submit"
-            className="w-full py-3 mt-2 bg-primary text-white border-none rounded-lg text-base font-semibold cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed hover:opacity-90 transition-opacity flex items-center justify-center"
-            disabled={loading}
-          >
+          <button type="submit" className={`${auth.btnPrimary} mt-4`} disabled={loading}>
             {loading ? (
               <span className="flex items-center gap-2">
                 <Spinner size="sm" className="text-white" />
@@ -165,132 +162,149 @@ function LoginFormInner() {
       </div>
 
       {signUpOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60">
-          <div className="w-full max-w-[420px] max-h-[90vh] overflow-y-auto bg-[#1a1a2e] rounded-xl p-6 border border-white/10 shadow-xl">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/25 p-4 backdrop-blur-sm">
+          <div className="max-h-[90vh] w-full max-w-[420px] overflow-y-auto rounded-2xl border border-stone-200 bg-white p-6 shadow-2xl shadow-stone-400/30">
             {signUpSuccess ? (
               <div className="text-center">
-                <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                  <svg className="w-7 h-7 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-teal-100">
+                  <svg
+                    className="h-7 w-7 text-teal-600"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
                     <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
                     <path d="M22 4L12 14.01l-3-3" />
                   </svg>
                 </div>
-                <h2 className="m-0 mb-2 text-xl text-white">Registration Successful</h2>
-                <p className="m-0 mb-6 text-sm text-white/70">
-                  Your restaurant is pending approval. You will be able to log in once the platform administrator approves your account.
+                <h2 className={`${authDisplayFont} m-0 mb-2 text-xl text-slate-900`}>Registration Successful</h2>
+                <p className="m-0 mb-6 text-sm text-slate-600">
+                  Your restaurant is pending approval. You will be able to log in once the platform
+                  administrator approves your account.
                 </p>
                 <button
                   type="button"
                   onClick={closeSignUpModal}
-                  className="py-2.5 px-5 bg-primary text-white rounded-lg text-sm font-medium border-0 cursor-pointer hover:opacity-90 transition-opacity"
+                  className="cursor-pointer rounded-full border-0 bg-gradient-to-r from-teal-600 to-teal-700 px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-teal-600/25 transition hover:from-teal-700 hover:to-teal-800"
                 >
                   Close
                 </button>
               </div>
             ) : (
               <>
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="m-0 text-xl text-white">Sign Up</h2>
+                <div className="mb-4 flex items-center justify-between">
+                  <h2 className={`${authDisplayFont} m-0 text-xl text-slate-900`}>Sign Up</h2>
                   <button
                     type="button"
                     onClick={closeSignUpModal}
-                    className="w-8 h-8 flex items-center justify-center rounded-lg text-white/60 hover:text-white hover:bg-white/10 border-0 cursor-pointer bg-transparent"
+                    className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border-0 bg-stone-100 text-slate-500 transition hover:bg-stone-200 hover:text-slate-800"
                     aria-label="Close"
                   >
-                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <path d="M18 6L6 18M6 6l12 12" />
                     </svg>
                   </button>
                 </div>
-                <p className="m-0 mb-5 text-sm text-white/60">Create an account to start using the platform</p>
+                <p className="m-0 mb-5 text-sm text-slate-600">Create an account to start using the platform</p>
                 <form onSubmit={handleSignUp}>
                   <div className="mb-4">
-                    <label htmlFor="modal-restaurantName" className="block mb-1 text-sm text-white/80">Restaurant name</label>
+                    <label htmlFor="modal-restaurantName" className={auth.label}>
+                      Restaurant name
+                    </label>
                     <input
                       id="modal-restaurantName"
                       type="text"
                       placeholder="My Restaurant"
                       required
-                      className="w-full py-2.5 px-4 border border-white/20 rounded-lg bg-black/20 text-white text-base box-border placeholder:text-white/40"
+                      className={auth.input}
                       value={restaurantName}
                       onChange={(e) => setRestaurantName(e.target.value)}
                       autoComplete="organization"
                     />
                   </div>
                   <div className="mb-4">
-                    <label htmlFor="modal-branchName" className="block mb-1 text-sm text-white/80">Branch name</label>
+                    <label htmlFor="modal-branchName" className={auth.label}>
+                      Branch name
+                    </label>
                     <input
                       id="modal-branchName"
                       type="text"
                       placeholder="Main Branch"
                       required
-                      className="w-full py-2.5 px-4 border border-white/20 rounded-lg bg-black/20 text-white text-base box-border placeholder:text-white/40"
+                      className={auth.input}
                       value={branchName}
                       onChange={(e) => setBranchName(e.target.value)}
                       autoComplete="organization-unit"
                     />
                   </div>
                   <div className="mb-4">
-                    <label htmlFor="modal-country" className="block mb-1 text-sm text-white/80">Country</label>
+                    <label htmlFor="modal-country" className={auth.label}>
+                      Country
+                    </label>
                     <select
                       id="modal-country"
-                      className="w-full py-2.5 px-4 border border-white/20 rounded-lg bg-black/20 text-white text-base box-border"
+                      className={auth.select}
                       value={country}
                       onChange={(e) => setCountry(e.target.value)}
                       autoComplete="country-name"
                     >
                       <option value="">Select country</option>
                       {COUNTRIES.map((c) => (
-                        <option key={c} value={c}>{c}</option>
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
                       ))}
                     </select>
                   </div>
                   <div className="mb-4">
-                    <label htmlFor="modal-ownerName" className="block mb-1 text-sm text-white/80">Owner name</label>
+                    <label htmlFor="modal-ownerName" className={auth.label}>
+                      Owner name
+                    </label>
                     <input
                       id="modal-ownerName"
                       type="text"
                       placeholder="John Doe"
                       required
-                      className="w-full py-2.5 px-4 border border-white/20 rounded-lg bg-black/20 text-white text-base box-border placeholder:text-white/40"
+                      className={auth.input}
                       value={ownerName}
                       onChange={(e) => setOwnerName(e.target.value)}
                       autoComplete="name"
                     />
                   </div>
                   <div className="mb-4">
-                    <label htmlFor="modal-email" className="block mb-1 text-sm text-white/80">Email</label>
+                    <label htmlFor="modal-email" className={auth.label}>
+                      Email
+                    </label>
                     <input
                       id="modal-email"
                       type="email"
                       placeholder="owner@restaurant.com"
                       required
-                      className="w-full py-2.5 px-4 border border-white/20 rounded-lg bg-black/20 text-white text-base box-border placeholder:text-white/40"
+                      className={auth.input}
                       value={signUpEmail}
                       onChange={(e) => setSignUpEmail(e.target.value)}
                       autoComplete="email"
                     />
                   </div>
                   <div className="mb-5">
-                    <label htmlFor="modal-password" className="block mb-1 text-sm text-white/80">Password</label>
+                    <label htmlFor="modal-password" className={auth.label}>
+                      Password
+                    </label>
                     <input
                       id="modal-password"
                       type="password"
                       placeholder="Min 6 characters"
                       required
                       minLength={6}
-                      className="w-full py-2.5 px-4 border border-white/20 rounded-lg bg-black/20 text-white text-base box-border placeholder:text-white/40"
+                      className={auth.input}
                       value={signUpPassword}
                       onChange={(e) => setSignUpPassword(e.target.value)}
                       autoComplete="new-password"
                     />
                   </div>
-                  {signUpError && <p className="mb-4 text-sm text-red-400">{signUpError}</p>}
-                  <button
-                    type="submit"
-                    disabled={signUpLoading}
-                    className="w-full py-3 bg-primary text-white border-none rounded-lg text-base font-semibold cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center"
-                  >
+                  {signUpError && <p className={`${auth.error} mb-4`}>{signUpError}</p>}
+                  <button type="submit" disabled={signUpLoading} className={auth.btnPrimary}>
                     {signUpLoading ? (
                       <span className="flex items-center gap-2">
                         <Spinner size="sm" className="text-white" />
@@ -306,13 +320,21 @@ function LoginFormInner() {
           </div>
         </div>
       )}
-    </main>
+    </AuthShell>
+  );
+}
+
+function LoginSuspenseFallback() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-[#f6f4f0]">
+      <Spinner size="xl" className="text-teal-600" />
+    </div>
   );
 }
 
 export default function LoginForm() {
   return (
-    <Suspense fallback={<PageLoader />}>
+    <Suspense fallback={<LoginSuspenseFallback />}>
       <LoginFormInner />
     </Suspense>
   );

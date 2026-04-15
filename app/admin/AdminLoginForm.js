@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Spinner from "@/app/components/Spinner";
+import { AuthShell, auth, authDisplayFont } from "@/app/components/auth/AuthShell";
 
-export default function AdminLoginForm() {
+function AdminLoginFormInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "/admin";
@@ -45,20 +46,20 @@ export default function AdminLoginForm() {
   }
 
   return (
-    <main className="min-h-screen min-h-[100dvh] flex items-center justify-center p-4 sm:p-6 bg-gradient-to-br from-[#1a1a2e] to-[#16213e] box-border">
-      <div className="w-full max-w-[400px] bg-white/5 rounded-xl p-6 sm:p-8 border border-white/10">
-        <h1 className="m-0 mb-2 text-2xl text-white">Super Admin</h1>
-        <p className="m-0 mb-6 text-sm text-white/60">Sign in</p>
+    <AuthShell>
+      <div className={`${auth.cardNarrow} mx-auto w-full`}>
+        <h1 className={`${authDisplayFont} ${auth.title}`}>Super Admin</h1>
+        <p className={auth.subtitle}>Sign in with your platform credentials</p>
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
-            <label htmlFor="email" className="block mb-1 text-sm text-white/80">
+            <label htmlFor="admin-email" className={auth.label}>
               Email
             </label>
             <input
-              id="email"
+              id="admin-email"
               type="email"
               placeholder="you@example.com"
-              className="w-full py-3 px-4 border border-white/20 rounded-lg bg-black/20 text-white text-base box-border placeholder:text-white/40"
+              className={auth.input}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -66,13 +67,13 @@ export default function AdminLoginForm() {
             />
           </div>
           <div className="mb-4">
-            <label htmlFor="password" className="block mb-1 text-sm text-white/80">
+            <label htmlFor="admin-password" className={auth.label}>
               Password
             </label>
             <input
-              id="password"
+              id="admin-password"
               type="password"
-              className="w-full py-3 px-4 border border-white/20 rounded-lg bg-black/20 text-white text-base box-border placeholder:text-white/40"
+              className={auth.input}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Enter your password"
@@ -80,29 +81,41 @@ export default function AdminLoginForm() {
               autoComplete="current-password"
             />
           </div>
-          {error && <p className="text-primary text-sm mt-2 mb-0">{error}</p>}
-          <button
-            type="submit"
-          className="w-full py-3 mt-4 bg-primary text-white border-none rounded-lg text-base font-semibold cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center"
-            disabled={loading}
-          >
-          {loading ? (
-            <span className="flex items-center gap-2">
-              <Spinner size="sm" className="text-white" />
-              <span>Signing in…</span>
-            </span>
-          ) : (
-            "Sign in"
-          )}
+          {error ? <p className={`${auth.error} mt-2 mb-0`}>{error}</p> : null}
+          <button type="submit" className={`${auth.btnPrimary} mt-4`} disabled={loading}>
+            {loading ? (
+              <span className="flex items-center gap-2">
+                <Spinner size="sm" className="text-white" />
+                <span>Signing in…</span>
+              </span>
+            ) : (
+              "Sign in"
+            )}
           </button>
         </form>
-        <p className="mt-6 text-center text-sm text-white/60">
+        <p className={`mt-6 text-center ${auth.muted}`}>
           Restaurant?{" "}
-          <a href="/login" className="text-primary hover:underline">
+          <a href="/login" className={auth.link}>
             Sign in as Restaurant Admin
           </a>
         </p>
       </div>
-    </main>
+    </AuthShell>
+  );
+}
+
+function AdminLoginFallback() {
+  return (
+    <div className="flex min-h-screen min-h-[100dvh] items-center justify-center bg-[#f6f4f0]">
+      <Spinner size="xl" className="text-teal-600" />
+    </div>
+  );
+}
+
+export default function AdminLoginForm() {
+  return (
+    <Suspense fallback={<AdminLoginFallback />}>
+      <AdminLoginFormInner />
+    </Suspense>
   );
 }

@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
+import { buildRootUrl } from "@/lib/tenant-url";
 import OfflineIndicator from "./OfflineIndicator";
 
 // Super Admin: Platform Governance (Module A)
@@ -398,6 +399,18 @@ export default function DashboardLayout({
     ? "Super Admin"
     : (user?.name === "Demo Staff" ? "Restaurant Admin" : (user?.name || "User"));
 
+  const handleSignOut = useCallback(async () => {
+    setUserMenuOpen(false);
+    await signOut({ redirect: false });
+    window.location.assign(
+      buildRootUrl({
+        host: window.location.host,
+        protocol: window.location.protocol.replace(/:$/, ""),
+        pathname: "/",
+      })
+    );
+  }, []);
+
   return (
     <div className="min-h-screen flex bg-color-bg">
       <aside
@@ -509,7 +522,7 @@ export default function DashboardLayout({
                   )}
                   <Link href={withBasePath(basePath, "/profile")} onClick={() => setUserMenuOpen(false)} className="block w-full py-2.5 px-4 text-left bg-transparent border-0 text-color-text no-underline cursor-pointer text-sm hover:bg-color-bg transition-colors">Profile</Link>
                   <Link href={withBasePath(basePath, "/settings")} onClick={() => setUserMenuOpen(false)} className="block w-full py-2.5 px-4 text-left bg-transparent border-0 text-color-text no-underline cursor-pointer text-sm hover:bg-color-bg transition-colors">Settings</Link>
-                  <button onClick={() => signOut({ callbackUrl: isSuperAdmin ? "/admin" : "/login" })} className="block w-full py-2.5 px-4 text-left bg-transparent border-0 text-color-text no-underline cursor-pointer text-sm hover:bg-color-bg transition-colors">Sign out</button>
+                  <button type="button" onClick={handleSignOut} className="block w-full py-2.5 px-4 text-left bg-transparent border-0 text-color-text no-underline cursor-pointer text-sm hover:bg-color-bg transition-colors">Sign out</button>
                 </div>
               )}
             </div>

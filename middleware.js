@@ -8,28 +8,34 @@ import {
   isReservedRootSegment,
 } from "@/lib/tenant-url";
 
+function nextWithPathHeaders(request, pathname, isTenantHost) {
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-pathname", pathname);
+  requestHeaders.set("x-is-tenant-host", isTenantHost ? "1" : "0");
+  return NextResponse.next({ request: { headers: requestHeaders } });
+}
+
 export async function middleware(request) {
   const token = await getToken({
     req: request,
     secret: process.env.NEXTAUTH_SECRET,
   });
   const { pathname, search } = request.nextUrl;
-
-  // /public assets (e.g. *.js) — must not be rewritten as /{tenant}/… or login HTML will be returned for .js URLs
-  if (pathname.match(/\.(ico|png|svg|jpg|jpeg|gif|webp|js|mjs|css|map|txt|json|woff2?)$/i)) {
-    return NextResponse.next();
-  }
-
   const host = request.headers.get("x-forwarded-host") || request.headers.get("host") || "localhost:3000";
   const protocol = request.headers.get("x-forwarded-proto") || request.nextUrl.protocol.replace(/:$/, "") || "http";
   const { subdomain: currentSubdomain, isTenantHost } = getHostInfo(host);
+
+  // /public assets (e.g. *.js) — must not be rewritten as /{tenant}/… or login HTML will be returned for .js URLs
+  if (pathname.match(/\.(ico|png|svg|jpg|jpeg|gif|webp|js|mjs|css|map|txt|json|woff2?)$/i)) {
+    return nextWithPathHeaders(request, pathname, isTenantHost);
+  }
   const tenantSubdomain = token?.type === "staff" ? token?.subdomain : "";
   const pathnameWithSearch = `${pathname}${search || ""}`;
   const firstSegment = pathname.split("/").filter(Boolean)[0] || "";
 
   // API routes: let through, API handles auth and returns 401 if needed
   if (pathname.startsWith("/api/")) {
-    return NextResponse.next();
+    return nextWithPathHeaders(request, pathname, isTenantHost);
   }
 
   if (isTenantHost && (pathname === "/admin" || pathname.startsWith("/admin/") || pathname === "/register")) {
@@ -90,6 +96,7 @@ export async function middleware(request) {
 
   // Public routes
   const isPublic =
+    (!isTenantHost && pathname === "/") ||
     pathname === "/menu" ||
     pathname === "/login" ||
     pathname === "/go" ||
@@ -107,7 +114,7 @@ export async function middleware(request) {
     pathname.match(/\.(ico|png|svg|jpg|jpeg|gif|webp)$/);
 
   if (isPublic) {
-    return NextResponse.next();
+    return nextWithPathHeaders(request, pathname, isTenantHost);
   }
 
   if (!token) {
@@ -136,7 +143,7 @@ export async function middleware(request) {
     return NextResponse.rewrite(rewriteUrl);
   }
 
-  return NextResponse.next();
+  return nextWithPathHeaders(request, pathname, isTenantHost);
 }
 
 export const config = {

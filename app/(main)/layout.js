@@ -3,7 +3,7 @@ import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { platformPrisma } from "@/lib/platform-db";
 import DashboardLayout from "@/app/components/DashboardLayout";
-import { buildTenantUrl } from "@/lib/tenant-url";
+import { buildTenantUrl, getHostInfo } from "@/lib/tenant-url";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -13,8 +13,14 @@ export default async function MainLayout({ children }) {
   const headersList = await headers();
   const host = headersList.get("x-forwarded-host") || headersList.get("host") || "localhost:3000";
   const protocol = headersList.get("x-forwarded-proto") || "http";
+  const pathRaw = headersList.get("x-pathname") || "/";
+  const pathOnly = pathRaw.split("?")[0] || "/";
+  const { isTenantHost } = getHostInfo(host);
 
   if (!session) {
+    if (pathOnly === "/" && !isTenantHost) {
+      return <>{children}</>;
+    }
     redirect("/login");
   }
 
