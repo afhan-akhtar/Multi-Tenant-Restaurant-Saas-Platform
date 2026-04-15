@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { Fraunces, Plus_Jakarta_Sans } from "next/font/google";
 
 const jakarta = Plus_Jakarta_Sans({
@@ -12,25 +11,6 @@ const fraunces = Fraunces({
   subsets: ["latin"],
   display: "swap",
 });
-
-function LogoMark() {
-  return (
-    <svg
-      className="h-8 w-8 shrink-0 text-teal-600"
-      viewBox="0 0 40 40"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden
-    >
-      <path
-        d="M8 32V8h6l6 10 6-10h6v24h-6V18l-6 10-6-10v14H8z"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
 
 /** Shared with landing: warm light bg, teal accents, slate text */
 export const auth = {
@@ -64,16 +44,7 @@ export function AuthShell({ children }) {
         <div className="absolute inset-0 opacity-[0.35] [background-image:linear-gradient(to_right,#94a3b814_1px,transparent_1px),linear-gradient(to_bottom,#94a3b814_1px,transparent_1px)] [background-size:52px_52px]" />
       </div>
 
-      <header className="relative z-[100] bg-white/90 shadow-[0_4px_24px_-8px_rgba(15,23,42,0.08)] backdrop-blur-md backdrop-saturate-150">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
-          <Link href="/" className="flex items-center gap-2.5 transition hover:opacity-90">
-            <LogoMark />
-            <span className={`${fraunces.className} text-lg font-semibold text-slate-900`}>HarborLedger</span>
-          </Link>
-        </div>
-      </header>
-
-      <div className="relative z-10 flex w-full min-h-[calc(100dvh-4.5rem)] min-h-[calc(100vh-4.5rem)] flex-col items-center justify-center px-4 py-10 sm:px-6">
+      <div className="relative z-10 flex w-full min-h-[100dvh] min-h-screen flex-col items-center justify-center px-4 py-10 sm:px-6">
         {children}
       </div>
     </div>
