@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { assertTenantFeatureAccess } from "@/lib/subscriptions";
 import { platformPrisma } from "@/lib/platform-db";
 import { createQrTableOrder } from "@/lib/qr-order";
+import { isStripeConfigured } from "@/lib/payments/config";
 
 export const dynamic = "force-dynamic";
 
@@ -44,17 +45,37 @@ export async function POST(request) {
       return NextResponse.json({ error: featureAccess.error }, { status: featureAccess.status });
     }
 
+    const onlinePay = await assertTenantFeatureAccess(tenantId, "ONLINE_PAYMENTS");
+    const mustPayOnline = onlinePay.ok && isStripeConfigured();
+
+    const paymentIntentId = String(body.payment_intent_id || body?.stripe?.payment_intent_id || "").trim();
+    const checkoutSessionId = String(body.checkout_session_id || body?.stripe?.checkout_session_id || "").trim();
+
+    let stripePayment = null;
+    if (mustPayOnline) {
+      if (!paymentIntentId || !checkoutSessionId) {
+        return NextResponse.json(
+          { error: "Card payment is required before your order is sent to the kitchen." },
+          { status: 400 }
+        );
+      }
+      stripePayment = { paymentIntentId, checkoutSessionId };
+    }
+
     if (items.length > 50) {
       return NextResponse.json({ error: "Too many line items" }, { status: 400 });
     }
 
-    const { order, orderNumber, qrClientToken } = await createQrTableOrder({
+    const result = await createQrTableOrder({
       tenantId,
       tableId,
       items,
       customerName,
       notes,
+      stripePayment,
     });
+
+    const { order, orderNumber, qrClientToken, idempotentReplay } = result;
 
     return NextResponse.json({
       ok: true,
@@ -63,6 +84,7 @@ export async function POST(request) {
       qrClientToken,
       status: order.status,
       grandTotal: Number(order.grandTotal),
+      ...(idempotentReplay ? { idempotentReplay: true } : {}),
     });
   } catch (err) {
     console.error("[qr-order]", err);

@@ -49,7 +49,9 @@ export default function TableQRCodes({ tenantId, tables = [], baseUrl }) {
   return (
     <div className="space-y-6">
       <p className="text-sm text-color-text-muted m-0 max-w-2xl">
-        Guests scan a code to open the menu for that table. Orders appear as{" "}
+        Guests scan a code to open the menu for that table. If your plan includes online payments and Stripe is
+        connected, guests pay by card before the order is sent to the kitchen. Otherwise the order is placed
+        without in-app payment and you settle at the table or POS. Orders appear as{" "}
         <strong className="text-color-text">QR · Dine-in</strong> in the kitchen and on the dashboard.
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

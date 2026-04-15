@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState, Suspense } from "react";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { formatEur } from "@/lib/currencyFormat";
+import { QrMenuPayAndPlaceOrder, QrMenuStripeProvider } from "./QrStripeCheckout";
 
 function cartStorageKey(tenantId, tableId) {
   return `qr_cart_${tenantId}_${tableId}`;
@@ -40,11 +41,10 @@ function InnerMenu() {
   const [cart, setCart] = useState([]);
   const [addonProduct, setAddonProduct] = useState(null);
   const [selectedAddons, setSelectedAddons] = useState({});
-  const [customerName, setCustomerName] = useState("");
-  const [notes, setNotes] = useState("");
   const [placing, setPlacing] = useState(false);
   const [placed, setPlaced] = useState(null);
   const [statusPoll, setStatusPoll] = useState(null);
+  const [paymentOpts, setPaymentOpts] = useState(null);
 
   const storageKey = useMemo(() => {
     if (!tenantId || !tableId) return null;
@@ -91,6 +91,27 @@ function InnerMenu() {
       cancelled = true;
     };
   }, [tenantId, tableId]);
+
+  useEffect(() => {
+    if (!tenantId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const r = await fetch(
+          `/api/public/table-order-payment-options?tenant_id=${encodeURIComponent(tenantId)}`,
+          { cache: "no-store" }
+        );
+        const j = await r.json().catch(() => ({}));
+        if (!cancelled && r.ok) setPaymentOpts(j);
+        else if (!cancelled) setPaymentOpts({ requireOnlinePayment: false, stripe: { enabled: false, publishableKey: null } });
+      } catch {
+        if (!cancelled) setPaymentOpts({ requireOnlinePayment: false, stripe: { enabled: false, publishableKey: null } });
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [tenantId]);
 
   const productsByCategory = useMemo(() => {
     if (!data?.products) return new Map();
@@ -189,8 +210,6 @@ function InnerMenu() {
             quantity: c.quantity,
             ...(c.addonItemIds?.length ? { addonItemIds: c.addonItemIds } : {}),
           })),
-          customer_name: customerName.trim(),
-          notes: notes.trim(),
         }),
       });
       const json = await res.json().catch(() => ({}));
@@ -435,29 +454,6 @@ function InnerMenu() {
             </ul>
           )}
 
-          <div className="rounded-xl bg-white border border-slate-200 p-3 space-y-2 text-sm">
-            <label className="block">
-              <span className="text-slate-600 text-xs">Name (optional)</span>
-              <input
-                className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2"
-                value={customerName}
-                onChange={(e) => setCustomerName(e.target.value)}
-                placeholder="Your name"
-                maxLength={120}
-              />
-            </label>
-            <label className="block">
-              <span className="text-slate-600 text-xs">Notes (optional)</span>
-              <textarea
-                className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 min-h-[72px] resize-none"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Allergies, spice level…"
-                maxLength={500}
-              />
-            </label>
-          </div>
-
           {cart.length > 0 && (
             <>
               <div className="flex justify-between text-sm text-slate-600">
@@ -472,14 +468,33 @@ function InnerMenu() {
                 <span>Total</span>
                 <span>{formatEur(grandTotal)}</span>
               </div>
-              <button
-                type="button"
-                disabled={placing}
-                onClick={placeOrder}
-                className="w-full py-3.5 rounded-xl bg-primary text-white font-semibold disabled:opacity-60"
-              >
-                {placing ? "Sending…" : "Place order"}
-              </button>
+              {paymentOpts?.requireOnlinePayment && paymentOpts?.stripe?.publishableKey ? (
+                <QrMenuStripeProvider publishableKey={paymentOpts.stripe.publishableKey}>
+                  <QrMenuPayAndPlaceOrder
+                    tenantId={tenantId}
+                    tableId={tableId}
+                    cart={cart}
+                    grandTotal={grandTotal}
+                    placing={placing}
+                    setPlacing={setPlacing}
+                    setError={setError}
+                    setPlaced={setPlaced}
+                    setCart={setCart}
+                    storageKey={storageKey}
+                    saveCart={saveCart}
+                    formatEur={formatEur}
+                  />
+                </QrMenuStripeProvider>
+              ) : (
+                <button
+                  type="button"
+                  disabled={placing}
+                  onClick={placeOrder}
+                  className="w-full py-3.5 rounded-xl bg-primary text-white font-semibold disabled:opacity-60"
+                >
+                  {placing ? "Sending…" : "Place order"}
+                </button>
+              )}
             </>
           )}
         </div>
