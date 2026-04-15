@@ -86,7 +86,16 @@ export default function RegisterPage() {
 
   return (
     <AuthShell>
-      <div className={`${auth.card} mx-auto w-full`}>
+      <div className={`${auth.card} relative mx-auto w-full`}>
+        <Link
+          href="/"
+          aria-label="Close"
+          className="absolute right-4 top-4 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-stone-100 text-slate-500 transition hover:bg-stone-200 hover:text-slate-800"
+        >
+          <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+            <path d="M18 6L6 18M6 6l12 12" />
+          </svg>
+        </Link>
         <h1 className={`${authDisplayFont} ${auth.title}`}>Register your restaurant</h1>
         <p className={auth.subtitle}>Create an account to start using the platform</p>
 

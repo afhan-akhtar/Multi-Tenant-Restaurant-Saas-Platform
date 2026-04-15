@@ -293,6 +293,23 @@ export default function LandingPage() {
   }, []);
 
   useEffect(() => {
+    // Keep landing at the top on reload/refresh (avoid browser scroll restoration + leftover hashes).
+    try {
+      if ("scrollRestoration" in window.history) {
+        window.history.scrollRestoration = "manual";
+      }
+    } catch {}
+
+    try {
+      if (window.location.hash) {
+        window.history.replaceState(null, "", window.location.pathname + window.location.search);
+      }
+    } catch {}
+
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, []);
+
+  useEffect(() => {
     function onScroll() {
       setNavScrolled(window.scrollY > 4);
     }
