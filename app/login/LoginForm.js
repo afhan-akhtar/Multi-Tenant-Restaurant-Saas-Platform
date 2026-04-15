@@ -19,6 +19,7 @@ function LoginFormInner() {
   const [signUpLoading, setSignUpLoading] = useState(false);
   const [signUpError, setSignUpError] = useState("");
   const [signUpSuccess, setSignUpSuccess] = useState(false);
+  const [signUpSubdomain, setSignUpSubdomain] = useState("");
   const [restaurantName, setRestaurantName] = useState("");
   const [branchName, setBranchName] = useState("");
   const [country, setCountry] = useState("");
@@ -88,6 +89,7 @@ function LoginFormInner() {
         setSignUpError(data.error || "Registration failed. Please try again.");
         return;
       }
+      setSignUpSubdomain(String(data.subdomain || "").trim());
       setSignUpSuccess(true);
     } catch (err) {
       setSignUpError("Something went wrong. Please try again.");
@@ -100,6 +102,7 @@ function LoginFormInner() {
     setSignUpOpen(false);
     setSignUpSuccess(false);
     setSignUpError("");
+    setSignUpSubdomain("");
     setRestaurantName("");
     setBranchName("");
     setCountry("");
@@ -183,6 +186,30 @@ function LoginFormInner() {
                   Your restaurant is pending approval. You will be able to log in once the platform
                   administrator approves your account.
                 </p>
+                {signUpSubdomain ? (
+                  <div className="mx-auto mb-6 max-w-md rounded-2xl border border-stone-200 bg-stone-50 px-4 py-4 text-left">
+                    <p className="m-0 text-xs font-bold uppercase tracking-wider text-slate-500">Your subdomain</p>
+                    <p className="m-0 mt-2 flex items-center justify-between gap-3">
+                      <span className="rounded-lg bg-white px-3 py-2 font-mono text-sm text-slate-900 ring-1 ring-stone-200">
+                        {signUpSubdomain}
+                      </span>
+                      <button
+                        type="button"
+                        className="rounded-full border border-stone-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-teal-300 hover:bg-teal-50/60 hover:text-teal-900"
+                        onClick={async () => {
+                          try {
+                            await navigator.clipboard.writeText(signUpSubdomain);
+                          } catch {}
+                        }}
+                      >
+                        Copy
+                      </button>
+                    </p>
+                    <p className="m-0 mt-3 text-xs text-slate-600">
+                      Login: <span className="font-mono">/login</span> → enter this subdomain.
+                    </p>
+                  </div>
+                ) : null}
                 <button
                   type="button"
                   onClick={closeSignUpModal}

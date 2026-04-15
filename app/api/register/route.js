@@ -61,14 +61,39 @@ export async function POST(req) {
     const passwordHash = await hashPassword(password);
     const countryVal = (country || "").trim();
 
-    const tenant = await platformPrisma.tenant.create({
-      data: {
-        name: restaurantName.trim(),
-        subdomain: cleanedSubdomain,
-        country: countryVal,
-        status: "PENDING",
-      },
-    });
+    let tenant;
+    try {
+      tenant = await platformPrisma.tenant.create({
+        data: {
+          name: restaurantName.trim(),
+          subdomain: cleanedSubdomain,
+          country: countryVal,
+          status: "PENDING",
+        },
+      });
+    } catch (createErr) {
+      // In dev environments it's possible to have the autoincrement sequence out of sync
+      // (e.g. manual inserts/seeds). If we hit a duplicate id, repair the sequence and retry once.
+      if (createErr?.code === "P2002" && String(createErr?.meta?.modelName || "") === "Tenant") {
+        console.warn("[register] Tenant create unique constraint; repairing sequence and retrying once.");
+        await platformPrisma.$executeRaw`
+          SELECT setval(
+            pg_get_serial_sequence('"Tenant"', 'id'),
+            (SELECT COALESCE(MAX(id), 0) FROM "Tenant")
+          )
+        `;
+        tenant = await platformPrisma.tenant.create({
+          data: {
+            name: restaurantName.trim(),
+            subdomain: cleanedSubdomain,
+            country: countryVal,
+            status: "PENDING",
+          },
+        });
+      } else {
+        throw createErr;
+      }
+    }
 
     try {
       await provisionTenantDatabaseAndMigrate(tenant.id);
@@ -84,9 +109,18 @@ export async function POST(req) {
     const tp = await getTenantPrisma(tenant.id);
 
     const tenantAdmin = await tp.$transaction(async (tx) => {
-      await tx.tenant.create({
-        data: {
+      // If a previous provisioning attempt created the DB already, the Tenant row may exist.
+      // Upsert avoids a hard failure on duplicate id.
+      await tx.tenant.upsert({
+        where: { id: tenant.id },
+        create: {
           id: tenant.id,
+          name: restaurantName.trim(),
+          subdomain: cleanedSubdomain,
+          country: countryVal,
+          status: "PENDING",
+        },
+        update: {
           name: restaurantName.trim(),
           subdomain: cleanedSubdomain,
           country: countryVal,
