@@ -75,6 +75,27 @@ async function main() {
     });
   }
 
+  // Ensure a basic set of dining tables exists for demo/QR flows.
+  const desiredTableNames = ["Table 1", "Table 2", "Table 3", "Table 4", "Table 5"];
+  const ensuredTables = [];
+  for (const name of desiredTableNames) {
+    let t = await tdb.diningTable.findFirst({
+      where: { tenantId: tenant.id, branchId: branch.id, name },
+    });
+    if (!t) {
+      t = await tdb.diningTable.create({
+        data: {
+          tenantId: tenant.id,
+          branchId: branch.id,
+          name,
+          seats: 4,
+          status: "AVAILABLE",
+        },
+      });
+    }
+    ensuredTables.push(t);
+  }
+
   const mainKdsScreen = await tdb.kDSScreen.upsert({
     where: {
       branchId_name: {
@@ -408,16 +429,8 @@ async function main() {
       }),
     ]);
 
-    // Dining table
-    const table = await tdb.diningTable.create({
-      data: {
-        tenantId: tenant.id,
-        branchId: branch.id,
-        name: "Table 1",
-        seats: 4,
-        status: "AVAILABLE",
-      },
-    });
+    // Use the first ensured table for seeded sessions/orders.
+    const table = ensuredTables[0];
 
     // Sessions and orders
     const now = new Date();
@@ -815,6 +828,11 @@ async function main() {
   console.log(`  Device POS: /pos/${tenant.id}?token=${demoPosToken}`);
   console.log(`  Device KDS: /kds/${tenant.id}?token=${demoKdsToken}`);
   console.log(`  Device TABLET: /tablet?token=${demoTabletToken}`);
+  console.log("  Table QR pages:");
+  console.log("    /table-qr  (admin dashboard page: generate + Download PNG)");
+  for (const t of ensuredTables) {
+    console.log(`    Table: ${t.name} -> /menu?tenant_id=${tenant.id}&table_id=${t.id}`);
+  }
   await tdb.$disconnect();
 }
 

@@ -297,6 +297,7 @@ const PAGE_TITLES = {
   "/addons": "Add-on Groups",
   "/roles": "Roles & Permissions",
   "/tables": "Floor & Tables",
+  "/table-qr": "Table QR codes",
   "/delivery-zones": "Delivery Zones",
   "/z-reports": "Z-Reports",
   "/segments": "Segments",
