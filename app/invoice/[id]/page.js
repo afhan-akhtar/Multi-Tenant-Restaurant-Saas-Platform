@@ -141,7 +141,7 @@ export default async function InvoicePage({ params }) {
               <div className="flex justify-between gap-4 border-t border-color-border pt-2 font-semibold"><span className="text-color-text">Total</span><span className="text-color-text">{formatEur(invoice.totalAmount)}</span></div>
             </div>
             <div className="mt-4">
-              <Link href={isSuperAdmin ? "/admin/subscriptions" : `/${session.user?.subdomain}/subscription`} className="text-sm font-medium text-primary no-underline">
+              <Link href={isSuperAdmin ? "/admin/subscriptions" : "/subscription"} className="text-sm font-medium text-primary no-underline">
                 Back to subscription management
               </Link>
             </div>

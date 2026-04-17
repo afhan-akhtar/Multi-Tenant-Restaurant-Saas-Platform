@@ -138,6 +138,12 @@ export async function middleware(request) {
   }
 
   if (isTenantHost) {
+    // These root-level routes must not be rewritten with the tenant prefix,
+    // as they live in app/invoice/... (not app/[restaurant]/...)
+    const ROOT_ONLY_SEGMENTS = new Set(["invoice"]);
+    if (ROOT_ONLY_SEGMENTS.has(firstSegment)) {
+      return nextWithPathHeaders(request, pathname, isTenantHost);
+    }
     const rewriteUrl = request.nextUrl.clone();
     rewriteUrl.pathname = getTenantInternalPath(currentSubdomain, pathname);
     return NextResponse.rewrite(rewriteUrl);
