@@ -1,22 +1,34 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <!-- Base application theme. -->
+    <!-- Base application theme — uses web brand colors -->
     <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
-        <!-- Customize your theme here. -->
         <item name="colorPrimary">@color/colorPrimary</item>
         <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
         <item name="colorAccent">@color/colorAccent</item>
     </style>
 
+    <!--
+        NoActionBar: used while WebView is active.
+        Dark status bar + nav bar match the tablet dark UI (slate-950 #0f172a).
+        windowLightStatusBar=false → white status-bar icons on dark background.
+    -->
     <style name="AppTheme.NoActionBar" parent="Theme.AppCompat.DayNight.NoActionBar">
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
         <item name="android:background">@null</item>
+        <!-- Status bar: dark sidebar color, white icons -->
+        <item name="android:statusBarColor">@color/colorSidebar</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <!-- Navigation bar: dark sidebar color, white icons -->
+        <item name="android:navigationBarColor">@color/colorSidebar</item>
     </style>
 
-
+    <!-- Splash / launch screen: dark background prevents white flash on cold start -->
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
         <item name="android:background">@drawable/splash</item>
+        <item name="android:statusBarColor">@color/colorSidebar</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:navigationBarColor">@color/colorSidebar</item>
     </style>
 </resources>

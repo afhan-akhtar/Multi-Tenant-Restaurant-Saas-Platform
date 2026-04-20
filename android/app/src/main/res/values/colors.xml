@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ── Brand palette (mirrors tailwind.config.js) ── -->
+
+    <!-- Primary teal (#0d9488 → teal-600) -->
+    <color name="colorPrimary">#0d9488</color>
+
+    <!-- Dark sidebar used for status bar / nav bar -->
+    <color name="colorPrimaryDark">#0b1a1a</color>
+
+    <!-- Accent = same teal -->
+    <color name="colorAccent">#0d9488</color>
+
+    <!-- App window / splash background (slate-950 — matches tablet dark UI) -->
+    <color name="colorBackground">#0f172a</color>
+
+    <!-- Sidebar surface -->
+    <color name="colorSidebar">#0b1a1a</color>
+
+    <!-- Card / content surface -->
+    <color name="colorCard">#ffffff</color>
+
+    <!-- Body text (slate-800) -->
+    <color name="colorText">#1e293b</color>
+
+    <!-- Muted text (slate-500) -->
+    <color name="colorTextMuted">#64748b</color>
+
+    <!-- Border (slate-200) -->
+    <color name="colorBorder">#e2e8f0</color>
+</resources>

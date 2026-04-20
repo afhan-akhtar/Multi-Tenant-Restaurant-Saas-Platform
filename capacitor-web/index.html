@@ -5,40 +5,477 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Restaurant Tablet</title>
     <style>
-      html,
-      body {
-        margin: 0;
+      *, *::before, *::after { box-sizing: border-box; }
+      html, body {
+        margin: 0; padding: 0;
         min-height: 100%;
-        font-family: system-ui, sans-serif;
+        font-family: system-ui, -apple-system, sans-serif;
         background: #0f172a;
         color: #e2e8f0;
+        -webkit-tap-highlight-color: transparent;
       }
-      .wrap {
-        display: flex;
-        min-height: 100vh;
+      .screen {
+        display: none;
+        min-height: 100dvh;
         align-items: center;
         justify-content: center;
-        padding: 1rem;
-        text-align: center;
-        max-width: 28rem;
-        margin: 0 auto;
+        padding: 1.5rem 1rem;
       }
-      code {
+      .screen.active { display: flex; }
+      .card {
+        width: 100%;
+        max-width: 26rem;
+        background: rgba(15, 23, 42, 0.95);
+        border: 1px solid #334155;
+        border-radius: 1rem;
+        padding: 1.5rem;
+        box-shadow: 0 20px 60px rgba(0,0,0,.6);
+      }
+
+      /* ── Spinner ── */
+      .spinner {
+        width: 2.5rem; height: 2.5rem;
+        border: 3px solid #1e293b;
+        border-top-color: #6366f1;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+        margin: 0 auto 1.25rem;
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
+
+      /* ── Typography ── */
+      .eyebrow {
+        font-size: 0.7rem;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #64748b;
+        margin: 0 0 0.25rem;
+      }
+      h1 { margin: 0 0 0.75rem; font-size: 1.25rem; font-weight: 700; color: #f1f5f9; }
+      p  { margin: 0 0 1rem; font-size: 0.875rem; line-height: 1.6; color: #94a3b8; }
+
+      /* ── Form elements ── */
+      label {
+        display: block;
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: #64748b;
+        margin-bottom: 0.35rem;
+      }
+      input[type="text"], input[type="url"], input[type="password"] {
+        width: 100%;
+        background: #020617;
+        border: 1px solid #334155;
+        border-radius: 0.6rem;
+        padding: 0.75rem 0.875rem;
+        font-size: 0.875rem;
+        color: #f1f5f9;
+        outline: none;
+        margin-bottom: 1rem;
+        transition: border-color .15s;
+      }
+      input:focus { border-color: #6366f1; }
+
+      /* ── Buttons ── */
+      .btn {
+        display: block;
+        width: 100%;
+        padding: 0.875rem 1rem;
+        border: none;
+        border-radius: 0.75rem;
+        font-size: 0.9375rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: opacity .15s, background .15s;
+        text-align: center;
+        text-decoration: none;
+        margin-bottom: 0.75rem;
+      }
+      .btn:last-child { margin-bottom: 0; }
+      .btn-primary   { background: #6366f1; color: #fff; }
+      .btn-primary:hover { background: #4f46e5; }
+      .btn-secondary { background: #1e293b; color: #94a3b8; border: 1px solid #334155; }
+      .btn-secondary:hover { color: #f1f5f9; }
+      .btn:disabled  { opacity: .45; cursor: not-allowed; }
+
+      /* ── Error badge ── */
+      .badge-err {
+        display: inline-block;
+        background: rgba(239,68,68,.15);
+        color: #fca5a5;
+        border: 1px solid rgba(239,68,68,.3);
+        border-radius: 0.4rem;
+        padding: 0.5rem 0.75rem;
         font-size: 0.8rem;
         word-break: break-all;
+        margin-bottom: 1rem;
+        width: 100%;
       }
+
+      /* ── Tab toggle ── */
+      .tabs {
+        display: flex;
+        background: rgba(2,6,23,.8);
+        border: 1px solid #334155;
+        border-radius: 0.75rem;
+        padding: 0.2rem;
+        margin-bottom: 1.25rem;
+      }
+      .tab {
+        flex: 1;
+        padding: 0.6rem;
+        border: none;
+        background: none;
+        color: #64748b;
+        font-size: 0.8125rem;
+        font-weight: 600;
+        cursor: pointer;
+        border-radius: 0.55rem;
+        transition: background .15s, color .15s;
+      }
+      .tab.active { background: #6366f1; color: #fff; }
+
+      /* ── Footer link ── */
+      .footer-link {
+        display: block;
+        text-align: center;
+        font-size: 0.75rem;
+        color: #4f46e5;
+        margin-top: 1rem;
+        cursor: pointer;
+        background: none;
+        border: none;
+        width: 100%;
+        padding: 0;
+      }
+      .footer-link:hover { color: #818cf8; }
+
+      /* ── Alert msg ── */
+      .msg { font-size: 0.8125rem; margin: 0 0 0.875rem; }
+      .msg-err  { color: #fca5a5; }
+      .msg-hint { color: #64748b; }
     </style>
   </head>
   <body>
-    <div class="wrap">
-      <div>
-        <p style="margin: 0 0 0.75rem; font-weight: 600">Capacitor shell only</p>
-        <p style="margin: 0; font-size: 0.875rem; line-height: 1.5; opacity: 0.9">
-          If you see this inside the app, <code>server.url</code> is missing or out of date. Set it in
-          <code>capacitor.config.json</code>, run <code>npx cap sync</code>, rebuild, and ensure
-          <code>npm run dev</code> is running on port 3000.
-        </p>
+
+    <!-- ═══════════════════════════════ LOADING ═══════════════════════════════ -->
+    <div id="screen-loading" class="screen active">
+      <div style="text-align:center">
+        <div class="spinner"></div>
+        <p id="loading-msg" style="margin:0;font-size:1rem;font-weight:500;color:#cbd5e1">Restoring tablet…</p>
+        <p id="loading-sub" style="margin:.5rem 0 0;font-size:.8rem;color:#475569">Loading saved device link</p>
       </div>
     </div>
+
+    <!-- ═══════════════════════════════ ERROR ════════════════════════════════ -->
+    <div id="screen-error" class="screen">
+      <div class="card">
+        <p class="eyebrow">Connection failed</p>
+        <h1>Server unreachable</h1>
+        <p>Could not connect to the server. Make sure the server is running and your device is on the same network.</p>
+        <div class="badge-err" id="err-origin">—</div>
+        <button class="btn btn-primary" id="btn-retry">Retry connection</button>
+        <button class="btn btn-secondary" id="btn-change-server">Use a different server</button>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════ SETUP ════════════════════════════════ -->
+    <div id="screen-setup" class="screen">
+      <div class="card">
+        <p class="eyebrow">Restaurant tablet</p>
+        <h1>Connect this device</h1>
+        <p>
+          In <strong style="color:#e2e8f0">Admin → Devices</strong>, create a <strong style="color:#e2e8f0">TABLET</strong>
+          device and copy the link or token.
+        </p>
+
+        <div class="tabs">
+          <button class="tab active" id="tab-url"  onclick="switchTab('url')">Paste full link</button>
+          <button class="tab"        id="tab-tok"  onclick="switchTab('token')">Token only</button>
+        </div>
+
+        <!-- Full URL form -->
+        <div id="form-url">
+          <label for="inp-url">Tablet URL (from Admin → Devices)</label>
+          <input id="inp-url" type="url" placeholder="http://192.168.1.65:3000/tablet?token=…"
+                 autocomplete="off" spellcheck="false" inputmode="url" />
+          <div id="msg-url" class="msg" style="display:none"></div>
+          <button class="btn btn-primary" id="btn-url-go" onclick="submitUrl()">Open tablet</button>
+        </div>
+
+        <!-- Token only form -->
+        <div id="form-tok" style="display:none">
+          <label for="inp-server">Server address</label>
+          <input id="inp-server" type="url" placeholder="http://192.168.1.65:3000"
+                 autocomplete="off" spellcheck="false" inputmode="url" />
+          <label for="inp-tok">Device token</label>
+          <input id="inp-tok" type="password" placeholder="Enter device token"
+                 autocomplete="off" spellcheck="false" />
+          <div id="msg-tok" class="msg" style="display:none"></div>
+          <button class="btn btn-primary" id="btn-tok-go" onclick="submitToken()">Open tablet</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      /* ─────────────────────── constants ─────────────────────── */
+      var PREF_TOKEN  = 'tabletDeviceToken';
+      var PREF_URL    = 'tabletLastLaunchUrl';
+      var PREF_SERVER = 'tabletServerBase';
+      var MIN_TOK_LEN = 8;
+
+      /* ─────────────────────── helpers ─────────────────────── */
+      function sleep(ms) { return new Promise(function(r){ setTimeout(r, ms); }); }
+
+      function show(id) {
+        ['screen-loading','screen-error','screen-setup'].forEach(function(s){
+          var el = document.getElementById(s);
+          el.classList.toggle('active', s === id);
+        });
+      }
+
+      function setLoadingMsg(msg, sub) {
+        document.getElementById('loading-msg').textContent = msg || '';
+        document.getElementById('loading-sub').textContent = sub || '';
+      }
+
+      /* Wait until Capacitor native bridge replaces the "web" placeholder */
+      function waitForBridge(maxMs) {
+        maxMs = maxMs || 12000;
+        return new Promise(function(resolve){
+          var deadline = Date.now() + maxMs;
+          function tick() {
+            var C = window.Capacitor;
+            if (C && typeof C.getPlatform === 'function' && C.getPlatform() !== 'web') {
+              return resolve();
+            }
+            if (Date.now() >= deadline) return resolve();
+            setTimeout(tick, 45);
+          }
+          tick();
+        });
+      }
+
+      function getPref(key) {
+        return new Promise(function(resolve){
+          try {
+            var C = window.Capacitor;
+            if (C && C.Plugins && C.Plugins.Preferences) {
+              C.Plugins.Preferences.get({ key: key })
+                .then(function(r){ resolve((r && r.value) ? String(r.value) : ''); })
+                .catch(function(){ resolve(tryLocalStorage(key)); });
+              return;
+            }
+          } catch(_){}
+          resolve(tryLocalStorage(key));
+        });
+      }
+
+      function setPref(key, value) {
+        return new Promise(function(resolve){
+          try {
+            var C = window.Capacitor;
+            if (C && C.Plugins && C.Plugins.Preferences) {
+              C.Plugins.Preferences.set({ key: key, value: value })
+                .then(function(){ trySetLocalStorage(key, value); resolve(); })
+                .catch(function(){ trySetLocalStorage(key, value); resolve(); });
+              return;
+            }
+          } catch(_){}
+          trySetLocalStorage(key, value);
+          resolve();
+        });
+      }
+
+      function tryLocalStorage(key) {
+        try { return localStorage.getItem(key) || ''; } catch(_){ return ''; }
+      }
+      function trySetLocalStorage(key, val) {
+        try { localStorage.setItem(key, val); } catch(_){}
+      }
+
+      /**
+       * Ping the origin of a URL. Returns true if server responds (any HTTP response),
+       * false if network error / timeout.
+       */
+      function canReach(url, timeoutMs) {
+        timeoutMs = timeoutMs || 6000;
+        return new Promise(function(resolve){
+          var origin;
+          try { origin = new URL(url).origin; } catch(_){ return resolve(false); }
+          var ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+          var timer = setTimeout(function(){
+            if (ctrl) ctrl.abort();
+            resolve(false);
+          }, timeoutMs);
+          var opts = { mode: 'no-cors', cache: 'no-store' };
+          if (ctrl) opts.signal = ctrl.signal;
+          fetch(origin, opts)
+            .then(function(){ clearTimeout(timer); resolve(true); })
+            .catch(function(){ clearTimeout(timer); resolve(false); });
+        });
+      }
+
+      /* ─────────────────────── connect flow ─────────────────────── */
+      var pendingUrl = '';   // URL to retry or change
+
+      function doConnect(url) {
+        setLoadingMsg('Connecting to server…', url.length > 50 ? url.slice(0, 50) + '…' : url);
+        show('screen-loading');
+        canReach(url).then(function(ok){
+          if (ok) {
+            window.location.replace(url);
+          } else {
+            pendingUrl = url;
+            document.getElementById('err-origin').textContent = (function(){
+              try { return new URL(url).origin; } catch(_){ return url; }
+            })();
+            show('screen-error');
+          }
+        });
+      }
+
+      /* ─────────────────────── retry / change ─────────────────────── */
+      document.getElementById('btn-retry').addEventListener('click', function(){
+        if (pendingUrl) doConnect(pendingUrl);
+      });
+
+      document.getElementById('btn-change-server').addEventListener('click', function(){
+        /* Pre-fill the setup form with the known server */
+        if (pendingUrl) {
+          try {
+            var u = new URL(pendingUrl);
+            document.getElementById('inp-server').value = u.origin;
+            var tok = u.searchParams.get('token');
+            if (tok) document.getElementById('inp-tok').value = tok;
+            document.getElementById('inp-url').value = pendingUrl;
+          } catch(_){}
+        }
+        show('screen-setup');
+      });
+
+      /* ─────────────────────── tab switch ─────────────────────── */
+      function switchTab(tab) {
+        document.getElementById('tab-url').classList.toggle('active', tab === 'url');
+        document.getElementById('tab-tok').classList.toggle('active', tab === 'token');
+        document.getElementById('form-url').style.display = tab === 'url'   ? '' : 'none';
+        document.getElementById('form-tok').style.display = tab === 'token' ? '' : 'none';
+      }
+
+      function showMsg(id, msg, isErr) {
+        var el = document.getElementById(id);
+        el.textContent = msg;
+        el.className = 'msg ' + (isErr ? 'msg-err' : 'msg-hint');
+        el.style.display = msg ? '' : 'none';
+      }
+
+      /* ─────────────────────── submit: full URL ─────────────────────── */
+      function submitUrl() {
+        showMsg('msg-url', '');
+        var raw = String(document.getElementById('inp-url').value || '').trim();
+        if (!raw) { showMsg('msg-url', 'Paste the full tablet link from Admin → Devices.', true); return; }
+
+        try {
+          if (!/^https?:\/\//i.test(raw)) raw = 'http://' + raw;
+          var target = new URL(raw);
+
+          if (!target.pathname.startsWith('/tablet')) {
+            showMsg('msg-url', 'Link must start with /tablet — copy it from Admin → Devices.', true);
+            return;
+          }
+          if (target.pathname.startsWith('/tablet/connect')) {
+            showMsg('msg-url', 'Use a device link (contains ?token=…), not the /tablet/connect page.', true);
+            return;
+          }
+
+          var tok = target.searchParams.get('token');
+          if (tok && tok.length >= MIN_TOK_LEN) {
+            saveAndConnect(target.href, tok, target.origin);
+          } else {
+            showMsg('msg-url', 'Link must include ?token=… — copy it from Admin → Devices.', true);
+          }
+        } catch(_) {
+          showMsg('msg-url', 'That doesn\'t look like a valid URL.', true);
+        }
+      }
+
+      /* ─────────────────────── submit: token only ─────────────────────── */
+      function submitToken() {
+        showMsg('msg-tok', '');
+        var server = String(document.getElementById('inp-server').value || '').trim().replace(/\/+$/, '');
+        var tok    = String(document.getElementById('inp-tok').value || '').trim();
+
+        if (!server) { showMsg('msg-tok', 'Enter the server address (e.g. http://192.168.1.65:3000).', true); return; }
+        if (!tok || tok.length < MIN_TOK_LEN) { showMsg('msg-tok', 'Enter the device token from Admin → Devices.', true); return; }
+
+        try {
+          if (!/^https?:\/\//i.test(server)) server = 'http://' + server;
+          new URL(server); // validate
+        } catch(_) {
+          showMsg('msg-tok', 'Server address is not a valid URL.', true);
+          return;
+        }
+
+        var href = server + '/tablet?token=' + encodeURIComponent(tok);
+        saveAndConnect(href, tok, server);
+      }
+
+      /* ─────────────────────── persist + connect ─────────────────────── */
+      function saveAndConnect(href, tok, serverBase) {
+        Promise.all([
+          setPref(PREF_URL, href),
+          tok ? setPref(PREF_TOKEN, tok) : Promise.resolve(),
+          serverBase ? setPref(PREF_SERVER, serverBase) : Promise.resolve(),
+        ]).then(function(){
+          doConnect(href);
+        }).catch(function(){
+          doConnect(href);
+        });
+      }
+
+      /* ─────────────────────── boot ─────────────────────── */
+      (function boot() {
+        setLoadingMsg('Restoring tablet…', 'Loading saved device link');
+        show('screen-loading');
+
+        waitForBridge(12000).then(function(){
+          return Promise.all([
+            getPref(PREF_URL),
+            getPref(PREF_TOKEN),
+            getPref(PREF_SERVER),
+          ]);
+        }).then(function(vals){
+          var lastUrl    = vals[0];
+          var savedToken = vals[1];
+          var serverBase = vals[2];
+
+          /* Have a full saved URL → try to connect directly */
+          if (lastUrl) {
+            doConnect(lastUrl);
+            return;
+          }
+
+          /* Have token + server base → construct URL */
+          if (savedToken && savedToken.length >= MIN_TOK_LEN && serverBase) {
+            var href = serverBase.replace(/\/+$/, '') + '/tablet?token=' + encodeURIComponent(savedToken);
+            doConnect(href);
+            return;
+          }
+
+          /* Pre-fill server if known */
+          if (serverBase) {
+            document.getElementById('inp-server').value = serverBase;
+          }
+          if (savedToken) {
+            document.getElementById('inp-tok').value = savedToken;
+          }
+
+          show('screen-setup');
+        }).catch(function(){
+          show('screen-setup');
+        });
+      })();
+    </script>
   </body>
 </html>

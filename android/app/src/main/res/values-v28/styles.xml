@@ -1,10 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Lets content extend into cutout; WebView can receive CSS safe-area insets -->
+    <!--
+        API 28+: adds windowLightNavigationBar (not available below 28).
+        Keeps cutout/notch support and brand colors from values/styles.xml.
+    -->
     <style name="AppTheme.NoActionBar" parent="Theme.AppCompat.DayNight.NoActionBar">
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
         <item name="android:background">@null</item>
         <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
+        <!-- Status bar -->
+        <item name="android:statusBarColor">@color/colorSidebar</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <!-- Navigation bar: dark, white gesture/button icons -->
+        <item name="android:navigationBarColor">@color/colorSidebar</item>
+        <item name="android:windowLightNavigationBar">false</item>
     </style>
 </resources>
