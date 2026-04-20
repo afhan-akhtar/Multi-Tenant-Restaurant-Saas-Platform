@@ -419,43 +419,30 @@ export default function DashboardLayout({
       >
         {/* Subtle teal glow at top of sidebar */}
         <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/60 to-transparent" aria-hidden />
-        <div className={`flex items-center justify-between gap-3 p-4 min-h-[56px] shrink-0 border-b border-white/[0.06] ${!sidebarOpen ? "flex-col justify-start py-4 px-2" : ""}`}>
-          <button
-            className={`shrink-0 p-2 rounded-lg flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-all duration-200 bg-transparent border-0 cursor-pointer
-              ${!sidebarOpen ? "order-1" : "order-2"}
-            `}
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            aria-label="Toggle sidebar"
-          >
-            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M3 12h18M3 6h18M3 18h18" />
-            </svg>
-          </button>
-          <div className={`flex items-center gap-3 min-w-0 ${!sidebarOpen ? "order-2 flex-col" : "order-1"}`}>
-            <div className="w-9 h-9 min-w-9 bg-gradient-to-br from-primary to-primary-hover text-white rounded-lg flex items-center justify-center font-bold text-base shadow-lg shadow-primary/30 shrink-0">
-              {isSuperAdmin
-                ? <svg viewBox="0 0 40 40" fill="none" className="w-5 h-5" xmlns="http://www.w3.org/2000/svg" aria-hidden><path d="M8 32V8h6l6 10 6-10h6v24h-6V18l-6 10-6-10v14H8z" stroke="currentColor" strokeWidth="2.2" strokeLinejoin="round" /></svg>
-                : (user?.tenantName?.[0] || "R").toUpperCase()
-              }
-            </div>
-            <div className={`min-w-0 flex flex-col ${!sidebarOpen ? "opacity-0 invisible w-0 overflow-hidden" : ""}`}>
-              <span className="font-bold text-[1rem] tracking-tight text-white leading-tight break-words">
-                {isSuperAdmin ? "HarborLedger" : (user?.tenantName || "Restaurant")}
+        <div className="flex items-center h-[56px] shrink-0 border-b border-white/[0.06] px-3 gap-3">
+          <div className="w-9 h-9 min-w-[36px] bg-gradient-to-br from-primary to-primary-hover text-white rounded-lg flex items-center justify-center font-bold text-base shadow-lg shadow-primary/30 shrink-0">
+            {isSuperAdmin
+              ? <svg viewBox="0 0 40 40" fill="none" className="w-5 h-5" xmlns="http://www.w3.org/2000/svg" aria-hidden><path d="M8 32V8h6l6 10 6-10h6v24h-6V18l-6 10-6-10v14H8z" stroke="currentColor" strokeWidth="2.2" strokeLinejoin="round" /></svg>
+              : (user?.tenantName?.[0] || "R").toUpperCase()
+            }
+          </div>
+          <div className={`flex-1 min-w-0 flex flex-col transition-all duration-300 ${!sidebarOpen ? "opacity-0 w-0 overflow-hidden" : ""}`}>
+            <span className="font-bold text-[1rem] tracking-tight text-white leading-tight truncate">
+              {isSuperAdmin ? "HarborLedger" : (user?.tenantName || "Restaurant")}
+            </span>
+            {isSuperAdmin && (
+              <span className="text-[0.65rem] font-medium text-teal-400/70 uppercase tracking-wider leading-tight">
+                Super Admin
               </span>
-              {isSuperAdmin && (
-                <span className="text-[0.65rem] font-medium text-teal-400/70 uppercase tracking-wider leading-tight">
-                  Super Admin
-                </span>
-              )}
-            </div>
+            )}
           </div>
         </div>
         <nav className="flex-1 overflow-y-auto py-3">
           {sidebarItems.map((item, i) => {
             if (item.section) {
               return (
-                <div key={i} className="mt-4">
-                  <div className={`py-2 px-4 text-[0.7rem] font-semibold uppercase tracking-widest text-slate-500 ${!sidebarOpen ? "opacity-0 invisible w-0 overflow-hidden" : ""}`}>{item.section}</div>
+                <div key={i} className={sidebarOpen ? "mt-4" : ""}>
+                  <div className={`text-[0.7rem] font-semibold uppercase tracking-widest text-slate-500 ${sidebarOpen ? "py-2 px-4" : "h-0 overflow-hidden"}`}>{item.section}</div>
                   {item.items.map((sub) => (
                     <NavItem
                       key={sub.href}
@@ -494,9 +481,9 @@ export default function DashboardLayout({
         <header className="h-14 sm:h-16 bg-color-card border-b border-color-border flex items-center justify-between px-4 sm:px-6 sticky top-0 z-50 shadow-[0_1px_0_0_#e2e8f0,0_2px_8px_-4px_rgba(0,0,0,0.06)] gap-2 min-w-0">
           <div className="flex-1 flex items-center gap-2 sm:gap-3 min-w-0">
             <button
-              className="flex lg:hidden shrink-0 w-10 h-10 border-0 bg-transparent text-color-text cursor-pointer rounded-md items-center justify-center hover:bg-color-bg [&>svg]:w-6 [&>svg]:h-6"
-              onClick={() => setSidebarOpen(true)}
-              aria-label="Open menu"
+              className="flex shrink-0 w-10 h-10 border-0 bg-transparent text-color-text cursor-pointer rounded-md items-center justify-center hover:bg-color-bg [&>svg]:w-6 [&>svg]:h-6"
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              aria-label="Toggle sidebar"
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M3 12h18M3 6h18M3 18h18" />
@@ -526,16 +513,16 @@ export default function DashboardLayout({
                   {(isSuperAdmin ? "S" : (user?.tenantName?.[0] || "R")).toUpperCase()}
                 </div>
                 <div className="hidden sm:flex flex-col items-start leading-tight">
-                  <span className="text-sm font-semibold text-color-text">
+                  <span className="flex items-center gap-1 text-sm font-semibold text-color-text">
                     {isSuperAdmin ? "HarborLedger" : (user?.tenantName || "Restaurant")}
+                    <svg className={`w-4 h-4 shrink-0 transition-transform ${userMenuOpen ? "rotate-180" : ""}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M6 9l6 6 6-6" />
+                    </svg>
                   </span>
                   <span className="text-xs text-color-text-muted">
                     {isSuperAdmin ? "Super Admin" : "Admin"}
                   </span>
                 </div>
-                <svg className={`w-4 h-4 transition-transform ${userMenuOpen ? "rotate-180" : ""}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M6 9l6 6 6-6" />
-                </svg>
               </button>
               {userMenuOpen && (
                 <div className="absolute top-full right-0 mt-2 bg-color-card rounded-md shadow-lg min-w-[180px] py-2 z-[60] border border-color-border">
