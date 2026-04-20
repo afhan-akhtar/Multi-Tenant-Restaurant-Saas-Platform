@@ -402,14 +402,12 @@ export default function DashboardLayout({
 
   const handleSignOut = useCallback(async () => {
     setUserMenuOpen(false);
-    await signOut({ redirect: false });
-    window.location.assign(
-      buildRootUrl({
-        host: window.location.host,
-        protocol: window.location.protocol.replace(/:$/, ""),
-        pathname: "/",
-      })
-    );
+    const rootUrl = buildRootUrl({
+      host: window.location.host,
+      protocol: window.location.protocol.replace(/:$/, ""),
+      pathname: "/",
+    });
+    await signOut({ callbackUrl: rootUrl });
   }, []);
 
   return (
