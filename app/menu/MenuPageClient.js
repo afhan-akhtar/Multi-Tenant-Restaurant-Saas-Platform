@@ -385,23 +385,6 @@ function InnerMenu() {
           })}
       </main>
 
-      {!placed && cart.length > 0 && (
-        <div className="fixed bottom-0 inset-x-0 z-30 bg-white border-t border-slate-200 shadow-[0_-4px_24px_rgba(0,0,0,0.08)] safe-area-pb">
-          <div className="max-w-lg mx-auto px-4 py-3 space-y-3">
-            <div className="flex justify-between text-sm">
-              <span className="text-slate-600">{cart.length} items</span>
-              <span className="font-semibold text-slate-900">{formatEur(grandTotal)}</span>
-            </div>
-            <button
-              type="button"
-              onClick={() => document.getElementById("qr-cart-sheet")?.scrollIntoView({ behavior: "smooth" })}
-              className="w-full py-3.5 rounded-xl bg-primary text-white font-semibold text-base"
-            >
-              View cart &amp; order
-            </button>
-          </div>
-        </div>
-      )}
 
       {!placed && (
         <div id="qr-cart-sheet" className="max-w-lg mx-auto px-3 pb-8 pt-4 space-y-4">
