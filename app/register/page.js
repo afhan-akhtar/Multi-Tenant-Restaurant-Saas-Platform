@@ -9,7 +9,6 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
-  const [createdSubdomain, setCreatedSubdomain] = useState("");
 
   const [restaurantName, setRestaurantName] = useState("");
   const [branchName, setBranchName] = useState("");
@@ -45,7 +44,6 @@ export default function RegisterPage() {
         return;
       }
 
-      setCreatedSubdomain(String(data.subdomain || "").trim());
       setSuccess(true);
     } catch (err) {
       setError("Something went wrong. Please try again.");
@@ -75,30 +73,6 @@ export default function RegisterPage() {
             Your restaurant is pending approval. You will be able to log in once the platform administrator
             approves your account.
           </p>
-          {createdSubdomain ? (
-            <div className="mx-auto mb-6 max-w-md rounded-2xl border border-stone-200 bg-stone-50 px-4 py-4 text-left">
-              <p className="m-0 text-xs font-bold uppercase tracking-wider text-slate-500">Your subdomain</p>
-              <p className="m-0 mt-2 flex items-center justify-between gap-3">
-                <span className="rounded-lg bg-white px-3 py-2 font-mono text-sm text-slate-900 ring-1 ring-stone-200">
-                  {createdSubdomain}
-                </span>
-                <button
-                  type="button"
-                  className="rounded-full border border-stone-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-teal-300 hover:bg-teal-50/60 hover:text-teal-900"
-                  onClick={async () => {
-                    try {
-                      await navigator.clipboard.writeText(createdSubdomain);
-                    } catch {}
-                  }}
-                >
-                  Copy
-                </button>
-              </p>
-              <p className="m-0 mt-3 text-xs text-slate-600">
-                Login path: <span className="font-mono">/login</span> → enter this subdomain.
-              </p>
-            </div>
-          ) : null}
           <Link
             href="/login"
             className="inline-block rounded-full bg-gradient-to-r from-teal-600 to-teal-700 px-6 py-2.5 text-sm font-semibold text-white no-underline shadow-md shadow-teal-600/25 transition hover:from-teal-700 hover:to-teal-800"

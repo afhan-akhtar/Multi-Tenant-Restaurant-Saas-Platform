@@ -1,25 +1,27 @@
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
+import { signIn, getSession } from "next-auth/react";
 import { COUNTRIES } from "@/lib/countries";
 import Spinner from "@/app/components/Spinner";
 import { AuthShell, auth, authDisplayFont } from "@/app/components/auth/AuthShell";
-import { buildTenantUrl } from "@/lib/tenant-url";
 
 function LoginFormInner() {
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") || "/";
+  const router = useRouter();
+  const callbackUrl = searchParams.get("callbackUrl") || "";
   const showSignUpByDefault = searchParams.get("signup") === "1";
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [subdomain, setSubdomain] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [signUpOpen, setSignUpOpen] = useState(false);
 
   const [signUpLoading, setSignUpLoading] = useState(false);
   const [signUpError, setSignUpError] = useState("");
   const [signUpSuccess, setSignUpSuccess] = useState(false);
-  const [signUpSubdomain, setSignUpSubdomain] = useState("");
   const [restaurantName, setRestaurantName] = useState("");
   const [branchName, setBranchName] = useState("");
   const [country, setCountry] = useState("");
@@ -36,59 +38,34 @@ function LoginFormInner() {
   async function handleSubmit(e) {
     e.preventDefault();
     setError("");
-    const cleanedSubdomain = subdomain.trim().toLowerCase();
-
-    if (!cleanedSubdomain) {
-      setError("Enter your restaurant subdomain.");
-      return;
-    }
-
-    if (!/^[a-z0-9-]+$/.test(cleanedSubdomain)) {
-      setError("Subdomain can only contain letters, numbers, and hyphens.");
-      return;
-    }
-
     setLoading(true);
+
     try {
-      // Validate subdomain before redirecting (better UX than generic invalid login).
-      try {
-        const statusRes = await fetch(
-          `/api/public/tenant-status?subdomain=${encodeURIComponent(cleanedSubdomain)}`
-        );
-        const statusData = await statusRes.json().catch(() => ({}));
-        if (statusRes.ok) {
-          if (!statusData.exists) {
-            setError("Subdomain invalid. No restaurant found for this subdomain.");
-            return;
-          }
-          if (statusData.status === "PENDING") {
-            setError("Your restaurant is pending approval. Please wait for Super Admin to approve.");
-            return;
-          }
-          if (statusData.status === "BLOCKED" || statusData.status === "INACTIVE") {
-            setError("This restaurant is not active. Please contact support.");
-            return;
-          }
+      const res = await signIn("credentials", {
+        redirect: false,
+        email: email.trim().toLowerCase(),
+        password,
+        subdomain: "",
+      });
+
+      if (res?.error) {
+        setError("Invalid email or password.");
+        return;
+      }
+
+      if (res?.ok) {
+        const session = await getSession();
+        if (session?.user?.type === "super_admin") {
+          // Honor callbackUrl for super admin (e.g. /admin/restaurants), fall back to /admin
+          router.push(callbackUrl || "/admin");
+        } else {
+          // For restaurant admins, /go resolves the subdomain URL server-side
+          router.push("/go");
         }
-      } catch {
-        // If status check fails, still allow redirect attempt.
+        router.refresh();
       }
-
-      const tenantLoginUrl = new URL(
-        buildTenantUrl({
-          host: window.location.host,
-          protocol: window.location.protocol.replace(":", ""),
-          subdomain: cleanedSubdomain,
-          pathname: "/login",
-        })
-      );
-
-      if (callbackUrl) {
-        tenantLoginUrl.searchParams.set("callbackUrl", callbackUrl);
-      }
-      tenantLoginUrl.searchParams.set("forceLogin", "1");
-
-      window.location.assign(tenantLoginUrl.toString());
+    } catch {
+      setError("Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -116,9 +93,8 @@ function LoginFormInner() {
         setSignUpError(data.error || "Registration failed. Please try again.");
         return;
       }
-      setSignUpSubdomain(String(data.subdomain || "").trim());
       setSignUpSuccess(true);
-    } catch (err) {
+    } catch {
       setSignUpError("Something went wrong. Please try again.");
     } finally {
       setSignUpLoading(false);
@@ -129,7 +105,6 @@ function LoginFormInner() {
     setSignUpOpen(false);
     setSignUpSuccess(false);
     setSignUpError("");
-    setSignUpSubdomain("");
     setRestaurantName("");
     setBranchName("");
     setCountry("");
@@ -141,34 +116,41 @@ function LoginFormInner() {
   return (
     <AuthShell>
       <div className={`${auth.cardNarrow} mx-auto w-full`}>
-        <h1 className={`${authDisplayFont} ${auth.title}`}>Restaurant Admin</h1>
-        <p className={auth.subtitle}>Enter your restaurant subdomain to continue</p>
+        <h1 className={`${authDisplayFont} ${auth.title}`}>Sign In</h1>
+        <p className={auth.subtitle}>Enter your email and password to continue</p>
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
-            <label htmlFor="subdomain" className={auth.label}>
-              Restaurant subdomain
+            <label htmlFor="email" className={auth.label}>
+              Email
             </label>
             <input
-              id="subdomain"
-              type="text"
-              placeholder="demo"
+              id="email"
+              type="email"
+              placeholder="you@example.com"
               className={auth.input}
-              value={subdomain}
-              onChange={(e) => setSubdomain(e.target.value)}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               required
-              autoCapitalize="none"
-              autoCorrect="off"
-              spellCheck={false}
+              autoComplete="email"
+            />
+          </div>
+          <div className="mb-4">
+            <label htmlFor="password" className={auth.label}>
+              Password
+            </label>
+            <input
+              id="password"
+              type="password"
+              className={auth.input}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter your password"
+              required
+              autoComplete="current-password"
             />
           </div>
           {error && <p className={`${auth.error} mt-2 mb-0`}>{error}</p>}
           <p className={`mt-4 text-center ${auth.muted}`}>
-            Super Admin?{" "}
-            <a href="/admin" className={auth.link}>
-              Sign in as Super Admin
-            </a>
-          </p>
-          <p className={`mt-2 text-center ${auth.muted}`}>
             New restaurant?{" "}
             <button
               type="button"
@@ -182,10 +164,10 @@ function LoginFormInner() {
             {loading ? (
               <span className="flex items-center gap-2">
                 <Spinner size="sm" className="text-white" />
-                <span>Opening workspace…</span>
+                <span>Signing in…</span>
               </span>
             ) : (
-              "Continue"
+              "Sign in"
             )}
           </button>
         </form>
@@ -213,30 +195,6 @@ function LoginFormInner() {
                   Your restaurant is pending approval. You will be able to log in once the platform
                   administrator approves your account.
                 </p>
-                {signUpSubdomain ? (
-                  <div className="mx-auto mb-6 max-w-md rounded-2xl border border-stone-200 bg-stone-50 px-4 py-4 text-left">
-                    <p className="m-0 text-xs font-bold uppercase tracking-wider text-slate-500">Your subdomain</p>
-                    <p className="m-0 mt-2 flex items-center justify-between gap-3">
-                      <span className="rounded-lg bg-white px-3 py-2 font-mono text-sm text-slate-900 ring-1 ring-stone-200">
-                        {signUpSubdomain}
-                      </span>
-                      <button
-                        type="button"
-                        className="rounded-full border border-stone-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-teal-300 hover:bg-teal-50/60 hover:text-teal-900"
-                        onClick={async () => {
-                          try {
-                            await navigator.clipboard.writeText(signUpSubdomain);
-                          } catch {}
-                        }}
-                      >
-                        Copy
-                      </button>
-                    </p>
-                    <p className="m-0 mt-3 text-xs text-slate-600">
-                      Login: <span className="font-mono">/login</span> → enter this subdomain.
-                    </p>
-                  </div>
-                ) : null}
                 <button
                   type="button"
                   onClick={closeSignUpModal}
