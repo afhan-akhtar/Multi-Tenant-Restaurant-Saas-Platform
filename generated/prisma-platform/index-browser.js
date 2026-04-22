@@ -146,6 +146,18 @@ exports.Prisma.StaffLoginLookupScalarFieldEnum = {
   staffId: 'staffId'
 };
 
+exports.Prisma.PasswordResetTokenScalarFieldEnum = {
+  id: 'id',
+  tokenHash: 'tokenHash',
+  email: 'email',
+  kind: 'kind',
+  tenantId: 'tenantId',
+  staffId: 'staffId',
+  expiresAt: 'expiresAt',
+  usedAt: 'usedAt',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.FiskalyPlatformConfigScalarFieldEnum = {
   id: 'id',
   apiKey: 'apiKey',
@@ -311,6 +323,7 @@ exports.Prisma.ModelName = {
   SuperAdmin: 'SuperAdmin',
   Tenant: 'Tenant',
   StaffLoginLookup: 'StaffLoginLookup',
+  PasswordResetToken: 'PasswordResetToken',
   FiskalyPlatformConfig: 'FiskalyPlatformConfig',
   SubscriptionPlan: 'SubscriptionPlan',
   TenantSubscription: 'TenantSubscription',

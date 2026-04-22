@@ -38,6 +38,19 @@ export async function middleware(request) {
     return nextWithPathHeaders(request, pathname, isTenantHost);
   }
 
+  // Password reset UIs live on the root host; keep links working from tenant subdomains
+  if (isTenantHost && pathname === "/forgot-password") {
+    const u = new URL(buildRootUrl({ host, protocol, pathname: "/forgot-password" }));
+    for (const [k, v] of request.nextUrl.searchParams) u.searchParams.set(k, v);
+    return NextResponse.redirect(u);
+  }
+  if (isTenantHost && pathname === "/reset-password") {
+    const u = new URL(buildRootUrl({ host, protocol, pathname: "/reset-password" }));
+    const t = request.nextUrl.searchParams.get("token");
+    if (t) u.searchParams.set("token", t);
+    return NextResponse.redirect(u);
+  }
+
   if (isTenantHost && (pathname === "/admin" || pathname.startsWith("/admin/") || pathname === "/register")) {
     return NextResponse.redirect(buildRootUrl({ host, protocol, pathname: pathnameWithSearch }));
   }
@@ -72,7 +85,7 @@ export async function middleware(request) {
       );
     }
 
-    if (!isTenantHost && !pathname.startsWith("/admin") && pathname !== "/register") {
+    if (!isTenantHost && !pathname.startsWith("/admin") && pathname !== "/register" && pathname !== "/") {
       const targetPath = pathname === "/go" ? "/" : pathnameWithSearch;
       return NextResponse.redirect(
         buildTenantUrl({
@@ -85,12 +98,13 @@ export async function middleware(request) {
     }
   }
 
-  // Set header so layout knows we're on login page (for auth redirect logic)
+  // Tenant /login → rewrite to the tenant login form (keeps cookie on the subdomain domain)
   if (isTenantHost && pathname === "/login") {
     const rewriteUrl = request.nextUrl.clone();
-    rewriteUrl.pathname = getTenantInternalPath(currentSubdomain, pathname);
+    rewriteUrl.pathname = getTenantInternalPath(currentSubdomain, "/login");
     const res = NextResponse.rewrite(rewriteUrl);
-    res.headers.set("x-restaurant-login", "1");
+    res.headers.set("x-pathname", pathname);
+    res.headers.set("x-is-tenant-host", "1");
     return res;
   }
 
@@ -99,6 +113,8 @@ export async function middleware(request) {
     (!isTenantHost && pathname === "/") ||
     pathname === "/menu" ||
     pathname === "/login" ||
+    pathname === "/forgot-password" ||
+    pathname === "/reset-password" ||
     pathname === "/go" ||
     pathname === "/admin" ||
     pathname === "/register" ||
@@ -118,22 +134,18 @@ export async function middleware(request) {
   }
 
   if (!token) {
-    const isSuperAdminRoute = pathname === "/admin" || pathname.startsWith("/admin/");
-    const loginPath = isSuperAdminRoute ? "/admin" : "/login";
-    const loginUrl = isSuperAdminRoute || !isTenantHost
-      ? new URL(loginPath, request.url)
-      : new URL(
-          buildTenantUrl({
-            host,
-            protocol,
-            subdomain: currentSubdomain,
-            pathname: loginPath,
-          })
-        );
-    if (!isSuperAdminRoute && !isTenantHost && pathname === "/") {
-      loginUrl.searchParams.set("signup", "1");
+    // Tenant home without login → root landing page (not login page)
+    if (isTenantHost && pathname === "/") {
+      return NextResponse.redirect(buildRootUrl({ host, protocol, pathname: "/" }));
     }
-    loginUrl.searchParams.set("callbackUrl", pathnameWithSearch);
+
+    // Every other protected route → unified root login form
+    const loginUrl = new URL(buildRootUrl({ host, protocol, pathname: "/login" }));
+    // Only attach callbackUrl for non-trivial paths — "/" and "/admin" are the
+    // default post-login destinations already handled by the login form.
+    if (pathnameWithSearch !== "/" && pathnameWithSearch !== "/admin") {
+      loginUrl.searchParams.set("callbackUrl", pathnameWithSearch);
+    }
     return Response.redirect(loginUrl);
   }
 
@@ -146,7 +158,11 @@ export async function middleware(request) {
     }
     const rewriteUrl = request.nextUrl.clone();
     rewriteUrl.pathname = getTenantInternalPath(currentSubdomain, pathname);
-    return NextResponse.rewrite(rewriteUrl);
+    const res = NextResponse.rewrite(rewriteUrl);
+    // Browser URL path (e.g. /, /orders) so layouts can tell login vs app routes
+    res.headers.set("x-pathname", pathname);
+    res.headers.set("x-is-tenant-host", "1");
+    return res;
   }
 
   return nextWithPathHeaders(request, pathname, isTenantHost);

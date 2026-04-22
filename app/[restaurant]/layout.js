@@ -8,21 +8,29 @@ import { buildRootUrl } from "@/lib/tenant-url";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+function isExternalTenantLoginPath(pathHeader) {
+  const p = (pathHeader || "").split("?")[0] || "";
+  return p === "/login" || p.endsWith("/login");
+}
+
 export default async function RestaurantLayout({ children, params }) {
   const headersList = await headers();
-  const isLoginPage = headersList.get("x-restaurant-login") === "1";
   const host = headersList.get("x-forwarded-host") || headersList.get("host") || "localhost:3000";
   const protocol = headersList.get("x-forwarded-proto") || "http";
-
-  if (isLoginPage) {
-    return children;
-  }
+  const pathFromMiddleware = headersList.get("x-pathname") || "";
 
   const session = await auth();
   const restaurant = params?.restaurant || "";
 
+  // /login is served under this layout but must stay public: middleware rewrites
+  // e.g. demo.localhost…/login → /{tenant}/login; without this check, we redirect
+  // to the landing page before the login form ever renders.
+  if (!session && isExternalTenantLoginPath(pathFromMiddleware)) {
+    return <>{children}</>;
+  }
+
   if (!session) {
-    redirect("/login");
+    redirect(buildRootUrl({ host, protocol, pathname: "/" }));
   }
 
   if (session.user?.type === "super_admin") {

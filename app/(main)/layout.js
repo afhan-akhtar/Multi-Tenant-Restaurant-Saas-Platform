@@ -28,10 +28,12 @@ export default async function MainLayout({ children }) {
     redirect("/admin");
   }
 
-  // Restaurant staff: dashboard lives at /{subdomain}, redirect there
+  // Restaurant staff should not have a session here (host-only cookie).
+  // If they somehow do (stale cookie), send them to the subdomain login page.
+  // Redirecting to the subdomain dashboard would loop (no cookie there).
   const subdomain = session.user?.subdomain;
   if (subdomain) {
-    redirect(buildTenantUrl({ host, protocol, subdomain, pathname: "/" }));
+    redirect(buildTenantUrl({ host, protocol, subdomain, pathname: "/login" }));
   }
 
   let pendingTenantCount = 0;

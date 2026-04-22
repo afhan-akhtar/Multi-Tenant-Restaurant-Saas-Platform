@@ -2,18 +2,18 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter, useSearchParams, useParams } from "next/navigation";
+import Link from "next/link";
+import { useSearchParams, useParams } from "next/navigation";
 import Spinner from "@/app/components/Spinner";
 import { AuthShell, auth, authDisplayFont } from "@/app/components/auth/AuthShell";
-import { buildRootUrl } from "@/lib/tenant-url";
 
 function LoginFormInner() {
-  const router = useRouter();
   const params = useParams();
   const searchParams = useSearchParams();
   const restaurant = params?.restaurant || "";
   const callbackUrl = searchParams.get("callbackUrl") || "/";
   const impersonateToken = searchParams.get("impersonateToken") || "";
+  const passwordJustReset = searchParams.get("reset") === "1";
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -38,29 +38,24 @@ function LoginFormInner() {
         if (cancelled) return;
 
         if (res?.error) {
-          setError("Could not complete impersonation login.");
+          setError("Could not complete sign-in. Please try again.");
           return;
         }
 
-        router.push(callbackUrl);
-        router.refresh();
-      } catch (err) {
+        // Full reload so the browser sends the fresh session cookie to the server
+        window.location.href = callbackUrl;
+      } catch {
         if (!cancelled) {
-          setError("Could not complete impersonation login.");
+          setError("Could not complete sign-in. Please try again.");
         }
       } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
+        if (!cancelled) setLoading(false);
       }
     }
 
     completeImpersonation();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [callbackUrl, impersonateToken, router]);
+    return () => { cancelled = true; };
+  }, [callbackUrl, impersonateToken]);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -70,7 +65,7 @@ function LoginFormInner() {
     try {
       const res = await signIn("credentials", {
         redirect: false,
-        email: email.trim(),
+        email: email.trim().toLowerCase(),
         password,
         subdomain: restaurant,
       });
@@ -80,42 +75,28 @@ function LoginFormInner() {
         setLoading(false);
         return;
       }
+
       if (res?.ok) {
-        router.push(callbackUrl);
-        router.refresh();
+        // Full reload so the browser sends the fresh session cookie to the server
+        window.location.href = callbackUrl;
       }
-    } catch (err) {
+    } catch {
       setError("Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
   }
 
-  function handleSuperAdminClick() {
-    window.location.assign(
-      buildRootUrl({
-        host: window.location.host,
-        protocol: window.location.protocol.replace(":", ""),
-        pathname: "/admin",
-      })
-    );
-  }
-
-  function handleSignUpClick() {
-    window.location.assign(
-      buildRootUrl({
-        host: window.location.host,
-        protocol: window.location.protocol.replace(":", ""),
-        pathname: "/register",
-      })
-    );
-  }
-
   return (
     <AuthShell>
       <div className={`${auth.cardNarrow} mx-auto w-full`}>
-        <h1 className={`${authDisplayFont} ${auth.title}`}>Restaurant Admin</h1>
-        <p className={auth.subtitle}>Sign in to {restaurant || "your restaurant"}</p>
+        <h1 className={`${authDisplayFont} ${auth.title}`}>Sign In</h1>
+        <p className={auth.subtitle}>Enter your email and password to continue</p>
+        {passwordJustReset ? (
+          <p className="mb-4 rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-sm text-teal-900">
+            Your password was updated. You can sign in with your new password.
+          </p>
+        ) : null}
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
             <label htmlFor="tenant-email" className={auth.label}>
@@ -147,6 +128,11 @@ function LoginFormInner() {
               autoComplete="current-password"
             />
           </div>
+          <p className="mb-0 mt-1 text-right">
+            <Link className={`text-sm ${auth.link}`} href="/forgot-password">
+              Forgot password?
+            </Link>
+          </p>
           {error ? <p className={`${auth.error} mt-2 mb-0`}>{error}</p> : null}
           <button
             type="submit"
@@ -156,31 +142,12 @@ function LoginFormInner() {
             {loading ? (
               <span className="flex items-center gap-2">
                 <Spinner size="sm" className="text-white" />
-                <span>{impersonateToken ? "Switching account…" : "Signing in…"}</span>
+                <span>{impersonateToken ? "Signing in…" : "Signing in…"}</span>
               </span>
             ) : (
               "Sign in"
             )}
           </button>
-          <p className={`mt-4 text-center ${auth.muted}`}>
-            <button
-              type="button"
-              onClick={handleSuperAdminClick}
-              className={`${auth.link} cursor-pointer border-0 bg-transparent p-0 font-inherit`}
-            >
-              Super Admin
-            </button>
-          </p>
-          <p className={`mt-2 text-center ${auth.muted}`}>
-            New restaurant?{" "}
-            <button
-              type="button"
-              onClick={handleSignUpClick}
-              className={`${auth.link} cursor-pointer border-0 bg-transparent p-0 font-inherit`}
-            >
-              Sign Up
-            </button>
-          </p>
         </form>
       </div>
     </AuthShell>

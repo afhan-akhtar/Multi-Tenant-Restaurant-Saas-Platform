@@ -1,8 +1,9 @@
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
+import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
-import { signIn, getSession } from "next-auth/react";
+import { signIn, signOut, getSession } from "next-auth/react";
 import { COUNTRIES } from "@/lib/countries";
 import Spinner from "@/app/components/Spinner";
 import { AuthShell, auth, authDisplayFont } from "@/app/components/auth/AuthShell";
@@ -12,6 +13,7 @@ function LoginFormInner() {
   const router = useRouter();
   const callbackUrl = searchParams.get("callbackUrl") || "";
   const showSignUpByDefault = searchParams.get("signup") === "1";
+  const passwordJustReset = searchParams.get("reset") === "1";
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -56,13 +58,23 @@ function LoginFormInner() {
       if (res?.ok) {
         const session = await getSession();
         if (session?.user?.type === "super_admin") {
-          // Honor callbackUrl for super admin (e.g. /admin/restaurants), fall back to /admin
           router.push(callbackUrl || "/admin");
+          router.refresh();
         } else {
-          // For restaurant admins, /go resolves the subdomain URL server-side
-          router.push("/go");
+          // Restaurant admins must have their session cookie set on their
+          // subdomain, not on localhost (Chrome won't share Domain=localhost
+          // cookies with demo.localhost).  Generate a one-time transfer token
+          // while still signed in here, sign out from root immediately, then
+          // let the subdomain login page consume the token.
+          const transferRes = await fetch("/api/auth/self-transfer", { method: "POST" });
+          if (transferRes.ok) {
+            const { redirectUrl } = await transferRes.json();
+            await signOut({ redirect: false }); // clear the temporary localhost session
+            window.location.href = redirectUrl; // full navigation to subdomain /login?impersonateToken=…
+          } else {
+            setError("Could not complete sign-in. Please log in at your restaurant URL.");
+          }
         }
-        router.refresh();
       }
     } catch {
       setError("Something went wrong. Please try again.");
@@ -118,6 +130,11 @@ function LoginFormInner() {
       <div className={`${auth.cardNarrow} mx-auto w-full`}>
         <h1 className={`${authDisplayFont} ${auth.title}`}>Sign In</h1>
         <p className={auth.subtitle}>Enter your email and password to continue</p>
+        {passwordJustReset ? (
+          <p className="mb-4 rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-sm text-teal-900">
+            Your password was updated. You can sign in with your new password.
+          </p>
+        ) : null}
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
             <label htmlFor="email" className={auth.label}>
@@ -149,6 +166,11 @@ function LoginFormInner() {
               autoComplete="current-password"
             />
           </div>
+          <p className="mb-0 mt-1 text-right">
+            <Link className={`text-sm ${auth.link}`} href="/forgot-password">
+              Forgot password?
+            </Link>
+          </p>
           {error && <p className={`${auth.error} mt-2 mb-0`}>{error}</p>}
           <p className={`mt-4 text-center ${auth.muted}`}>
             New restaurant?{" "}

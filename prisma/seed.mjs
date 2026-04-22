@@ -154,7 +154,7 @@ async function main() {
 
   let manager = await tdb.tenantAdmin.findFirst({ where: { tenantId: tenant.id } });
   if (!manager) {
-    const managerPassword = await bcrypt.hash("tenant123", 12);
+    const managerPassword = await bcrypt.hash("password", 12);
     manager = await tdb.tenantAdmin.create({
       data: {
         tenantId: tenant.id,
@@ -167,7 +167,7 @@ async function main() {
       },
     });
   } else {
-    const managerPassword = await bcrypt.hash("tenant123", 12);
+    const managerPassword = await bcrypt.hash("password", 12);
     manager = await tdb.tenantAdmin.update({
       where: { id: manager.id },
       data: {
@@ -824,7 +824,7 @@ async function main() {
 
   console.log("Seed completed:");
   console.log("  SuperAdmin:", admin.email, "/ admin123");
-  console.log("  Tenant admin: tenant@demo.com / tenant123 (subdomain: demo)");
+  console.log("  Tenant admin: tenant@demo.com / password (subdomain: demo)");
   console.log(`  Device POS: /pos/${tenant.id}?token=${demoPosToken}`);
   console.log(`  Device KDS: /kds/${tenant.id}?token=${demoKdsToken}`);
   console.log(`  Device TABLET: /tablet?token=${demoTabletToken}`);

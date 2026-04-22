@@ -102,6 +102,23 @@ model StaffLoginLookup {
   @@index([email])
 }
 
+/// One-time token for /forgot-password → email link → /reset-password (super admin + tenant staff).
+model PasswordResetToken {
+  id        Int       @id @default(autoincrement())
+  tokenHash String    @unique
+  email     String
+  /// SUPER_ADMIN or STAFF (column name in DB: userType)
+  kind      String    @map("userType")
+  tenantId  Int?
+  staffId   Int?
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([email])
+  @@index([expiresAt])
+}
+
 model FiskalyPlatformConfig {
   id        Int      @id @default(autoincrement())
   apiKey    String   @unique
