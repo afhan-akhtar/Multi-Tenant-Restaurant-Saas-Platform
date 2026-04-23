@@ -135,9 +135,15 @@ export async function middleware(request) {
   }
 
   if (!token) {
-    // Tenant home without login → root landing page (not login page)
+    // Tenant / without login: serve the same (main) landing as the root host (no 302
+    // to localhost — avoids ERR_TOO_MANY_REDIRECTS with some SW/auth paths).
     if (isTenantHost && pathname === "/") {
-      return NextResponse.redirect(buildRootUrl({ host, protocol, pathname: "/" }));
+      const rewriteUrl = request.nextUrl.clone();
+      rewriteUrl.pathname = "/";
+      const res = NextResponse.rewrite(rewriteUrl);
+      res.headers.set("x-pathname", "/");
+      res.headers.set("x-is-tenant-host", "1");
+      return res;
     }
 
     // Every other protected route → unified root login form

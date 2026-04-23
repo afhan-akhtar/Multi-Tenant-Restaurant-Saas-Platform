@@ -18,7 +18,9 @@ export default async function MainLayout({ children }) {
   const { isTenantHost } = getHostInfo(host);
 
   if (!session) {
-    if (pathOnly === "/" && !isTenantHost) {
+    // Public marketing home on / for both the root host and tenant subdomains
+    // (middleware rewrites e.g. demo.localhost/ → the same (main) route as /).
+    if (pathOnly === "/") {
       return <>{children}</>;
     }
     redirect("/login");
