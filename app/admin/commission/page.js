@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { platformPrisma } from "@/lib/platform-db";
 import { redirect } from "next/navigation";
 import CommissionClient from "@/app/components/CommissionClient";
+import { getRevenueByTenantFromOrders } from "@/lib/cross-tenant-aggregates";
 import { runSubscriptionBillingCycle, serializeSubscription } from "@/lib/subscriptions";
 
 export const dynamic = "force-dynamic";
@@ -12,7 +13,7 @@ export default async function AdminCommissionPage() {
 
   await runSubscriptionBillingCycle(platformPrisma);
 
-  const [plans, subscriptions, invoices] = await Promise.all([
+  const [plans, subscriptions, invoices, revenueByTenant] = await Promise.all([
     platformPrisma.subscriptionPlan.findMany({
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
       include: { _count: { select: { tenantSubscriptions: true } } },
@@ -42,6 +43,7 @@ export default async function AdminCommissionPage() {
       },
       orderBy: [{ issuedAt: "desc" }],
     }),
+    getRevenueByTenantFromOrders(),
   ]);
 
   const data = {
@@ -55,8 +57,10 @@ export default async function AdminCommissionPage() {
       trialDays: Number(p.trialDays || 0),
       graceDays: Number(p.graceDays || 0),
       subscriptionCount: p._count.tenantSubscriptions,
+      features: p.features,
     })),
     subscriptions: subscriptions.map((subscription) => serializeSubscription(subscription)),
+    revenueByTenant,
     invoices: invoices.map((invoice) => ({
       id: invoice.id,
       invoiceNumber: invoice.invoiceNumber,

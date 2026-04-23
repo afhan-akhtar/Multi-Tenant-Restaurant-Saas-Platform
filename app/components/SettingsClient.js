@@ -1,11 +1,24 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { buildTenantUrl } from "@/lib/tenant-url";
 
-export default function SettingsClient({ type, tenant, platform }) {
+function hubCard(href, title, body) {
+  return (
+    <Link
+      href={href}
+      className="block rounded-xl border border-color-border bg-color-card p-5 no-underline text-color-text shadow-sm hover:border-primary/40 hover:shadow-md transition-shadow"
+    >
+      <h3 className="m-0 text-base font-semibold text-color-text">{title}</h3>
+      <p className="m-0 mt-2 text-sm text-color-text-muted leading-relaxed">{body}</p>
+    </Link>
+  );
+}
+
+export default function SettingsClient({ type, tenant, platform, basePath = "" }) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -103,26 +116,62 @@ export default function SettingsClient({ type, tenant, platform }) {
   };
 
   if (type === "platform") {
+    const p = basePath.replace(/\/$/, "");
+    const to = (path) => `${p}${path}`;
     return (
-      <div className="py-4 w-full min-w-0">
-        <h2 className="m-0 text-xl font-semibold text-color-text mb-6">Platform Settings</h2>
-        <div className="bg-color-card rounded-lg border border-color-border p-6 max-w-lg">
-          <p className="text-color-text-muted text-sm mb-4">
-            Platform-wide configuration is managed through Restaurant Management and Subscriptions.
-          </p>
-          <div className="flex flex-col gap-3 text-sm">
+      <div className="py-4 w-full min-w-0 max-w-5xl">
+        <h2 className="m-0 text-xl font-semibold text-color-text mb-2">Platform control center</h2>
+        <p className="text-color-text-muted text-sm mb-6 max-w-2xl">
+          Settings is the launch point for governance: onboarding and tenants, plans and billing, commission
+          reconciliation, audit visibility, and secure impersonation. Each area opens in its own workspace below.
+        </p>
+
+        <div className="grid gap-4 sm:grid-cols-2 mb-8">
+          {hubCard(
+            to("/restaurants"),
+            "Restaurant management",
+            "Onboarding and approvals, profile and branding, block/unblock with status sync, multi-branch counts, and activity signals from orders and audits."
+          )}
+          {hubCard(
+            to("/subscriptions"),
+            "Subscriptions & feature control",
+            "Plans (Basic / Premium / Enterprise style), feature flags, billing cycle tools, trials and grace, invoices and payment history."
+          )}
+          {hubCard(
+            to("/commission"),
+            "Commission & billing",
+            "Configurable % or flat-per-order from plan metadata, reconciliation from completed orders, CSV export for finance."
+          )}
+          {hubCard(
+            to("/logs"),
+            "Global logs",
+            "Cross-tenant audit feed (read-only). Pair with 90-day retention policy and optional ElasticSearch / CloudWatch forwarding."
+          )}
+          {hubCard(
+            to("/impersonation"),
+            "Secure impersonation",
+            "One-click tenant admin session with signed token, banner and expiry in the tenant shell, end session anytime."
+          )}
+        </div>
+
+        <div className="bg-color-card rounded-lg border border-color-border p-6">
+          <h3 className="m-0 text-base font-semibold text-color-text mb-4">Snapshot</h3>
+          <div className="flex flex-col gap-3 text-sm max-w-md">
             <div className="flex justify-between">
-              <span className="text-color-text-muted">Total Restaurants</span>
+              <span className="text-color-text-muted">Total restaurants</span>
               <span className="font-medium text-color-text">{platform?.tenantsCount ?? 0}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-color-text-muted">Subscription Plans</span>
+              <span className="text-color-text-muted">Subscription plans</span>
               <span className="font-medium text-color-text">{platform?.plansCount ?? 0}</span>
             </div>
+            {platform?.pendingCount != null && (
+              <div className="flex justify-between">
+                <span className="text-color-text-muted">Pending approval</span>
+                <span className="font-medium text-amber-700 dark:text-amber-400">{platform.pendingCount}</span>
+              </div>
+            )}
           </div>
-          <p className="mt-6 text-color-text-muted text-xs">
-            To approve new tenants, go to Restaurant Management. To manage plans and commissions, use Subscriptions and Commission pages.
-          </p>
         </div>
       </div>
     );

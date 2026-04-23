@@ -36,10 +36,14 @@ export async function POST(req) {
       return NextResponse.json({ error: "Tenant admin not found or tenant inactive." }, { status: 404 });
     }
 
+    const sessionMinutes = 120;
+    const exp = Date.now() + sessionMinutes * 60 * 1000;
     const payload = JSON.stringify({
       staffId: staff.id,
       tenantId: staff.tenantId,
-      exp: Date.now() + 5 * 60 * 1000,
+      exp,
+      saId: token.id != null ? String(token.id) : null,
+      saEmail: token.email != null ? String(token.email) : null,
     });
     const payloadB64 = Buffer.from(payload, "utf8").toString("base64url");
     const sig = crypto

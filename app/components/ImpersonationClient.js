@@ -37,7 +37,9 @@ export default function ImpersonationClient({ staff }) {
     <div className="py-4 w-full min-w-0">
       <h2 className="m-0 text-xl font-semibold text-color-text mb-4">Impersonation</h2>
       <p className="text-color-text-muted mb-4 text-sm">
-        Log in as any Tenant Admin for support or debugging. Secure capability for Super Admin only.
+        One-click support login as a Tenant Admin: no password required on their subdomain. Each session is
+        time-limited, isolated from your Super Admin cookie, and should be ended when support is complete.
+        Impersonation start is tied to your Super Admin identity in the signed token.
       </p>
       {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
       <div className="bg-color-card rounded-lg border border-color-border overflow-hidden shadow-sm">

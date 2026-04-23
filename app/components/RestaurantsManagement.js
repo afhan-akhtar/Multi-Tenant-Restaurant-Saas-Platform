@@ -32,7 +32,65 @@ export default function RestaurantsManagement({ tenants: initialTenants, basePat
     email: "",
     password: "",
   });
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [profileError, setProfileError] = useState("");
+  const [profileForm, setProfileForm] = useState({
+    id: null,
+    name: "",
+    logoUrl: "",
+    country: "",
+  });
   const [countryFilter, setCountryFilter] = useState("");
+
+  function formatActivity(value) {
+    if (!value) return "—";
+    try {
+      return new Date(value).toLocaleString();
+    } catch {
+      return "—";
+    }
+  }
+
+  function openProfile(t) {
+    setProfileError("");
+    setProfileForm({
+      id: t.id,
+      name: t.name || "",
+      logoUrl: t.logoUrl || "",
+      country: t.country || "",
+    });
+    setProfileOpen(true);
+  }
+
+  async function saveProfile(e) {
+    e.preventDefault();
+    if (!profileForm.id) return;
+    setProfileError("");
+    setProfileLoading(true);
+    try {
+      const res = await fetch(`/api/super-admin/tenants/${profileForm.id}/profile`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: profileForm.name.trim(),
+          logoUrl: profileForm.logoUrl.trim(),
+          country: profileForm.country.trim(),
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setProfileError(data.error || "Update failed");
+        return;
+      }
+      setProfileOpen(false);
+      router.refresh();
+    } catch {
+      setProfileError("Something went wrong");
+    } finally {
+      setProfileLoading(false);
+    }
+  }
 
   const filteredTenants = useMemo(() => {
     if (!countryFilter) return tenants;
@@ -98,7 +156,8 @@ export default function RestaurantsManagement({ tenants: initialTenants, basePat
         <div>
           <h2 className="m-0 text-xl font-semibold text-color-text">Restaurant Management</h2>
           <p className="m-0 mt-1 text-sm text-color-text-muted">
-            Onboard, approve, block, or unblock restaurants. Pending registrations require your approval.
+            Onboard with owner email and initial branch, verify pending tenants, edit platform profile (name, logo,
+            country), block/unblock with mirrored status, and monitor branches plus last activity from orders/audits.
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -234,8 +293,10 @@ export default function RestaurantsManagement({ tenants: initialTenants, basePat
                 <th className="py-3 px-4 text-left font-semibold text-color-text whitespace-nowrap">Subdomain</th>
                 <th className="py-3 px-4 text-left font-semibold text-color-text whitespace-nowrap">Country</th>
                 <th className="py-3 px-4 text-left font-semibold text-color-text whitespace-nowrap">Status</th>
+                <th className="py-3 px-4 text-left font-semibold text-color-text whitespace-nowrap" data-align="right">Branches</th>
                 <th className="py-3 px-4 text-left font-semibold text-color-text whitespace-nowrap" data-align="right">Orders</th>
                 <th className="py-3 px-4 text-left font-semibold text-color-text whitespace-nowrap" data-align="right">Tenant Admins</th>
+                <th className="py-3 px-4 text-left font-semibold text-color-text whitespace-nowrap">Last activity</th>
                 <th className="py-3 px-4 text-left font-semibold text-color-text whitespace-nowrap">Actions</th>
               </tr>
             </thead>
@@ -255,32 +316,43 @@ export default function RestaurantsManagement({ tenants: initialTenants, basePat
                         {t.status}
                       </span>
                     </td>
+                    <td className="py-3 px-4" data-align="right">{t._count?.branches ?? 0}</td>
                     <td className="py-3 px-4" data-align="right">{t._count?.orders ?? 0}</td>
                     <td className="py-3 px-4" data-align="right">{t._count?.tenantAdmins ?? 0}</td>
+                    <td className="py-3 px-4 text-color-text-muted text-xs whitespace-nowrap">{formatActivity(t.lastActivityAt)}</td>
                     <td className="py-3 px-4">
-                      {t.status === "ACTIVE" && (
+                      <div className="flex flex-wrap gap-2">
                         <button
                           type="button"
-                          onClick={() => handleAction(t.id, "block")}
-                          disabled={loading === t.id}
-                          className="py-1.5 px-3 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 rounded text-xs font-medium border-0 cursor-pointer hover:bg-red-200 dark:hover:bg-red-900/50 disabled:opacity-60"
+                          onClick={() => openProfile(t)}
+                          className="py-1.5 px-3 bg-color-bg border border-color-border text-color-text rounded text-xs font-medium border-solid cursor-pointer hover:bg-color-card"
                         >
-                          Block
+                          Edit profile
                         </button>
-                      )}
-                      {t.status === "BLOCKED" && (
-                        <button
-                          type="button"
-                          onClick={() => handleAction(t.id, "unblock")}
-                          disabled={loading === t.id}
-                          className="py-1.5 px-3 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 rounded text-xs font-medium border-0 cursor-pointer hover:bg-emerald-200 dark:hover:bg-emerald-900/50 disabled:opacity-60"
-                        >
-                          Unblock
-                        </button>
-                      )}
-                      {(String(t.status || "").toUpperCase() === "PENDING" || t.status === "INACTIVE") && (
-                        <span className="text-color-text-muted text-xs">—</span>
-                      )}
+                        {t.status === "ACTIVE" && (
+                          <button
+                            type="button"
+                            onClick={() => handleAction(t.id, "block")}
+                            disabled={loading === t.id}
+                            className="py-1.5 px-3 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 rounded text-xs font-medium border-0 cursor-pointer hover:bg-red-200 dark:hover:bg-red-900/50 disabled:opacity-60"
+                          >
+                            Block
+                          </button>
+                        )}
+                        {t.status === "BLOCKED" && (
+                          <button
+                            type="button"
+                            onClick={() => handleAction(t.id, "unblock")}
+                            disabled={loading === t.id}
+                            className="py-1.5 px-3 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 rounded text-xs font-medium border-0 cursor-pointer hover:bg-emerald-200 dark:hover:bg-emerald-900/50 disabled:opacity-60"
+                          >
+                            Unblock
+                          </button>
+                        )}
+                        {(String(t.status || "").toUpperCase() === "PENDING" || t.status === "INACTIVE") && (
+                          <span className="text-color-text-muted text-xs self-center">—</span>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );
@@ -292,6 +364,71 @@ export default function RestaurantsManagement({ tenants: initialTenants, basePat
           <div className="py-8 px-6 text-center text-color-text-muted text-[0.95rem]">No restaurants yet</div>
         )}
       </div>
+      )}
+
+      {profileOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50">
+          <div className="w-full max-w-md bg-color-card rounded-xl shadow-xl border border-color-border p-6 max-h-[90vh] overflow-y-auto">
+            <h3 className="m-0 mb-4 text-lg font-semibold text-color-text">Restaurant profile</h3>
+            <p className="text-xs text-color-text-muted mb-4 m-0">
+              Updates the platform registry and the tenant database (name, logo URL, country).
+            </p>
+            {profileError && (
+              <div className="mb-4 p-3 rounded-lg bg-red-500/10 text-red-600 text-sm">{profileError}</div>
+            )}
+            <form onSubmit={saveProfile}>
+              <div className="mb-4">
+                <label className="block mb-1 text-sm font-medium text-color-text">Restaurant name</label>
+                <input
+                  type="text"
+                  required
+                  className="w-full py-2 px-3 border border-color-border rounded-lg bg-color-bg text-color-text"
+                  value={profileForm.name}
+                  onChange={(e) => setProfileForm((f) => ({ ...f, name: e.target.value }))}
+                />
+              </div>
+              <div className="mb-4">
+                <label className="block mb-1 text-sm font-medium text-color-text">Logo URL</label>
+                <input
+                  type="url"
+                  placeholder="https://…"
+                  className="w-full py-2 px-3 border border-color-border rounded-lg bg-color-bg text-color-text"
+                  value={profileForm.logoUrl}
+                  onChange={(e) => setProfileForm((f) => ({ ...f, logoUrl: e.target.value }))}
+                />
+              </div>
+              <div className="mb-5">
+                <label className="block mb-1 text-sm font-medium text-color-text">Country</label>
+                <select
+                  value={profileForm.country}
+                  onChange={(e) => setProfileForm((f) => ({ ...f, country: e.target.value }))}
+                  className="w-full py-2 px-3 border border-color-border rounded-lg bg-color-bg text-color-text"
+                >
+                  <option value="">—</option>
+                  {COUNTRIES.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex gap-3 justify-end">
+                <button
+                  type="button"
+                  onClick={() => { setProfileOpen(false); setProfileError(""); }}
+                  className="py-2 px-4 border border-color-border rounded-lg text-color-text bg-transparent cursor-pointer hover:bg-color-bg"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={profileLoading}
+                  className="py-2 px-4 bg-primary text-white rounded-lg font-medium border-0 cursor-pointer disabled:opacity-70"
+                >
+                  {profileLoading ? "Saving…" : "Save"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
 
       {modalOpen && (

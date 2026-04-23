@@ -13,14 +13,16 @@ export default async function SettingsPage() {
   const isSuperAdmin = session.user?.type === "super_admin";
 
   if (isSuperAdmin) {
-    const [tenantsCount, plansCount] = await Promise.all([
+    const [tenantsCount, plansCount, pendingCount] = await Promise.all([
       platformPrisma.tenant.count(),
       platformPrisma.subscriptionPlan.count(),
+      platformPrisma.tenant.count({ where: { status: "PENDING" } }),
     ]);
     return (
       <SettingsClient
         type="platform"
-        platform={{ tenantsCount, plansCount }}
+        basePath="/admin"
+        platform={{ tenantsCount, plansCount, pendingCount }}
       />
     );
   }

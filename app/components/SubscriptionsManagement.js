@@ -20,12 +20,17 @@ function getStatusTone(status) {
 }
 
 function planToForm(plan) {
+  const feats = plan?.features;
+  const rawFeat = feats && typeof feats === "object" && !Array.isArray(feats) ? feats : {};
+  const isFlat = String(rawFeat.commissionModel || "").toUpperCase() === "FLAT_PER_ORDER";
   return {
     code: plan?.code || "",
     name: plan?.name || "",
     description: plan?.description || "",
     monthlyPrice: String(plan?.monthlyPrice ?? ""),
     commissionPercent: String(plan?.commissionPercent ?? ""),
+    commissionModel: isFlat ? "FLAT_PER_ORDER" : "REVENUE_PERCENT",
+    flatFeePerOrder: String(rawFeat.flatFeePerOrder ?? rawFeat.flatFee ?? ""),
     trialDays: String(plan?.trialDays ?? 14),
     graceDays: String(plan?.graceDays ?? 7),
     sortOrder: String(plan?.sortOrder ?? 0),
@@ -119,6 +124,13 @@ export default function SubscriptionsManagement({ plans, subscriptions, tenants,
   async function savePlan(e) {
     e.preventDefault();
     setError("");
+    if (planForm.commissionModel === "FLAT_PER_ORDER") {
+      const flat = Number(planForm.flatFeePerOrder);
+      if (!Number.isFinite(flat) || flat < 0) {
+        setError("Enter a valid flat fee per order.");
+        return;
+      }
+    }
     setLoading("plan");
     try {
       await handleRequest(
@@ -136,6 +148,8 @@ export default function SubscriptionsManagement({ plans, subscriptions, tenants,
             graceDays: Number(planForm.graceDays),
             sortOrder: Number(planForm.sortOrder || 0),
             featureCodes: planForm.featureCodes,
+            commissionModel: planForm.commissionModel,
+            flatFeePerOrder: planForm.commissionModel === "FLAT_PER_ORDER" ? planForm.flatFeePerOrder : "",
           }),
         },
         editingPlanId ? "Failed to update plan" : "Failed to create plan"
@@ -494,9 +508,16 @@ export default function SubscriptionsManagement({ plans, subscriptions, tenants,
                 <div><label className="mb-1 block text-sm font-medium text-color-text">Plan name</label><input type="text" required className="w-full rounded-lg border border-color-border bg-color-bg px-3 py-2 text-color-text" value={planForm.name} onChange={(e) => setPlanForm((form) => ({ ...form, name: e.target.value }))} /></div>
               </div>
               <div className="mt-4"><label className="mb-1 block text-sm font-medium text-color-text">Description</label><textarea rows={3} className="w-full rounded-lg border border-color-border bg-color-bg px-3 py-2 text-color-text" value={planForm.description} onChange={(e) => setPlanForm((form) => ({ ...form, description: e.target.value }))} /></div>
-              <div className="mt-4 grid gap-4 sm:grid-cols-4">
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                <div><label className="mb-1 block text-sm font-medium text-color-text">Commission model</label><select className="w-full rounded-lg border border-color-border bg-color-bg px-3 py-2 text-color-text" value={planForm.commissionModel} onChange={(e) => setPlanForm((form) => ({ ...form, commissionModel: e.target.value }))}><option value="REVENUE_PERCENT">% of completed-order revenue</option><option value="FLAT_PER_ORDER">Flat fee per completed order</option></select></div>
+                {planForm.commissionModel === "FLAT_PER_ORDER" ? (
+                  <div><label className="mb-1 block text-sm font-medium text-color-text">Flat fee (EUR / order)</label><input type="number" required min="0" step="0.01" className="w-full rounded-lg border border-color-border bg-color-bg px-3 py-2 text-color-text" value={planForm.flatFeePerOrder} onChange={(e) => setPlanForm((form) => ({ ...form, flatFeePerOrder: e.target.value }))} /></div>
+                ) : (
+                  <div><label className="mb-1 block text-sm font-medium text-color-text">Commission %</label><input type="number" required min="0" max="100" step="0.1" className="w-full rounded-lg border border-color-border bg-color-bg px-3 py-2 text-color-text" value={planForm.commissionPercent} onChange={(e) => setPlanForm((form) => ({ ...form, commissionPercent: e.target.value }))} /></div>
+                )}
+              </div>
+              <div className="mt-4 grid gap-4 sm:grid-cols-3">
                 <div><label className="mb-1 block text-sm font-medium text-color-text">Monthly price</label><input type="number" required min="0" step="0.01" className="w-full rounded-lg border border-color-border bg-color-bg px-3 py-2 text-color-text" value={planForm.monthlyPrice} onChange={(e) => setPlanForm((form) => ({ ...form, monthlyPrice: e.target.value }))} /></div>
-                <div><label className="mb-1 block text-sm font-medium text-color-text">Commission %</label><input type="number" required min="0" max="100" step="0.1" className="w-full rounded-lg border border-color-border bg-color-bg px-3 py-2 text-color-text" value={planForm.commissionPercent} onChange={(e) => setPlanForm((form) => ({ ...form, commissionPercent: e.target.value }))} /></div>
                 <div><label className="mb-1 block text-sm font-medium text-color-text">Trial days</label><input type="number" min="0" className="w-full rounded-lg border border-color-border bg-color-bg px-3 py-2 text-color-text" value={planForm.trialDays} onChange={(e) => setPlanForm((form) => ({ ...form, trialDays: e.target.value }))} /></div>
                 <div><label className="mb-1 block text-sm font-medium text-color-text">Grace days</label><input type="number" min="0" className="w-full rounded-lg border border-color-border bg-color-bg px-3 py-2 text-color-text" value={planForm.graceDays} onChange={(e) => setPlanForm((form) => ({ ...form, graceDays: e.target.value }))} /></div>
               </div>

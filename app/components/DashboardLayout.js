@@ -539,6 +539,30 @@ export default function DashboardLayout({
         </header>
 
         <main className="flex-1 p-4 sm:p-6 overflow-x-hidden">
+          {!isSuperAdmin && user?.impersonation && (
+            <div className="mb-4 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div>
+                <p className="m-0 font-semibold">Impersonation mode</p>
+                <p className="m-0 mt-1 text-amber-900/90 text-xs sm:text-sm">
+                  You are signed in as <strong>{user?.name}</strong>
+                  {user?.impersonationSuperAdminEmail
+                    ? ` (started by Super Admin ${user.impersonationSuperAdminEmail})`
+                    : ""}
+                  .
+                  {user?.impersonationExpiresAt
+                    ? ` Session ends ${new Date(user.impersonationExpiresAt).toLocaleString()}.`
+                    : ""}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleSignOut}
+                className="shrink-0 py-2 px-4 rounded-lg bg-amber-800 text-white text-sm font-medium border-0 cursor-pointer hover:bg-amber-900"
+              >
+                End impersonation
+              </button>
+            </div>
+          )}
           {!isSuperAdmin && subscriptionAccess && !subscriptionAccess.hasSubscription && (
             <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
               No subscription is assigned to this restaurant. Open `My Subscription` to review plans and billing.

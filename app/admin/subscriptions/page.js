@@ -54,19 +54,26 @@ export default async function AdminSubscriptionsPage() {
 
   return (
     <SubscriptionsManagement
-      plans={plans.map((plan) => ({
-        id: plan.id,
-        code: plan.code,
-        name: plan.name,
-        description: plan.description || "",
-        monthlyPrice: Number(plan.monthlyPrice),
-        commissionPercent: Number(plan.commissionPercent),
-        trialDays: Number(plan.trialDays || 0),
-        graceDays: Number(plan.graceDays || 0),
-        sortOrder: Number(plan.sortOrder || 0),
-        features: buildPlanFeatures(plan.features),
-        subscriptionCount: plan._count?.tenantSubscriptions ?? 0,
-      }))}
+      plans={plans.map((plan) => {
+        const rawFeat = plan.features && typeof plan.features === "object" && !Array.isArray(plan.features) ? plan.features : {};
+        return {
+          id: plan.id,
+          code: plan.code,
+          name: plan.name,
+          description: plan.description || "",
+          monthlyPrice: Number(plan.monthlyPrice),
+          commissionPercent: Number(plan.commissionPercent),
+          trialDays: Number(plan.trialDays || 0),
+          graceDays: Number(plan.graceDays || 0),
+          sortOrder: Number(plan.sortOrder || 0),
+          features: {
+            ...buildPlanFeatures(plan.features),
+            ...(rawFeat.commissionModel ? { commissionModel: rawFeat.commissionModel } : {}),
+            ...(rawFeat.flatFeePerOrder != null ? { flatFeePerOrder: rawFeat.flatFeePerOrder } : {}),
+          },
+          subscriptionCount: plan._count?.tenantSubscriptions ?? 0,
+        };
+      })}
       subscriptions={subscriptions.map((subscription) => serializeSubscription(subscription))}
       tenants={tenants}
       planChangeRequests={planChangeRequests.map((request) => ({
