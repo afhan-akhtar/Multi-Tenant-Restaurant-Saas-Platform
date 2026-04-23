@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import Spinner from "@/app/components/Spinner";
 import { AuthShell, auth, authDisplayFont } from "@/app/components/auth/AuthShell";
+import { PasswordField } from "@/app/components/auth/PasswordField";
 
 function FormInner() {
   const searchParams = useSearchParams();
@@ -13,6 +14,8 @@ function FormInner() {
 
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -77,31 +80,41 @@ function FormInner() {
             <label htmlFor="new-pass" className={auth.label}>
               New password
             </label>
-            <input
+            <PasswordField
               id="new-pass"
-              type="password"
-              className={auth.input}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
               minLength={8}
               autoComplete="new-password"
+              showPassword={showNewPassword}
+              onToggleShow={() => setShowNewPassword((v) => !v)}
             />
           </div>
           <div className="mb-4">
             <label htmlFor="new-pass2" className={auth.label}>
               Confirm password
             </label>
-            <input
+            <PasswordField
               id="new-pass2"
-              type="password"
-              className={auth.input}
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
               required
               minLength={8}
               autoComplete="new-password"
+              showPassword={showConfirmPassword}
+              onToggleShow={() => setShowConfirmPassword((v) => !v)}
             />
+            {confirm.length > 0 ? (
+              <p
+                className={`mb-0 mt-2 text-sm font-medium ${
+                  password === confirm ? "text-teal-700" : "text-red-600"
+                }`}
+                role="status"
+              >
+                {password === confirm ? "Passwords match" : "Passwords do not match"}
+              </p>
+            ) : null}
           </div>
           {error ? <p className={auth.error}>{error}</p> : null}
           <button type="submit" className={`${auth.btnPrimary} mt-2`} disabled={loading}>

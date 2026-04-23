@@ -5,6 +5,7 @@ import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Spinner from "@/app/components/Spinner";
 import { AuthShell, auth, authDisplayFont } from "@/app/components/auth/AuthShell";
+import { PasswordField } from "@/app/components/auth/PasswordField";
 
 function AdminLoginFormInner() {
   const router = useRouter();
@@ -14,6 +15,7 @@ function AdminLoginFormInner() {
   const [error, setError] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -70,15 +72,15 @@ function AdminLoginFormInner() {
             <label htmlFor="admin-password" className={auth.label}>
               Password
             </label>
-            <input
+            <PasswordField
               id="admin-password"
-              type="password"
-              className={auth.input}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Enter your password"
               required
               autoComplete="current-password"
+              showPassword={showPassword}
+              onToggleShow={() => setShowPassword((v) => !v)}
             />
           </div>
           {error ? <p className={`${auth.error} mt-2 mb-0`}>{error}</p> : null}

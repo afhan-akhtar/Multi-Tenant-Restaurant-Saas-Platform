@@ -7,6 +7,7 @@ import { signIn, signOut, getSession } from "next-auth/react";
 import { COUNTRIES } from "@/lib/countries";
 import Spinner from "@/app/components/Spinner";
 import { AuthShell, auth, authDisplayFont } from "@/app/components/auth/AuthShell";
+import { PasswordField } from "@/app/components/auth/PasswordField";
 
 function LoginFormInner() {
   const searchParams = useSearchParams();
@@ -19,6 +20,7 @@ function LoginFormInner() {
   const [error, setError] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [signUpOpen, setSignUpOpen] = useState(false);
 
   const [signUpLoading, setSignUpLoading] = useState(false);
@@ -30,6 +32,7 @@ function LoginFormInner() {
   const [ownerName, setOwnerName] = useState("");
   const [signUpEmail, setSignUpEmail] = useState("");
   const [signUpPassword, setSignUpPassword] = useState("");
+  const [showSignUpPassword, setShowSignUpPassword] = useState(false);
 
   useEffect(() => {
     if (showSignUpByDefault) {
@@ -155,15 +158,15 @@ function LoginFormInner() {
             <label htmlFor="password" className={auth.label}>
               Password
             </label>
-            <input
+            <PasswordField
               id="password"
-              type="password"
-              className={auth.input}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Enter your password"
               required
               autoComplete="current-password"
+              showPassword={showPassword}
+              onToggleShow={() => setShowPassword((v) => !v)}
             />
           </div>
           <p className="mb-0 mt-1 text-right">
@@ -325,16 +328,16 @@ function LoginFormInner() {
                     <label htmlFor="modal-password" className={auth.label}>
                       Password
                     </label>
-                    <input
+                    <PasswordField
                       id="modal-password"
-                      type="password"
                       placeholder="Min 6 characters"
                       required
                       minLength={6}
-                      className={auth.input}
                       value={signUpPassword}
                       onChange={(e) => setSignUpPassword(e.target.value)}
                       autoComplete="new-password"
+                      showPassword={showSignUpPassword}
+                      onToggleShow={() => setShowSignUpPassword((v) => !v)}
                     />
                   </div>
                   {signUpError && <p className={`${auth.error} mb-4`}>{signUpError}</p>}

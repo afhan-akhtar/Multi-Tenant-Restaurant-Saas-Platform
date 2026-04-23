@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useSearchParams, useParams } from "next/navigation";
 import Spinner from "@/app/components/Spinner";
 import { AuthShell, auth, authDisplayFont } from "@/app/components/auth/AuthShell";
+import { PasswordField } from "@/app/components/auth/PasswordField";
 
 function LoginFormInner() {
   const params = useParams();
@@ -19,6 +20,7 @@ function LoginFormInner() {
   const [error, setError] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     if (!impersonateToken) return;
@@ -87,6 +89,17 @@ function LoginFormInner() {
     }
   }
 
+  if (impersonateToken && !error) {
+    return (
+      <AuthShell>
+        <div className="flex flex-col items-center justify-center gap-4 py-12">
+          <Spinner size="xl" className="text-teal-600" />
+          <p className="m-0 text-sm font-medium text-slate-600">Signing in…</p>
+        </div>
+      </AuthShell>
+    );
+  }
+
   return (
     <AuthShell>
       <div className={`${auth.cardNarrow} mx-auto w-full`}>
@@ -117,15 +130,15 @@ function LoginFormInner() {
             <label htmlFor="tenant-password" className={auth.label}>
               Password
             </label>
-            <input
+            <PasswordField
               id="tenant-password"
-              type="password"
-              className={auth.input}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Enter your password"
               required
               autoComplete="current-password"
+              showPassword={showPassword}
+              onToggleShow={() => setShowPassword((v) => !v)}
             />
           </div>
           <p className="mb-0 mt-1 text-right">
@@ -137,12 +150,12 @@ function LoginFormInner() {
           <button
             type="submit"
             className={`${auth.btnPrimary} mt-4`}
-            disabled={loading || Boolean(impersonateToken)}
+            disabled={loading}
           >
             {loading ? (
               <span className="flex items-center gap-2">
                 <Spinner size="sm" className="text-white" />
-                <span>{impersonateToken ? "Signing in…" : "Signing in…"}</span>
+                <span>Signing in…</span>
               </span>
             ) : (
               "Sign in"
