@@ -23,6 +23,12 @@
 # user uploads (stored in public/uploads)
 /public/uploads/
 
+# Serwist (generated at build; do not commit)
+public/sw.js
+public/sw.js.map
+public/swe-worker-*.js
+public/swe-worker-*.js.map
+
 # misc
 .DS_Store
 *.pem

@@ -26,7 +26,7 @@ export async function middleware(request) {
   const { subdomain: currentSubdomain, isTenantHost } = getHostInfo(host);
 
   // /public assets (e.g. *.js) — must not be rewritten as /{tenant}/… or login HTML will be returned for .js URLs
-  if (pathname.match(/\.(ico|png|svg|jpg|jpeg|gif|webp|js|mjs|css|map|txt|json|woff2?)$/i)) {
+  if (pathname.match(/\.(ico|png|svg|jpg|jpeg|gif|webp|js|mjs|css|map|txt|json|webmanifest|woff2?)$/i)) {
     return nextWithPathHeaders(request, pathname, isTenantHost);
   }
   const tenantSubdomain = token?.type === "staff" ? token?.subdomain : "";
@@ -111,6 +111,7 @@ export async function middleware(request) {
   // Public routes
   const isPublic =
     (!isTenantHost && pathname === "/") ||
+    pathname === "/~offline" ||
     pathname === "/menu" ||
     pathname === "/login" ||
     pathname === "/forgot-password" ||
