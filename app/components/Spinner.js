@@ -39,8 +39,8 @@ export function PageLoader() {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-white">
       <div className="flex flex-col items-center gap-4">
-        <Spinner size="xl" className="text-sidebar" />
-        <p className="text-sm text-sidebar">Loading...</p>
+        <Spinner size="xl" className="text-primary" />
+        <p className="text-sm text-color-text-muted">Loading...</p>
       </div>
     </div>
   );
